@@ -136,10 +136,7 @@ export async function openFiles(paths: string[]) {
 }
 
 export async function openWithDialog(): Promise<void> {
-  const picked = await openDialog({
-    multiple: true,
-    filters: [{ name: "所有文件", extensions: ["*"] }],
-  });
+  const picked = await openDialog({ multiple: true });
   if (picked) await openFiles(picked);
 }
 
@@ -178,19 +175,23 @@ export async function saveTab(tab: Tab): Promise<boolean> {
 }
 
 export async function saveTabAs(tab: Tab): Promise<boolean> {
+  // 保存对话框不传 filters：macOS 会把 filters 的首个扩展名自动追加到文件名末尾，
+  // 传 ["*"] 会把「新文件 1.sql」保存成「新文件 1.sql.*」。
   const path = await saveDialog({
     title: "保存文件",
     defaultPath: tab.name,
-    filters: [{ name: "所有文件", extensions: ["*"] }],
   });
   if (!path) return false;
+  // 用户未输入扩展名时，沿用当前标签的扩展名，避免保存成无类型文件
+  const ext = /\.[^./\\]+$/.exec(tab.name)?.[0] ?? "";
+  const finalPath = ext && !/\.[^./\\]+$/.test(path) ? path + ext : path;
   try {
-    await writeTextFile(path, docText(tab), tab.encoding, tab.eol);
-    tab.path = path;
-    tab.name = path.split("/").pop() ?? path;
-    tab.language = languageName(path);
+    await writeTextFile(finalPath, docText(tab), tab.encoding, tab.eol);
+    tab.path = finalPath;
+    tab.name = finalPath.split("/").pop() ?? finalPath;
+    tab.language = languageName(finalPath);
     tab.dirty = false;
-    pushRecent(path);
+    pushRecent(finalPath);
     notify("已保存", false);
     return true;
   } catch (e) {
