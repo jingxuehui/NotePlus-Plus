@@ -2,14 +2,16 @@
 import { onMounted, onBeforeUnmount } from "vue";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import FileTree from "./components/FileTree.vue";
+import TitleBar from "./components/TitleBar.vue";
 import TabBar from "./components/TabBar.vue";
 import EditorPane from "./components/EditorPane.vue";
+import SettingsPanel from "./components/SettingsPanel.vue";
 import StatusBar from "./components/StatusBar.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
 import Welcome from "./components/Welcome.vue";
 import Toast from "./components/Toast.vue";
 import { settings, initVisualSettings } from "./stores/settings";
-import { confirmChoice, toggleSettings } from "./stores/ui";
+import { confirmChoice, toggleSettings, ui } from "./stores/ui";
 import {
   tabsState,
   activeTab,
@@ -163,17 +165,17 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-full flex flex-col bg-app text-main">
+    <TitleBar
+      @new="newTab"
+      @open="openWithDialog"
+      @open-folder="openFolder"
+      @save="activeTab && saveTab(activeTab)"
+      @save-all="saveAll"
+    />
     <div class="flex flex-1 min-h-0 main-row">
       <FileTree v-if="settings.sidebarVisible" @close-folder="closeFolder" />
       <div class="flex-1 flex flex-col min-w-0 min-h-0 right-col">
-        <TabBar
-          @close="requestClose"
-          @new="newTab"
-          @open="openWithDialog"
-          @open-folder="openFolder"
-          @save="activeTab && saveTab(activeTab)"
-          @save-all="saveAll"
-        />
+        <TabBar @close="requestClose" />
         <div class="flex-1 min-h-0 relative">
           <EditorPane v-if="tabsState.tabs.length" />
           <Welcome v-else @open="openWithDialog" @open-folder="openFolder" @open-path="openPath" />
@@ -183,5 +185,6 @@ onBeforeUnmount(() => {
     <StatusBar />
     <ConfirmModal />
     <Toast />
+    <SettingsPanel v-if="ui.showSettings" />
   </div>
 </template>
