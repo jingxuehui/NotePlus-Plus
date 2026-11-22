@@ -1,0 +1,212 @@
+import { reactive, computed } from "vue";
+import type { EditorState } from "@codemirror/state";
+import { save as saveDialog, open as openDialog } from "@tauri-apps/plugin-dialog";
+import { createStateForFile } from "@/editor/setup";
+import { languageName } from "@/editor/language";
+import { readTextFile, writeTextFile } from "@/commands";
+import { pushRecent } from "./recent";
+import { settings } from "./settings";
+import { notify } from "./toast";
+import { EMPTY_CURSOR, type CursorInfo } from "@/types";
+
+let uid = 0;
+
+export interface Tab {
+  id: number;
+  path: string | null;
+  name: string;
+  dirty: boolean;
+  encoding: string;
+  eol: string;
+  language: string;
+}
+
+interface TabsState {
+  tabs: Tab[];
+  activeId: number | null;
+}
+
+export const tabsState = reactive<TabsState>({
+  tabs: [],
+  activeId: null,
+});
+
+export const cursorInfo = reactive<CursorInfo>({ ...EMPTY_CURSOR });
+
+export const activeTab = computed<Tab | null>(
+  () => tabsState.tabs.find((t) => t.id === tabsState.activeId) ?? null
+);
+
+/**
+ * EditorState 存放在非响应式 Map 中：
+ * 避免被 Vue reactive 代理破坏 CodeMirror 的内部相等性判断。
+ */
+const stateStore = new Map<number, EditorState>();
+
+export function getState(tab: Tab): EditorState | undefined {
+  return stateStore.get(tab.id);
+}
+
+export function setState(tab: Tab, state: EditorState) {
+  stateStore.set(tab.id, state);
+}
+
+export const editorHooks = {
+  getTheme: () => settings.theme,
+  getFontSize: () => settings.fontSize,
+  getWordWrap: () => settings.wordWrap,
+  onDocChanged: () => {
+    const tab = activeTab.value;
+    if (tab) {
+      tab.dirty = true;
+      const s = stateStore.get(tab.id);
+      if (s) updateCursorFromState(s);
+    }
+  },
+  onCursor: (info: CursorInfo) => Object.assign(cursorInfo, info),
+};
+
+function updateCursorFromState(state: EditorState) {
+  const head = state.selection.main.head;
+  const line = state.doc.lineAt(head);
+  cursorInfo.line = line.number;
+  cursorInfo.col = head - line.from + 1;
+  cursorInfo.selected = Math.abs(state.selection.main.to - state.selection.main.from);
+  cursorInfo.lines = state.doc.lines;
+  cursorInfo.chars = state.doc.length;
+}
+
+function makeTab(
+  path: string | null,
+  name: string,
+  content: string,
+  encoding: string,
+  eol: string
+): Tab {
+  const tab: Tab = {
+    id: ++uid,
+    path,
+    name,
+    dirty: false,
+    encoding,
+    eol,
+    language: path ? languageName(path) : "纯文本",
+  };
+  setState(tab, createStateForFile(path, content, editorHooks));
+  return tab;
+}
+
+export function setActive(id: number) {
+  tabsState.activeId = id;
+  const tab = activeTab.value;
+  const s = tab ? stateStore.get(tab.id) : undefined;
+  if (s) updateCursorFromState(s);
+}
+
+export function newTab(): Tab {
+  const count = tabsState.tabs.filter((t) => !t.path).length + 1;
+  const tab = makeTab(null, `新文件 ${count}.txt`, "", "UTF-8", "LF");
+  tabsState.tabs.push(tab);
+  setActive(tab.id);
+  return tab;
+}
+
+export async function openPath(path: string): Promise<void> {
+  const existing = tabsState.tabs.find((t) => t.path === path);
+  if (existing) {
+    setActive(existing.id);
+    return;
+  }
+  try {
+    const info = await readTextFile(path);
+    const name = path.split("/").pop() ?? path;
+    const tab = makeTab(path, name, info.content, info.encoding, info.eol);
+    tabsState.tabs.push(tab);
+    setActive(tab.id);
+    pushRecent(path);
+  } catch (e) {
+    notify(typeof e === "string" ? e : String(e));
+  }
+}
+
+export async function openFiles(paths: string[]) {
+  for (const p of paths) {
+    await openPath(p);
+  }
+}
+
+export async function openWithDialog(): Promise<void> {
+  const picked = await openDialog({
+    multiple: true,
+    filters: [{ name: "所有文件", extensions: ["*"] }],
+  });
+  if (picked) await openFiles(picked);
+}
+
+export async function openFolderWithDialog(): Promise<string | null> {
+  const picked = await openDialog({ directory: true, multiple: false });
+  return picked ?? null;
+}
+
+export function removeTab(id: number) {
+  const idx = tabsState.tabs.findIndex((t) => t.id === id);
+  if (idx < 0) return;
+  tabsState.tabs.splice(idx, 1);
+  stateStore.delete(id);
+  if (tabsState.activeId === id) {
+    const next = tabsState.tabs[Math.min(idx, tabsState.tabs.length - 1)];
+    tabsState.activeId = next ? next.id : null;
+  }
+}
+
+export function docText(tab: Tab): string {
+  return stateStore.get(tab.id)?.doc.toString() ?? "";
+}
+
+export async function saveTab(tab: Tab): Promise<boolean> {
+  if (!tab.path) return saveTabAs(tab);
+  try {
+    await writeTextFile(tab.path, docText(tab), tab.encoding, tab.eol);
+    tab.dirty = false;
+    pushRecent(tab.path);
+    notify("已保存", false);
+    return true;
+  } catch (e) {
+    notify(typeof e === "string" ? e : String(e));
+    return false;
+  }
+}
+
+export async function saveTabAs(tab: Tab): Promise<boolean> {
+  const path = await saveDialog({
+    title: "保存文件",
+    defaultPath: tab.name,
+    filters: [{ name: "所有文件", extensions: ["*"] }],
+  });
+  if (!path) return false;
+  try {
+    await writeTextFile(path, docText(tab), tab.encoding, tab.eol);
+    tab.path = path;
+    tab.name = path.split("/").pop() ?? path;
+    tab.language = languageName(path);
+    tab.dirty = false;
+    pushRecent(path);
+    notify("已保存", false);
+    return true;
+  } catch (e) {
+    notify(typeof e === "string" ? e : String(e));
+    return false;
+  }
+}
+
+export async function saveAll(): Promise<void> {
+  for (const tab of [...tabsState.tabs]) {
+    if (tab.dirty) await saveTab(tab);
+  }
+}
+
+export function closeAllTabs() {
+  tabsState.tabs.forEach((t) => stateStore.delete(t.id));
+  tabsState.tabs = [];
+  tabsState.activeId = null;
+}
