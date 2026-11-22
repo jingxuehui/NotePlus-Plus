@@ -23,6 +23,7 @@ NotePlus+ 是一款 Notepad++ 风格的轻量级代码编辑器，使用 Tauri 2
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Install](#install)
 - [Getting Started](#getting-started)
+- [Release](#release)
 - [Tech Stack](#tech-stack)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -153,6 +154,33 @@ pnpm tauri build      # 产出 .app 与 .dmg，位于 src-tauri/target/release/b
 - `get_system_dark` / `system:theme-changed` 事件 — 原生检测 macOS 外观并广播（WKWebView 的 `prefers-color-scheme` 在 Tauri 下不可靠）
 - `open_find_window` / `close_find_window` / `set_find_theme` — 独立查找窗口的创建、Esc 关闭与标题栏主题同步
 - 查找窗口原生 `hidesOnDeactivate`，随应用失焦隐藏
+
+## Release（发版）
+
+一条命令完成发版：
+
+```bash
+pnpm release
+```
+
+依次执行三步：
+
+1. `scripts/release.mjs` — 以 `src-tauri/tauri.conf.json` 为权威版本号，patch 位 +1 并同步写入 `package.json` 与 `src-tauri/Cargo.toml`
+2. `tauri build` — 自动执行 `vue-tsc` 类型检查并打包，产出 `.app` 与 `.dmg`
+3. `scripts/upload-release.mjs` — 将 dmg 产物推送到 GitHub Release 与 Gitee Release（tag 为 `v<版本号>`，已存在的 Release 会复用并跳过同名附件）
+
+不发版、仅重新上传现有产物：
+
+```bash
+pnpm release:upload
+```
+
+推送需要 Token（二选一，不写入仓库）：环境变量 `GH_TOKEN` / `GITEE_TOKEN`，或本机文件 `~/.noteplus-release.env`：
+
+```env
+GH_TOKEN=github_pat_xxx
+GITEE_TOKEN=xxx
+```
 
 ## Tech Stack
 

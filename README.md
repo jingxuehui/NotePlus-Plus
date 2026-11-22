@@ -23,6 +23,7 @@ NotePlus+ is a lightweight Notepad++-style code editor built with Tauri 2 — no
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Install](#install)
 - [Getting Started](#getting-started)
+- [Release](#release)
 - [Tech Stack](#tech-stack)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -153,6 +154,33 @@ Besides regular file IO / directory-tree commands, `src-tauri/src/lib.rs` provid
 - `get_system_dark` / `system:theme-changed` event — native detection and broadcasting of the macOS appearance (WKWebView's `prefers-color-scheme` is unreliable under Tauri)
 - `open_find_window` / `close_find_window` / `set_find_theme` — standalone find window creation, Esc closing and titlebar theme sync
 - Native `hidesOnDeactivate` on the find window, so it hides with the app
+
+## Release
+
+Publish a new version with one command:
+
+```bash
+pnpm release
+```
+
+This runs three steps in sequence:
+
+1. `scripts/release.mjs` — takes `src-tauri/tauri.conf.json` as the source of truth, bumps the patch version and syncs it into `package.json` and `src-tauri/Cargo.toml`
+2. `tauri build` — type-checks (`vue-tsc`) and produces the `.app` and `.dmg`
+3. `scripts/upload-release.mjs` — uploads the dmg artifacts to GitHub Release and Gitee Release under tag `v<version>`; existing releases are reused and duplicate assets are skipped
+
+To re-upload the existing artifacts without rebuilding:
+
+```bash
+pnpm release:upload
+```
+
+Upload requires tokens (choose one; never commit them): environment variables `GH_TOKEN` / `GITEE_TOKEN`, or a local file `~/.noteplus-release.env`:
+
+```env
+GH_TOKEN=github_pat_xxx
+GITEE_TOKEN=xxx
+```
 
 ## Tech Stack
 
