@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
         <span class="dirty-hint" v-if="dirty">● 有未应用的更改</span>
         <span class="spacer"></span>
         <button class="btn" @click="close">关闭</button>
-        <button class="btn" @click="apply">应用</button>
+        <button class="btn" :class="{ primary: dirty }" :disabled="!dirty" @click="apply">应用</button>
         <button class="btn primary" @click="applyAndClose">应用并关闭</button>
       </footer>
     </div>
@@ -817,6 +817,11 @@ select:focus { border-color: var(--accent); }
   white-space: nowrap;
 }
 .btn:hover { background: var(--hover); }
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:disabled:hover { background: var(--panel-2); }
 .btn.ghost { background: transparent; color: var(--muted); }
 .btn.ghost:hover { background: var(--hover); color: var(--text); }
 .btn.primary {
