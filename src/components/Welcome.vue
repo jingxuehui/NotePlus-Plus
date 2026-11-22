@@ -14,6 +14,33 @@ function clearAll() {
   clearRecent();
   recent.value = [];
 }
+
+interface Shortcut {
+  k: string;
+  label: string;
+}
+const shortcuts: Shortcut[] = [
+  { k: "⌘N", label: "新建文件" },
+  { k: "⌘O", label: "打开文件" },
+  { k: "⇧⌘O", label: "打开文件夹" },
+  { k: "⌘S", label: "保存" },
+  { k: "⌥⌘S", label: "保存全部" },
+  { k: "⌘W", label: "关闭标签页" },
+  { k: "⌘F", label: "查找和替换窗口" },
+  { k: "⌘G / ⇧⌘G", label: "下一个 / 上一个匹配" },
+  { k: "⌘B", label: "显示 / 隐藏侧边栏" },
+  { k: "⌘/", label: "注释当前行" },
+  { k: "⌘+ / ⌘- / ⌘0", label: "放大 / 缩小 / 重置字号" },
+  { k: "⌘,", label: "设置" },
+  { k: "拖拽", label: "拖入文件即可打开" },
+];
+
+// ⌘⇧⌥ 等符号在 SF Mono 里字形偏小，拆出来单独放大，与字母视觉等大；
+// 每个符号独立成段，便于单独微调（如 ⇧ 基线偏低）
+const SYM_RE = /^[⌘⇧⌥⌃]$/;
+function parts(k: string): string[] {
+  return k.match(/[⌘⇧⌥⌃]|[^⌘⇧⌥⌃]+/g) ?? [k];
+}
 </script>
 
 <template>
@@ -30,19 +57,15 @@ function clearAll() {
       </div>
 
       <div class="shortcut-list text-left">
-        <div class="row"><span class="k">⌘N</span><span>新建文件</span></div>
-        <div class="row"><span class="k">⌘O</span><span>打开文件</span></div>
-        <div class="row"><span class="k">⇧⌘O</span><span>打开文件夹</span></div>
-        <div class="row"><span class="k">⌘S</span><span>保存</span></div>
-        <div class="row"><span class="k">⌥⌘S</span><span>保存全部</span></div>
-        <div class="row"><span class="k">⌘W</span><span>关闭标签页</span></div>
-        <div class="row"><span class="k">⌘F</span><span>查找和替换窗口</span></div>
-        <div class="row"><span class="k">⌘G / ⇧⌘G</span><span>下一个 / 上一个匹配</span></div>
-        <div class="row"><span class="k">⌘B</span><span>显示 / 隐藏侧边栏</span></div>
-        <div class="row"><span class="k">⌘/</span><span>注释当前行</span></div>
-        <div class="row"><span class="k">⌘+ / ⌘- / ⌘0</span><span>放大 / 缩小 / 重置字号</span></div>
-        <div class="row"><span class="k">⌘,</span><span>设置</span></div>
-        <div class="row"><span class="k">拖拽</span><span>拖入文件即可打开</span></div>
+        <div v-for="s in shortcuts" :key="s.k" class="row">
+          <span class="k"
+            ><template v-for="(p, i) in parts(s.k)" :key="i"
+              ><span v-if="SYM_RE.test(p)" class="sym" :class="{ shift: p === '⇧' }">{{ p }}</span
+              ><template v-else>{{ p }}</template></template
+            ></span
+          >
+          <span>{{ s.label }}</span>
+        </div>
       </div>
 
       <div v-if="recent.length" class="mt-10 text-left">
@@ -66,26 +89,57 @@ function clearAll() {
 </template>
 
 <style scoped>
+/* 宽度由键帽列 + 说明列决定，inline-flex 配合父级 text-align:center 真正水平居中 */
 .shortcut-list {
-  width: 320px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
   margin: 0 auto;
 }
 .row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
   height: 26px;
   font-size: 12px;
   color: var(--muted);
 }
+/* 说明列按文字实际宽度，最宽的一行决定列表宽度，整体才能对称居中 */
+.row > span:last-child {
+  flex: none;
+  text-align: left;
+  white-space: nowrap;
+}
+/* 键帽统一尺寸，长短组合键也不再忽宽忽窄 */
 .k {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 126px;
+  height: 20px;
+  flex-shrink: 0;
+  box-sizing: border-box;
   font-family: "SF Mono", Menlo, monospace;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 5px;
-  padding: 1px 7px;
+  padding: 0 6px;
   font-size: 11px;
   color: var(--text);
+  white-space: nowrap;
+  text-align: center;
+  /* 键帽内字符（⌘ 与 N 等）之间留 3px 间距 */
+  letter-spacing: 3px;
+}
+/* 修饰符符号（⌘⇧⌥⌃）在等宽字体里字形偏小，放大后与字母视觉等大 */
+.k .sym {
+  font-size: 14px;
+  line-height: 1;
+}
+/* ⇧ 字形基线偏低，单独上移与其他字符对齐 */
+.k .sym.shift {
+  display: inline-block;
+  transform: translateY(-1.5px);
 }
 .recent-row {
   display: flex;
