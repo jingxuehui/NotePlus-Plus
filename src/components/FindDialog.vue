@@ -106,8 +106,10 @@ function toggleSelectionOnly() {
   }
 }
 
-function applyTheme(theme: string) {
+function applyTheme(theme: string, accent?: string) {
   document.body.classList.toggle("theme-light", theme === "light");
+  // 独立窗口不会执行主窗口的 applyVisual，需显式同步强调色
+  if (accent) document.body.style.setProperty("--accent", accent);
 }
 
 function onSearchKeydown(e: KeyboardEvent) {
@@ -147,10 +149,11 @@ onMounted(async () => {
     await listen<{
       selection: string;
       theme: string;
+      accent?: string;
       query: { search: string; replace: string; caseSensitive: boolean; regexp: boolean };
     }>("find:state", (e) => {
-      const { selection, theme, query } = e.payload;
-      applyTheme(theme);
+      const { selection, theme, accent, query } = e.payload;
+      applyTheme(theme, accent);
       if (!search.value && selection) {
         search.value = selection;
         selectionOnly.value = true;
@@ -163,7 +166,9 @@ onMounted(async () => {
     })
   );
   unlisteners.push(
-    await listen<{ theme: string }>("find:theme", (e) => applyTheme(e.payload.theme))
+    await listen<{ theme: string; accent?: string }>("find:theme", (e) =>
+      applyTheme(e.payload.theme, e.payload.accent)
+    )
   );
   unlisteners.push(
     await listen<{ text: string }>("find:selection", (e) => {
@@ -356,7 +361,7 @@ function closeMenus() {
 
 <style scoped>
 .find-dialog {
-  --find-green: #7ec26a;
+  --find-accent: var(--accent);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -380,7 +385,7 @@ function closeMenus() {
   transition: border-color 0.12s, background 0.12s;
 }
 .field:focus-within {
-  border-color: var(--find-green);
+  border-color: var(--find-accent);
 }
 .prefix {
   display: flex;
@@ -408,7 +413,7 @@ function closeMenus() {
   outline: none;
   font-size: 13px;
   color: var(--text);
-  caret-color: var(--find-green);
+  caret-color: var(--find-accent);
   user-select: text;
   min-width: 0;
 }
@@ -485,15 +490,15 @@ function closeMenus() {
   flex-shrink: 0;
 }
 .check.checked {
-  background: var(--find-green);
-  border-color: var(--find-green);
+  background: var(--find-accent);
+  border-color: var(--find-accent);
 }
 .check.checked::after {
   content: "";
   width: 6px;
   height: 3px;
-  border-left: 2px solid #10221a;
-  border-bottom: 2px solid #10221a;
+  border-left: 2px solid var(--panel);
+  border-bottom: 2px solid var(--panel);
   transform: rotate(-45deg) translateY(-1px);
 }
 .q {
@@ -525,7 +530,7 @@ function closeMenus() {
 .round:hover,
 .round.on {
   background: var(--hover);
-  color: var(--find-green);
+  color: var(--find-accent);
 }
 
 .cheat {
@@ -555,7 +560,7 @@ function closeMenus() {
   align-items: center;
 }
 .cheat-row code {
-  color: var(--find-green);
+  color: var(--find-accent);
   font-family: "SF Mono", Menlo, monospace;
 }
 

@@ -11,7 +11,7 @@ import {
   replaceAll,
 } from "@codemirror/search";
 import { viewRef } from "@/editor/view";
-import { settings } from "@/stores/settings";
+import { settings, ACCENTS } from "@/stores/settings";
 
 export interface FindQueryState {
   search: string;
@@ -30,6 +30,12 @@ export const EMPTY_QUERY: FindQueryState = {
 let query: FindQueryState = { ...EMPTY_QUERY };
 let initialized = false;
 let unlisteners: UnlistenFn[] = [];
+
+/** 当前强调色：查找窗口是独立 WebView，需要显式同步才能与主窗口一致 */
+function currentAccent(): string {
+  const a = ACCENTS[settings.accent] ?? ACCENTS.blue;
+  return settings.theme === "light" ? a.light : a.dark;
+}
 
 function makeQuery(): SearchQuery {
   return new SearchQuery({
@@ -191,12 +197,13 @@ export async function initFindBridge() {
       })
     );
 
-    // 对话框加载完成后握手：回传选区、主题与上次的查询
+    // 对话框加载完成后握手：回传选区、主题、强调色与上次的查询
     unlisteners.push(
       await listen("find:init", () => {
         emitTo("find", "find:state", {
           selection: selectedText(),
           theme: settings.theme,
+          accent: currentAccent(),
           query,
         }).catch(() => undefined);
       })
@@ -222,9 +229,9 @@ export async function initFindBridge() {
   }
 
   watch(
-    () => settings.theme,
-    (theme) => {
-      emitTo("find", "find:theme", { theme }).catch(() => undefined);
+    [() => settings.theme, () => settings.accent],
+    ([theme]) => {
+      emitTo("find", "find:theme", { theme, accent: currentAccent() }).catch(() => undefined);
       invoke("set_find_theme", { dark: theme === "dark" }).catch(() => undefined);
     }
   );
