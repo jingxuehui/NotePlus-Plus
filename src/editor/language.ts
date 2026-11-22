@@ -73,13 +73,17 @@ const extensions: Record<string, LanguageDef> = {
   ini: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
   conf: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
   properties: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
+  cfg: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
   env: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
   dockerfile: { name: "Dockerfile", factory: () => new LanguageSupport(StreamLanguage.define(dockerFile)) },
 };
 
 export function fileExtension(path: string): string {
   const name = path.split("/").pop() ?? path;
-  if (name.toLowerCase() === "dockerfile") return "dockerfile";
+  const lower = name.toLowerCase();
+  if (lower === "dockerfile") return "dockerfile";
+  // .gitignore / .env 这类点文件：整段后缀当作扩展名
+  if (lower.startsWith(".") && lower.indexOf(".", 1) === -1) return lower.slice(1);
   const idx = name.lastIndexOf(".");
   return idx > 0 ? name.slice(idx + 1).toLowerCase() : "";
 }

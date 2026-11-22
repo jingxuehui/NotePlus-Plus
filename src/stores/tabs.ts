@@ -1,7 +1,8 @@
 import { reactive, computed } from "vue";
 import type { EditorState } from "@codemirror/state";
 import { save as saveDialog, open as openDialog } from "@tauri-apps/plugin-dialog";
-import { createStateForFile } from "@/editor/setup";
+import { createStateForFile, updateLanguageForPath } from "@/editor/setup";
+import { viewRef } from "@/editor/view";
 import { languageName } from "@/editor/language";
 import { readTextFile, writeTextFile } from "@/commands";
 import { pushRecent } from "./recent";
@@ -205,6 +206,10 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
     tab.path = finalPath;
     tab.name = finalPath.split("/").pop() ?? finalPath;
     tab.language = languageName(finalPath);
+    // 另存为其它类型后立即切换语法高亮
+    if (viewRef.current && tabsState.activeId === tab.id) {
+      updateLanguageForPath(viewRef.current, finalPath);
+    }
     tab.dirty = false;
     pushRecent(finalPath);
     notify("已保存", false);

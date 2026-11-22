@@ -5,7 +5,7 @@ import { EditorState } from "@codemirror/state";
 import { activeTab, getState, setState, editorHooks } from "@/stores/tabs";
 import { settings } from "@/stores/settings";
 import { viewRef } from "@/editor/view";
-import { reconfigureAppearance } from "@/editor/setup";
+import { reconfigureAppearance, updateLanguageForPath } from "@/editor/setup";
 
 const container = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
@@ -25,6 +25,7 @@ onMounted(() => {
     },
   });
   viewRef.current = view;
+  updateLanguageForPath(view, activeTab.value?.path ?? null);
   view.focus();
 });
 
@@ -37,6 +38,7 @@ onBeforeUnmount(() => {
 watch(activeTab, (tab) => {
   if (!view) return;
   view.setState(tab ? (getState(tab) ?? emptyState) : emptyState);
+  updateLanguageForPath(view, tab?.path ?? null);
   view.focus();
 });
 

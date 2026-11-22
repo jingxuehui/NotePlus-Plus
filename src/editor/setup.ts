@@ -48,9 +48,12 @@ export interface EditorHooks {
 
 const wrapComp = new Compartment();
 const appearanceComp = new Compartment();
+const languageComp = new Compartment();
 
-export function buildExtensions(hooks: EditorHooks): Extension[] {
+export function buildExtensions(hooks: EditorHooks, lang: Extension = []): Extension[] {
   return [
+    // 语言由 compartment 管理：另存为其它类型后可即时切换高亮
+    languageComp.of(lang),
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
@@ -119,9 +122,13 @@ export function reconfigureAppearance(view: EditorView, hooks: EditorHooks) {
 /** 为某个标签页创建 EditorState */
 export function createStateForFile(path: string | null, content: string, hooks: EditorHooks): EditorState {
   const lang = path ? languageFor(path) : null;
-  const base = buildExtensions(hooks);
   return EditorState.create({
     doc: content,
-    extensions: lang ? [...base, lang] : base,
+    extensions: buildExtensions(hooks, lang ?? []),
   });
+}
+
+/** 按文件路径切换语法高亮（另存为、标签切换时使用） */
+export function updateLanguageForPath(view: EditorView, path: string | null) {
+  view.dispatch({ effects: languageComp.reconfigure(path ? languageFor(path) ?? [] : []) });
 }
