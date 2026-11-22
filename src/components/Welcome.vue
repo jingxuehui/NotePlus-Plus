@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { getRecent, clearRecent } from "@/stores/recent";
+import { SHORTCUTS } from "@/data/shortcuts";
 
 const emit = defineEmits<{
   open: [];
@@ -15,26 +16,9 @@ function clearAll() {
   recent.value = [];
 }
 
-interface Shortcut {
-  k: string;
-  label: string;
-}
-const shortcuts: Shortcut[] = [
-  { k: "⌘N", label: "新建文件" },
-  { k: "⌘O", label: "打开文件" },
-  { k: "⇧⌘O", label: "打开文件夹" },
-  { k: "⌘S", label: "保存" },
-  { k: "⌥⌘S", label: "保存全部" },
-  { k: "⌘W", label: "关闭标签页" },
-  { k: "⌘F", label: "查找和替换窗口" },
-  { k: "⌘G / ⇧⌘G", label: "下一个 / 上一个匹配" },
-  { k: "⌘B", label: "显示 / 隐藏侧边栏" },
-  { k: "⌘/", label: "注释当前行" },
-  { k: "⇧⌥F", label: "格式化 JSON" },
-  { k: "⌘+ / ⌘- / ⌘0", label: "放大 / 缩小 / 重置字号" },
-  { k: "⌘,", label: "设置" },
-  { k: "拖拽", label: "拖入文件即可打开" },
-];
+// 快捷键列表与标题栏的快捷键提示共用同一份数据
+const shortcuts = SHORTCUTS;
+
 
 // ⌘⇧⌥ 等符号在 SF Mono 里字形偏小，拆出来单独放大，与字母视觉等大；
 // 每个符号独立成段，便于单独微调（如 ⇧ 基线偏低）

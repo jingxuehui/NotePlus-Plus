@@ -19,7 +19,8 @@
         "minHeight": 600,
         "center": true,
         "dragDropEnabled": true,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
@@ -30,7 +31,10 @@
     "active": true,
     "category": "DeveloperTool",
     "copyright": "© 2026 NotePlus+",
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

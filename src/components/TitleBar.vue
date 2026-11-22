@@ -4,6 +4,7 @@ import { ui, toggleSettings } from "@/stores/ui";
 import { openFindWindow } from "@/find/bridge";
 import { activeTab } from "@/stores/tabs";
 import { formatJsonDocument } from "@/editor/format";
+import ShortcutHint from "./ShortcutHint.vue";
 
 const emit = defineEmits<{
   new: [];
@@ -18,7 +19,9 @@ const emit = defineEmits<{
   <!-- 自绘标题栏：红绿灯由系统绘制在左侧，工具栏按钮与标题同一行 -->
   <div class="titlebar" data-tauri-drag-region>
     <!-- 红绿灯 + 系统原生标题占用的区域，标题由系统绘制，避免重复 -->
-    <div class="traffic-light-space" data-tauri-drag-region></div>
+    <div class="traffic-light-space" data-tauri-drag-region>
+      <span class="app-title" data-tauri-drag-region>NotePlus+</span>
+    </div>
 
     <div class="toolbar">
       <span
@@ -86,24 +89,22 @@ const emit = defineEmits<{
 
     <div class="titlebar-fill" data-tauri-drag-region></div>
 
-    <!-- 右上角设置入口 -->
+    <!-- 快捷键提示 -->
+    <ShortcutHint />
+
+    <!-- 右上角设置入口（与其他工具栏按钮一致的透明样式） -->
     <span
       class="settings-trigger"
       :class="{ active: ui.showSettings }"
       title="设置 (⌘,)"
       @click="toggleSettings()"
     >
-      <span class="settings-icon-box">
-        <svg width="16" height="16" viewBox="0 0 24 24">
-          <g fill="none" stroke="#a8c7ff" stroke-width="2.4">
-            <rect x="8.6" y="2.6" width="6.8" height="18.8" rx="3.4" />
-            <rect x="8.6" y="2.6" width="6.8" height="18.8" rx="3.4" transform="rotate(60 12 12)" />
-            <rect x="8.6" y="2.6" width="6.8" height="18.8" rx="3.4" transform="rotate(120 12 12)" />
-          </g>
-          <circle cx="12" cy="12" r="3.2" fill="#3c4a63" />
-        </svg>
-      </span>
-      <span class="settings-dot"></span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <rect x="8.6" y="2.6" width="6.8" height="18.8" rx="3.4" />
+        <rect x="8.6" y="2.6" width="6.8" height="18.8" rx="3.4" transform="rotate(60 12 12)" />
+        <rect x="8.6" y="2.6" width="6.8" height="18.8" rx="3.4" transform="rotate(120 12 12)" />
+        <circle cx="12" cy="12" r="3.2" />
+      </svg>
     </span>
   </div>
 </template>
@@ -120,10 +121,22 @@ const emit = defineEmits<{
   user-select: none;
 }
 .traffic-light-space {
-  /* 红绿灯 + 系统原生标题「NotePlus+」，再留 30pt 间距给工具栏 */
+  /* 红绿灯占位 + 自绘标题（系统标题已用 hiddenTitle 隐藏，避免浅色主题下白字消失） */
   width: 180px;
   flex-shrink: 0;
   align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-left: 86px;
+  pointer-events: none;
+}
+.app-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.92;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 .toolbar {
   display: flex;
@@ -140,40 +153,23 @@ const emit = defineEmits<{
   pointer-events: none;
 }
 .settings-trigger {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 26px;
-  height: 32px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.settings-icon-box {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 23px;
-  height: 23px;
-  border-radius: 7px;
-  background: #3c4a63;
-  transition: background 0.15s, box-shadow 0.15s;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
-.settings-trigger:hover .settings-icon-box {
-  background: #46587a;
+.settings-trigger:hover {
+  background: var(--hover);
+  color: var(--text);
 }
-.settings-trigger.active .settings-icon-box {
-  box-shadow: 0 0 0 2px var(--accent);
-}
-.settings-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #6f86ab;
-}
-.settings-trigger.active .settings-dot {
-  background: var(--accent);
-  box-shadow: 0 0 5px var(--accent);
+.settings-trigger.active {
+  color: var(--accent);
 }
 </style>
