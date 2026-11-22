@@ -2,10 +2,12 @@
 import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { getVersion } from "@tauri-apps/api/app";
 import {
+  ACCENTS,
   DEFAULT_SETTINGS,
   applyVisual,
   settings,
   systemTheme,
+  type AccentName,
   type Settings,
   type ThemeChoice,
 } from "@/stores/settings";
@@ -23,6 +25,27 @@ const navItems: { key: SectionKey; label: string }[] = [
 
 const section = ref<SectionKey>("appearance");
 const search = ref("");
+
+// 配色主题：自定义下拉（原生 select 的 option 无法渲染彩色圆点）
+const ACCENT_LABELS: Record<AccentName, string> = {
+  blue: "钴蓝",
+  indigo: "靛蓝",
+  teal: "青绿",
+};
+const accentOptions = computed(() =>
+  (Object.keys(ACCENT_LABELS) as AccentName[]).map((key) => ({
+    key,
+    label: ACCENT_LABELS[key],
+    color: draft.theme === "light" ? ACCENTS[key].light : ACCENTS[key].dark,
+  }))
+);
+const accentOpen = ref(false);
+const accentWrap = ref<HTMLElement | null>(null);
+function onDocClick(e: MouseEvent) {
+  if (accentOpen.value && accentWrap.value && !accentWrap.value.contains(e.target as Node)) {
+    accentOpen.value = false;
+  }
+}
 
 // 应用版本：初值取 package.json，挂载后以 Tauri 打包元数据（tauri.conf.json）为准
 const appVersion = ref<string>(__APP_VERSION__);
@@ -85,6 +108,7 @@ function onKey(e: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener("keydown", onKey, true);
+  window.addEventListener("click", onDocClick, true);
   // 与实际打包版本保持一致（tauri.conf.json 的 version）
   getVersion()
     .then((v) => {
@@ -92,7 +116,10 @@ onMounted(() => {
     })
     .catch(() => undefined);
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKey, true);
+  window.removeEventListener("click", onDocClick, true);
+});
 </script>
 
 <template>
@@ -152,12 +179,24 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
                 </div>
                 <div class="field" v-show="matches('配色', '主题')">
                   <label class="field-label">配色主题</label>
-                  <div class="select-wrap">
-                    <select v-model="draft.accent">
-                      <option value="blue">● 钴蓝</option>
-                      <option value="indigo">● 靛蓝</option>
-                      <option value="teal">● 青绿</option>
-                    </select>
+                  <div class="select-wrap accent-select" ref="accentWrap">
+                    <button type="button" class="accent-trigger" @click="accentOpen = !accentOpen">
+                      <span class="accent-dot" :style="{ background: accentOptions.find((o) => o.key === draft.accent)?.color }"></span>
+                      <span>{{ ACCENT_LABELS[draft.accent] }}</span>
+                    </button>
+                    <div class="accent-menu" v-if="accentOpen">
+                      <button
+                        v-for="o in accentOptions"
+                        :key="o.key"
+                        type="button"
+                        :class="{ on: draft.accent === o.key }"
+                        @click="draft.accent = o.key; accentOpen = false"
+                      >
+                        <span class="accent-dot" :style="{ background: o.color }"></span>
+                        <span>{{ o.label }}</span>
+                        <span class="accent-check" v-if="draft.accent === o.key">✓</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="field" v-show="matches('界面缩放', '缩放')">
@@ -199,23 +238,23 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
                 </div>
               </div>
 
-              <!-- 主题 -->
-              <div v-show="matches('主题', '亮色', '暗色', '跟随系统')">
-                <label class="field-label mt">主题</label>
-                <div class="segmented">
-                  <button :class="{ on: draft.themeChoice === 'light' }" @click="setThemeChoice('light')">☀ 亮色</button>
-                  <button :class="{ on: draft.themeChoice === 'dark' }" @click="setThemeChoice('dark')">☾ 暗色</button>
-                  <button :class="{ on: draft.themeChoice === 'system' }" @click="setThemeChoice('system')">◐ 跟随系统</button>
+              <!-- 主题 + 圆角（一行） -->
+              <div class="pair-row" v-show="matches('主题', '亮色', '暗色', '跟随系统', '圆角')">
+                <div v-show="matches('主题', '亮色', '暗色', '跟随系统')">
+                  <label class="field-label mt">主题</label>
+                  <div class="segmented">
+                    <button :class="{ on: draft.themeChoice === 'light' }" @click="setThemeChoice('light')">☀ 亮色</button>
+                    <button :class="{ on: draft.themeChoice === 'dark' }" @click="setThemeChoice('dark')">☾ 暗色</button>
+                    <button :class="{ on: draft.themeChoice === 'system' }" @click="setThemeChoice('system')">◐ 跟随系统</button>
+                  </div>
                 </div>
-              </div>
-
-              <!-- 圆角 -->
-              <div v-show="matches('圆角')">
-                <label class="field-label mt">圆角样式</label>
-                <div class="segmented">
-                  <button :class="{ on: draft.radius === 'none' }" @click="draft.radius = 'none'">无圆角</button>
-                  <button :class="{ on: draft.radius === 'small' }" @click="draft.radius = 'small'">小圆角</button>
-                  <button :class="{ on: draft.radius === 'large' }" @click="draft.radius = 'large'">大圆角</button>
+                <div v-show="matches('圆角')">
+                  <label class="field-label mt">圆角样式</label>
+                  <div class="segmented">
+                    <button :class="{ on: draft.radius === 'none' }" @click="draft.radius = 'none'">无圆角</button>
+                    <button :class="{ on: draft.radius === 'small' }" @click="draft.radius = 'small'">小圆角</button>
+                    <button :class="{ on: draft.radius === 'large' }" @click="draft.radius = 'large'">大圆角</button>
+                  </div>
                 </div>
               </div>
 
@@ -530,7 +569,70 @@ select {
 }
 select:focus { border-color: var(--accent); }
 
+/* 配色主题：带彩色圆点的自定义下拉 */
+.accent-select { position: relative; }
+.accent-trigger {
+  width: 100%;
+  height: 32px;
+  padding: 0 28px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.accent-trigger:hover { border-color: var(--muted); }
+.accent-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.accent-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.accent-menu > button {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.accent-menu > button:hover { background: var(--hover); }
+.accent-menu > button.on { color: var(--accent); font-weight: 600; }
+.accent-check { margin-left: auto; font-size: 11px; }
+
 /* 分段控件 */
+/* 与「通用」区域一致的两列网格：左列主题、右列圆角样式 */
+.pair-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 22px;
+  align-items: start;
+}
 .segmented { display: inline-flex; gap: 4px; }
 .segmented button {
   height: 28px;

@@ -67,7 +67,7 @@ interface AccentColors {
   edgeLight: string;
 }
 
-const ACCENTS: Record<AccentName, AccentColors> = {
+export const ACCENTS: Record<AccentName, AccentColors> = {
   blue: {
     dark: "#4fc3f7",
     light: "#0b6cb5",
