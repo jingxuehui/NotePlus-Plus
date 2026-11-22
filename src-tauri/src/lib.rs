@@ -411,9 +411,19 @@ fn set_find_theme(app: tauri::AppHandle, dark: bool) {
     }
 }
 
+/// 重新显示主窗口（点击 Dock 图标 / 关闭后再次唤起时使用）
+fn show_main_window(app: &AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        // set_focus 会同时激活应用（activateIgnoringOtherApps），无需额外 unhide
+        let _ = win.show();
+        let _ = win.unminimize();
+        let _ = win.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -434,23 +444,43 @@ pub fn run() {
             load_session,
             clear_session
         ])
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                match window.label() {
-                    // 主窗口关闭时一并关闭查找窗口
-                    "main" => {
-                        if let Some(find) = window.get_webview_window("find") {
-                            let _ = find.close();
-                        }
-                    }
-                    // 查找窗口关闭（点击红绿灯 / Esc）时通知主窗口清理高亮
-                    "find" => {
-                        let _ = window.app_handle().emit_to("main", "find:closing", ());
-                    }
-                    _ => {}
+        .on_window_event(|window, event| match event {
+            // macOS 习惯：点红绿灯关闭主窗口时只隐藏窗口，程序继续驻留 Dock
+            tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
+                api.prevent_close();
+                if let Some(find) = window.get_webview_window("find") {
+                    let _ = find.close();
                 }
+                let _ = window.hide();
             }
+            tauri::WindowEvent::Destroyed => match window.label() {
+                // 兜底：主窗口真被销毁时一并关闭查找窗口
+                "main" => {
+                    if let Some(find) = window.get_webview_window("find") {
+                        let _ = find.close();
+                    }
+                }
+                // 查找窗口关闭（点击红绿灯 / Esc）时通知主窗口清理高亮
+                "find" => {
+                    let _ = window.app_handle().emit_to("main", "find:closing", ());
+                }
+                _ => {}
+            },
+            _ => {}
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| match event {
+        // 点击 Dock 图标（或应用被重新激活）时恢复主窗口
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen { .. } => show_main_window(app_handle),
+        // 所有窗口都被销毁时不退出进程（仅 Cmd+Q / 主动 exit 才真正退出）
+        tauri::RunEvent::ExitRequested { code, api, .. } => {
+            if code.is_none() {
+                api.prevent_exit();
+            }
+        }
+        _ => {}
+    });
 }
