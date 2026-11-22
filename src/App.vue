@@ -27,6 +27,7 @@ import {
   closeAllTabs,
 } from "./stores/tabs";
 import { loadRoot, treeState } from "./stores/filetree";
+import { initSessionAutosave, restoreSession } from "./stores/session";
 import { zoomIn, zoomOut, zoomReset } from "./stores/settings";
 import {
   openFindWindow,
@@ -145,6 +146,9 @@ onMounted(async () => {
   initVisualSettings();
   window.addEventListener("keydown", onKeydown);
   initFindBridge();
+  // 恢复上次会话（标签页 / 未保存内容 / 打开的文件夹）
+  initSessionAutosave();
+  restoreSession().catch(() => undefined);
   try {
     unlistenDrag = await getCurrentWebview().onDragDropEvent((event) => {
       if (event.payload.type === "drop") {

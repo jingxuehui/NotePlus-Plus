@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// 真实系统外观缓存（由 Rust 侧维护，前端不依赖 WKWebView 媒体查询）
 static SYSTEM_DARK: AtomicBool = AtomicBool::new(true);
@@ -351,6 +351,45 @@ fn get_system_dark() -> bool {
     SYSTEM_DARK.load(Ordering::Relaxed)
 }
 
+fn session_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("无法定位应用数据目录: {e}"))?;
+    fs::create_dir_all(&dir).map_err(|e| format!("无法创建应用数据目录: {e}"))?;
+    Ok(dir.join("session.json"))
+}
+
+/// 保存会话快照（前端序列化好的 JSON）：标签页、未保存内容、活动标签、打开的文件夹
+#[tauri::command]
+fn save_session(app: AppHandle, json: String) -> Result<(), String> {
+    let path = session_path(&app)?;
+    fs::write(&path, json).map_err(|e| format!("无法写入会话文件: {e}"))
+}
+
+/// 读取上次会话快照；不存在时返回 None
+#[tauri::command]
+fn load_session(app: AppHandle) -> Result<Option<String>, String> {
+    let path = session_path(&app)?;
+    if path.exists() {
+        fs::read_to_string(&path)
+            .map(Some)
+            .map_err(|e| format!("无法读取会话文件: {e}"))
+    } else {
+        Ok(None)
+    }
+}
+
+/// 清除会话快照（全部标签关闭时调用，避免残留内容下次又被恢复）
+#[tauri::command]
+fn clear_session(app: AppHandle) -> Result<(), String> {
+    let path = session_path(&app)?;
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| format!("无法删除会话文件: {e}"))?;
+    }
+    Ok(())
+}
+
 /// 关闭查找窗口（Esc / 自定义关闭按钮使用，避免依赖前端权限）
 #[tauri::command]
 fn close_find_window(app: tauri::AppHandle) -> Result<(), String> {
@@ -390,7 +429,10 @@ pub fn run() {
             open_find_window,
             close_find_window,
             set_find_theme,
-            get_system_dark
+            get_system_dark,
+            save_session,
+            load_session,
+            clear_session
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {

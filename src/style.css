@@ -94,6 +94,16 @@ body.find-window #app {
   user-select: text;
 }
 
+/* 去掉 CodeMirror 内置主题给聚焦编辑器加的 1px dotted 虚线轮廓 */
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+
+/* 编辑区铺满容器，点击空白处也能正常聚焦、滚动 */
+.cm-editor {
+  height: 100%;
+}
+
 /* 通用配色工具类 */
 .bg-app { background: var(--bg); }
 .bg-panel { background: var(--panel); }

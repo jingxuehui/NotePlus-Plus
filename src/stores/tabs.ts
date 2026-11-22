@@ -111,6 +111,21 @@ export function newTab(): Tab {
   return tab;
 }
 
+/** 会话恢复专用：按上次快照重建标签（不切换激活、不写最近列表） */
+export function restoreTab(
+  path: string | null,
+  name: string,
+  content: string,
+  encoding: string,
+  eol: string,
+  dirty: boolean
+): Tab {
+  const tab = makeTab(path, name, content, encoding, eol);
+  tab.dirty = dirty;
+  tabsState.tabs.push(tab);
+  return tab;
+}
+
 export async function openPath(path: string): Promise<void> {
   const existing = tabsState.tabs.find((t) => t.path === path);
   if (existing) {

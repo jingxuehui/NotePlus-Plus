@@ -43,3 +43,15 @@ export function readDirTree(
 export function revealInFinder(path: string): Promise<void> {
   return invoke("reveal_in_finder", { path });
 }
+
+export function saveSession(json: string): Promise<void> {
+  return invoke("save_session", { json });
+}
+
+export function loadSession(): Promise<string | null> {
+  return invoke("load_session");
+}
+
+export function clearSession(): Promise<void> {
+  return invoke("clear_session");
+}
