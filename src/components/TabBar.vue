@@ -98,7 +98,7 @@ function onAuxClick(id: number, e: MouseEvent) {
   <SettingsPanel v-if="ui.showSettings" />
 
   <!-- 标签页 -->
-  <div class="flex h-9 bg-panel2 border-b border-line overflow-x-auto shrink-0">
+  <div class="tab-strip flex h-9 bg-panel2 border-b border-line overflow-x-auto shrink-0">
     <div
       v-for="tab in tabsState.tabs"
       :key="tab.id"
@@ -109,6 +109,12 @@ function onAuxClick(id: number, e: MouseEvent) {
       @auxclick="onAuxClick(tab.id, $event)"
     >
       <span class="dirty-dot" v-if="tab.dirty"></span>
+      <span class="tab-file-icon" v-else>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+          <path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 13V6L9 1.5z" />
+          <path d="M9 1.5V6h4.5" />
+        </svg>
+      </span>
       <span class="tab-name">{{ tab.name }}</span>
       <span class="close-btn" title="关闭 (⌘W)" @click.stop="emit('close', tab.id)">
         <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4">
@@ -209,5 +215,55 @@ function onAuxClick(id: number, e: MouseEvent) {
 .close-btn:hover {
   opacity: 1 !important;
   background: var(--hover);
+}
+
+/* 文件图标：仅现代分窗显示（经典紧凑沿用未保存小圆点） */
+.tab-file-icon {
+  display: none;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ===== 现代分窗：标签变为独立圆角胶囊 ===== */
+body.layout-modern .tab-strip {
+  padding: 5px 8px;
+  gap: 6px;
+  background: transparent;
+  scrollbar-width: none;
+}
+body.layout-modern .tab-strip::-webkit-scrollbar {
+  height: 0;
+}
+body.layout-modern .tab-item {
+  align-self: center;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0 8px 0 10px;
+  background: var(--panel-2);
+  color: var(--muted);
+  box-shadow: none;
+}
+body.layout-modern .tab-item:hover {
+  background: var(--hover);
+}
+body.layout-modern .tab-item.active {
+  background: var(--accent-tint);
+  border-color: var(--accent-edge);
+  color: var(--text);
+  box-shadow: none;
+}
+body.layout-modern .tab-file-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+body.layout-modern .close-btn {
+  opacity: 0.6;
+}
+body.layout-modern .tab-item:hover .close-btn {
+  opacity: 0.9;
+}
+body.layout-modern .close-btn:hover {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 </style>

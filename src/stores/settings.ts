@@ -57,10 +57,41 @@ function load(): Settings {
 
 export const settings = reactive<Settings>(load());
 
-const ACCENTS: Record<AccentName, { dark: string; light: string }> = {
-  blue: { dark: "#4fc3f7", light: "#0b6cb5" },
-  indigo: { dark: "#a9a3ff", light: "#5b4bd6" },
-  teal: { dark: "#5ee0b5", light: "#0f8a68" },
+// tint / edge 为带 alpha 的强调色，用于标签胶囊等（WKWebView 不支持 color-mix）
+interface AccentColors {
+  dark: string;
+  light: string;
+  tintDark: string;
+  tintLight: string;
+  edgeDark: string;
+  edgeLight: string;
+}
+
+const ACCENTS: Record<AccentName, AccentColors> = {
+  blue: {
+    dark: "#4fc3f7",
+    light: "#0b6cb5",
+    tintDark: "#4fc3f740",
+    tintLight: "#0b6cb533",
+    edgeDark: "#4fc3f766",
+    edgeLight: "#0b6cb55c",
+  },
+  indigo: {
+    dark: "#a9a3ff",
+    light: "#5b4bd6",
+    tintDark: "#a9a3ff40",
+    tintLight: "#5b4bd633",
+    edgeDark: "#a9a3ff66",
+    edgeLight: "#5b4bd65c",
+  },
+  teal: {
+    dark: "#5ee0b5",
+    light: "#0f8a68",
+    tintDark: "#5ee0b540",
+    tintLight: "#0f8a6833",
+    edgeDark: "#5ee0b566",
+    edgeLight: "#0f8a685c",
+  },
 };
 
 /** 把一组设置应用到界面（支持设置弹框的实时预览） */
@@ -73,7 +104,10 @@ export function applyVisual(s: Settings) {
   body.classList.toggle("layout-modern", s.layout === "modern");
 
   const accent = ACCENTS[s.accent] ?? ACCENTS.blue;
-  body.style.setProperty("--accent", s.theme === "light" ? accent.light : accent.dark);
+  const light = s.theme === "light";
+  body.style.setProperty("--accent", light ? accent.light : accent.dark);
+  body.style.setProperty("--accent-tint", light ? accent.tintLight : accent.tintDark);
+  body.style.setProperty("--accent-edge", light ? accent.edgeLight : accent.edgeDark);
   body.style.setProperty("--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px");
   document.documentElement.style.fontSize = `${(s.zoom / 100) * 16}px`;
 }
