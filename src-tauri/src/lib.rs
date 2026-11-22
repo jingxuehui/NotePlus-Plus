@@ -80,7 +80,9 @@ fn detect_eol(content: &str) -> String {
     let crlf = content.matches("\r\n").count();
     let lf = content.matches('\n').count() - crlf;
     let cr = content.matches('\r').count() - crlf;
-    if crlf > 0 && lf == 0 && cr == 0 {
+    if crlf == 0 && lf == 0 && cr == 0 {
+        "LF".into() // 空文件 / 单行无换行，默认 LF 而非「混合」
+    } else if crlf > 0 && lf == 0 && cr == 0 {
         "CRLF".into()
     } else if lf > 0 && crlf == 0 && cr == 0 {
         "LF".into()
@@ -120,27 +122,48 @@ fn write_text_file(
         _ => text, // LF 保持不变
     };
 
-    let bom = has_bom_default(&encoding);
-    let enc = encoding_rs::Encoding::for_label(encoding.as_bytes())
-        .unwrap_or(encoding_rs::UTF_8);
-    // 写入时编码失败则回退 UTF-8，避免丢失内容
-    let (bytes, _, had_errors) = enc.encode(&text);
-    let bytes = if had_errors && enc != encoding_rs::UTF_8 {
-        encoding_rs::UTF_8.encode(&text).0.into_owned()
-    } else {
-        bytes.into_owned()
-    };
-    let mut out = Vec::with_capacity(bytes.len() + 3);
-    if bom {
-        out.extend_from_slice(&[0xEF, 0xBB, 0xBF]);
+    // encoding_rs 对 UTF-16LE/BE 的 encode 按 WHATWG 规范「编码器未定义」，
+    // 会静默输出 UTF-8 字节（实测 err=false），因此必须手动逐码点编码；
+    // encode_utf16 正确处理代理对（如 emoji）
+    let mut out = Vec::with_capacity(text.len() * 2 + 3);
+    if let Some(bom) = bom_for(&encoding) {
+        out.extend_from_slice(bom);
     }
-    out.extend_from_slice(&bytes);
+    if encoding.eq_ignore_ascii_case("UTF-16LE") {
+        for unit in text.encode_utf16() {
+            out.extend_from_slice(&unit.to_le_bytes());
+        }
+    } else if encoding.eq_ignore_ascii_case("UTF-16BE") {
+        for unit in text.encode_utf16() {
+            out.extend_from_slice(&unit.to_be_bytes());
+        }
+    } else {
+        let enc = encoding_rs::Encoding::for_label(encoding.as_bytes())
+            .unwrap_or(encoding_rs::UTF_8);
+        // 写入时编码失败则回退 UTF-8，避免丢失内容
+        let (bytes, _, had_errors) = enc.encode(&text);
+        if had_errors && enc != encoding_rs::UTF_8 {
+            let (fb, _, _) = encoding_rs::UTF_8.encode(&text);
+            out.extend_from_slice(&fb);
+        } else {
+            out.extend_from_slice(&bytes);
+        }
+    }
     fs::write(&path, &out).map_err(|e| format!("无法写入文件 {path}: {e}"))?;
     Ok(WriteResult { bytes_written: out.len() })
 }
 
-fn has_bom_default(encoding: &str) -> bool {
-    encoding.eq_ignore_ascii_case("UTF-8 BOM")
+/// 写入时随编码附带的 BOM；与读取端 has_bom() 的识别保持一致
+fn bom_for(encoding: &str) -> Option<&'static [u8]> {
+    if encoding.eq_ignore_ascii_case("UTF-8 BOM") {
+        Some(&[0xEF, 0xBB, 0xBF])
+    } else if encoding.eq_ignore_ascii_case("UTF-16LE") {
+        Some(&[0xFF, 0xFE])
+    } else if encoding.eq_ignore_ascii_case("UTF-16BE") {
+        Some(&[0xFE, 0xFF])
+    } else {
+        None
+    }
 }
 
 /// 读取目录树（懒加载，depth 控制展开层级）
