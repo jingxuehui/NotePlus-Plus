@@ -1,7 +1,7 @@
 {
   "name": "noteplus-plus",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "NotePlus+ - A powerful Notepad++ style code editor for macOS",
   "type": "module",
   "scripts": {
