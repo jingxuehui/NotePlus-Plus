@@ -32,15 +32,10 @@ import {
   closeBracketsKeymap,
   completionKeymap,
 } from "@codemirror/autocomplete";
-import {
-  search,
-  findNext,
-  findPrevious,
-  highlightSelectionMatches,
-} from "@codemirror/search";
 import { lintKeymap } from "@codemirror/lint";
 import type { CursorInfo } from "@/types";
 import { darkTheme, lightTheme } from "./themes";
+import { matchHighlight } from "./matchHighlight";
 import type { ThemeMode } from "@/stores/settings";
 import { languageFor } from "./language";
 
@@ -73,15 +68,12 @@ export function buildExtensions(hooks: EditorHooks): Extension[] {
     rectangularSelection(),
     crosshairCursor(),
     highlightActiveLine(),
-    highlightSelectionMatches(),
     highlightTrailingWhitespace(),
-    // 提供查找状态字段，使 setSearchQuery / findNext 不依赖内置面板
-    search(),
+    // 自绘匹配高亮：不依赖内置查找面板，关闭查找窗口后仍然保持
+    matchHighlight,
     keymap.of([
       { key: "Mod-/", run: toggleComment },
-      // 查找：仅保留 F3 / Shift-F3，⌘F 与 ⌘G 交给独立的查找窗口
-      { key: "F3", run: findNext, preventDefault: true },
-      { key: "Shift-F3", run: findPrevious, preventDefault: true },
+      // 查找快捷键（⌘F / ⌘G / ⌘⇧G / F3）统一由 App 层处理，编辑器不注册，避免弹出内置面板
       ...closeBracketsKeymap,
       ...defaultKeymap,
       ...historyKeymap,

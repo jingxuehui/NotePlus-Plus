@@ -64,8 +64,17 @@ export function darkTheme(): Extension {
         },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
         ".cm-selectionMatch": { backgroundColor: "#314560" },
-        ".cm-searchMatch": { backgroundColor: "rgba(249, 196, 89, 0.28)", outline: "1px solid rgba(249,196,89,.5)" },
-        ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#f9c45966" },
+        ".np-match": {
+          backgroundColor: "rgba(249, 196, 89, 0.45)",
+          outline: "1px solid rgba(249, 196, 89, 1)",
+          borderRadius: "2px",
+        },
+        ".np-match-current": {
+          backgroundColor: "rgba(249, 196, 89, 0.80)",
+          outline: "1px solid #ffd479",
+          borderRadius: "2px",
+          color: "#16171c",
+        },
         ".cm-panels": { backgroundColor: "#232429", color: "#d4d4d4" },
         ".cm-tooltip": {
           backgroundColor: "#2a2b32",
@@ -138,8 +147,17 @@ export function lightTheme(): Extension {
         ".cm-activeLineGutter": { backgroundColor: "#f3f5f8", color: "#2d3138" },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
         ".cm-selectionMatch": { backgroundColor: "#c4d8f2" },
-        ".cm-searchMatch": { backgroundColor: "rgba(249, 196, 89, 0.45)", outline: "1px solid rgba(249,196,89,.7)" },
-        ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#f0b52799" },
+        ".np-match": {
+          backgroundColor: "rgba(240, 165, 30, 0.52)",
+          outline: "1px solid rgba(214, 132, 20, 1)",
+          borderRadius: "2px",
+        },
+        ".np-match-current": {
+          backgroundColor: "rgba(240, 165, 30, 0.90)",
+          outline: "1px solid #d97f10",
+          borderRadius: "2px",
+          color: "#1a1a1a",
+        },
         ".cm-panels": { backgroundColor: "#f3f5f8", color: "#2d3138" },
         ".cm-tooltip": {
           backgroundColor: "#ffffff",

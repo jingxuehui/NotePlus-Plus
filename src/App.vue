@@ -121,6 +121,10 @@ function onKeydown(e: KeyboardEvent) {
     e.preventDefault();
     if (e.shiftKey) findPrevMatch();
     else findNextMatch();
+  } else if (key === "f3") {
+    e.preventDefault();
+    if (e.shiftKey) findPrevMatch();
+    else findNextMatch();
   } else if (mod && (key === "=" || key === "+")) {
     e.preventDefault();
     zoomIn();

@@ -1,16 +1,11 @@
 import { watch } from "vue";
 import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { EditorSelection, EditorState } from "@codemirror/state";
-import {
-  SearchQuery,
-  setSearchQuery,
-  findNext,
-  findPrevious,
-  replaceNext,
-  replaceAll,
-} from "@codemirror/search";
+import { EditorSelection } from "@codemirror/state";
+import { SearchQuery } from "@codemirror/search";
+import type { EditorView } from "@codemirror/view";
 import { viewRef } from "@/editor/view";
+import { setMatchHighlight } from "@/editor/matchHighlight";
 import { settings, ACCENTS } from "@/stores/settings";
 
 export interface FindQueryState {
@@ -58,22 +53,57 @@ function selectedText(): string {
   return view.state.sliceDoc(range.from, range.to);
 }
 
-function countFor(searchState: EditorState, q: SearchQuery): number {
-  let count = 0;
+/** 按当前查询收集文档内所有匹配 */
+function collectMatches(view: EditorView, q: SearchQuery): { from: number; to: number }[] {
+  const out: { from: number; to: number }[] = [];
   try {
-    const cursor = q.getCursor(searchState);
-    let result = cursor.next();
-    while (!result.done && count < 99999) {
-      count++;
-      result = cursor.next();
+    const cursor = q.getCursor(view.state);
+    for (let result = cursor.next(); !result.done; result = cursor.next()) {
+      out.push({ from: result.value.from, to: result.value.to });
+      if (out.length > 99999) break;
     }
   } catch {
-    return 0; // 非法正则
+    /* 非法正则 */
   }
-  return count;
+  return out;
 }
 
-/** 把当前查询应用到编辑器，并回传匹配数量 */
+/** 选中下一个 / 上一个匹配（循环），返回匹配总数 */
+function selectMatch(view: EditorView, q: SearchQuery, dir: 1 | -1): number {
+  const list = collectMatches(view, q);
+  if (!list.length) return 0;
+  const sel = view.state.selection.main;
+  let target: { from: number; to: number };
+  if (dir > 0) {
+    target = list.find((m) => m.from >= sel.to) ?? list[0];
+  } else {
+    const before = list.filter((m) => m.to <= sel.from);
+    target = before.length ? before[before.length - 1] : list[list.length - 1];
+  }
+  view.dispatch({ selection: { anchor: target.from, head: target.to }, scrollIntoView: true });
+  return list.length;
+}
+
+/** 替换当前匹配或全部，返回替换后剩余匹配数 */
+function replaceMatches(view: EditorView, q: SearchQuery, all: boolean): number {
+  const list = collectMatches(view, q);
+  if (!list.length) return 0;
+  const insert = q.replace ?? "";
+  if (all) {
+    view.dispatch({ changes: list.map((m) => ({ from: m.from, to: m.to, insert })) });
+    return collectMatches(view, q).length;
+  }
+  const sel = view.state.selection.main;
+  const current = list.find((m) => m.from <= sel.from && sel.to <= m.to);
+  if (!current) return selectMatch(view, q, 1);
+  view.dispatch({ changes: { from: current.from, to: current.to, insert } });
+  const after = collectMatches(view, q);
+  const next = after.find((m) => m.from >= current.from + insert.length);
+  if (next) view.dispatch({ selection: { anchor: next.from, head: next.to }, scrollIntoView: true });
+  return after.length;
+}
+
+/** 把当前查询应用到编辑器（自绘高亮），并回传匹配数量 */
 function applyQuery() {
   const view = viewRef.current;
   if (!view) {
@@ -81,34 +111,27 @@ function applyQuery() {
     return;
   }
   if (!query.search) {
-    view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: "" })) });
+    view.dispatch({ effects: setMatchHighlight.of(null) });
     sendCount(0);
     return;
   }
   const q = makeQuery();
-  view.dispatch({ effects: setSearchQuery.of(q) });
-  sendCount(countFor(view.state, q));
+  view.dispatch({ effects: setMatchHighlight.of(q) });
+  sendCount(collectMatches(view, q).length);
 }
 
 function findAll() {
   const view = viewRef.current;
   if (!view || !query.search) return;
   const q = makeQuery();
-  view.dispatch({ effects: setSearchQuery.of(q) });
-  const ranges: ReturnType<typeof EditorSelection.range>[] = [];
-  try {
-    const cursor = q.getCursor(view.state);
-    let result = cursor.next();
-    while (!result.done) {
-      ranges.push(EditorSelection.range(result.value.from, result.value.to));
-      result = cursor.next();
-    }
-  } catch {
-    /* 非法正则 */
-  }
-  sendCount(ranges.length);
-  if (ranges.length) {
-    view.dispatch({ selection: EditorSelection.create(ranges), scrollIntoView: true });
+  view.dispatch({ effects: setMatchHighlight.of(q) });
+  const list = collectMatches(view, q);
+  sendCount(list.length);
+  if (list.length) {
+    view.dispatch({
+      selection: EditorSelection.create(list.map((m) => EditorSelection.range(m.from, m.to))),
+      scrollIntoView: true,
+    });
     view.focus();
   }
 }
@@ -119,38 +142,35 @@ async function handleAction(action: string) {
   switch (action) {
     case "next":
       applyQuery();
-      findNext(view);
+      if (query.search) selectMatch(view, makeQuery(), 1);
       view.focus();
       break;
     case "prev":
       applyQuery();
-      findPrevious(view);
+      if (query.search) selectMatch(view, makeQuery(), -1);
       view.focus();
       break;
-    case "replace": {
-      applyQuery();
-      replaceNext(view);
-      const q = makeQuery();
-      sendCount(countFor(view.state, q));
+    case "replace":
+      if (query.search) {
+        applyQuery();
+        sendCount(replaceMatches(view, makeQuery(), false));
+      }
       view.focus();
       break;
-    }
-    case "replaceAll": {
-      applyQuery();
-      replaceAll(view);
-      const q = makeQuery();
-      sendCount(countFor(view.state, q));
+    case "replaceAll":
+      if (query.search) {
+        applyQuery();
+        sendCount(replaceMatches(view, makeQuery(), true));
+      }
       view.focus();
       break;
-    }
     case "findAll":
       findAll();
       break;
-    case "clearHighlights": {
-      view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: "" })) });
+    case "clearHighlights":
+      view.dispatch({ effects: setMatchHighlight.of(null) });
       sendCount(0);
       break;
-    }
     default:
       break;
   }
@@ -215,15 +235,9 @@ export async function initFindBridge() {
       })
     );
 
-    unlisteners.push(
-      await listen("find:closing", () => {
-        // 只清理编辑器中的高亮，保留查询内容以便下次 ⌘F 恢复
-        const view = viewRef.current;
-        if (view) {
-          view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: "" })) });
-        }
-      })
-    );
+    // 关闭查找窗口时保留匹配高亮与查询内容：高亮由编辑器内的自绘标记维持，
+    // 下次 ⌘F 会带回上次的查询
+    unlisteners.push(await listen("find:closing", () => undefined));
   } catch (e) {
     console.warn("查找事件桥初始化失败", e);
   }
