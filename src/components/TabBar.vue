@@ -9,7 +9,7 @@ function onAuxClick(id: number, e: MouseEvent) {
 </script>
 
 <template>
-  <!-- 标签页 -->
+  <!-- 标签页：溢出模式由 body.tab-wrap 驱动（设置里可实时预览） -->
   <div class="tab-strip flex h-9 bg-panel2 border-b border-line overflow-x-auto shrink-0">
     <div
       v-for="tab in tabsState.tabs"
@@ -97,12 +97,32 @@ function onAuxClick(id: number, e: MouseEvent) {
   flex-shrink: 0;
 }
 
+/* ===== 多行平铺：标签换行堆叠，最多约 4 行，超出后纵向滚动 ===== */
+body.tab-wrap .tab-strip {
+  flex-wrap: wrap;
+  align-content: flex-start;
+  height: auto;
+  max-height: 160px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body.tab-wrap .tab-strip .tab-item {
+  height: 36px;
+}
+
 /* ===== 现代分窗：标签变为独立圆角胶囊 ===== */
 body.layout-modern .tab-strip {
   padding: 5px 8px;
   gap: 6px;
   background: transparent;
   scrollbar-width: none;
+}
+body.layout-modern.tab-wrap .tab-strip {
+  max-height: 160px;
+}
+body.layout-modern.tab-wrap .tab-strip .tab-item {
+  height: 26px;
+  align-self: flex-start;
 }
 body.layout-modern .tab-strip::-webkit-scrollbar {
   height: 0;

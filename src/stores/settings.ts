@@ -102,6 +102,7 @@ export function applyVisual(s: Settings) {
   body.classList.toggle("no-font-smoothing", !s.fontSmoothing);
   body.classList.toggle("mono-ui", s.uiFont === "mono");
   body.classList.toggle("layout-modern", s.layout === "modern");
+  body.classList.toggle("tab-wrap", s.tabOverflow === "wrap");
 
   const accent = ACCENTS[s.accent] ?? ACCENTS.blue;
   const light = s.theme === "light";
