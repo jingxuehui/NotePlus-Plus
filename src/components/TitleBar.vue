@@ -2,6 +2,8 @@
 import { settings } from "@/stores/settings";
 import { ui, toggleSettings } from "@/stores/ui";
 import { openFindWindow } from "@/find/bridge";
+import { activeTab } from "@/stores/tabs";
+import { formatJsonDocument } from "@/editor/format";
 
 const emit = defineEmits<{
   new: [];
@@ -68,6 +70,18 @@ const emit = defineEmits<{
           <line x1="10.5" y1="10.5" x2="14" y2="14" />
         </svg>
       </span>
+      <span
+        class="icon-btn"
+        :class="{ disabled: !activeTab }"
+        title="格式化 JSON (⇧⌥F)"
+        @click="activeTab && formatJsonDocument()"
+      >
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="M6.2 2.2c-1.5 0-2.1.9-2.1 2.4v1.5c0 1-.5 1.7-1.4 1.9.9.2 1.4.9 1.4 1.9v1.5c0 1.5.6 2.4 2.1 2.4" />
+          <path d="M9.8 2.2c1.5 0 2.1.9 2.1 2.4v1.5c0 1 .5 1.7 1.4 1.9-.9.2-1.4.9-1.4 1.9v1.5c0 1.5-.6 2.4-2.1 2.4" />
+          <line x1="8" y1="5.4" x2="8" y2="10.6" stroke-dasharray="1 1.6" />
+        </svg>
+      </span>
     </div>
 
     <div class="titlebar-fill" data-tauri-drag-region></div>
@@ -120,6 +134,10 @@ const emit = defineEmits<{
 .titlebar-fill {
   flex: 1;
   align-self: stretch;
+}
+.icon-btn.disabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 .settings-trigger {
   display: flex;

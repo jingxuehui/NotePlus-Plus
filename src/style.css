@@ -9,6 +9,7 @@
   --text: #d4d4d4;
   --muted: #8a9099;
   --accent: #4fc3f7;
+  --selection-bg: #4fc3f78c;
   --danger: #f07178;
 }
 
@@ -21,6 +22,7 @@ body.theme-light {
   --text: #2d3138;
   --muted: #6b7280;
   --accent: #0b6cb5;
+  --selection-bg: #0b6cb54d;
   --danger: #bf1c2e;
 }
 

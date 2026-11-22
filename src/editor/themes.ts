@@ -48,7 +48,7 @@ export function darkTheme(): Extension {
         ".cm-content": { caretColor: "#5ccfe6", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#5ccfe6" },
         "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-          { backgroundColor: "#31415f" },
+          { backgroundColor: "var(--selection-bg, #4fc3f78c)" },
         ".cm-activeLine": { backgroundColor: "#26272e" },
         ".cm-gutters": {
           // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部
@@ -63,7 +63,6 @@ export function darkTheme(): Extension {
           color: "#d4d4d4",
         },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
-        ".cm-selectionMatch": { backgroundColor: "#314560" },
         ".np-match": {
           backgroundColor: "rgba(249, 196, 89, 0.45)",
           outline: "1px solid rgba(249, 196, 89, 1)",
@@ -134,7 +133,7 @@ export function lightTheme(): Extension {
         ".cm-content": { caretColor: "#0b6cb5", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#0b6cb5" },
         "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-          { backgroundColor: "#cfe1f7" },
+          { backgroundColor: "var(--selection-bg, #0b6cb54d)" },
         ".cm-activeLine": { backgroundColor: "#f3f5f8" },
         ".cm-gutters": {
           // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部
@@ -146,7 +145,6 @@ export function lightTheme(): Extension {
         },
         ".cm-activeLineGutter": { backgroundColor: "#f3f5f8", color: "#2d3138" },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
-        ".cm-selectionMatch": { backgroundColor: "#c4d8f2" },
         ".np-match": {
           backgroundColor: "rgba(240, 165, 30, 0.52)",
           outline: "1px solid rgba(214, 132, 20, 1)",

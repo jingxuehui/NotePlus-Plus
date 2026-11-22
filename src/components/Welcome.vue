@@ -30,6 +30,7 @@ const shortcuts: Shortcut[] = [
   { k: "⌘G / ⇧⌘G", label: "下一个 / 上一个匹配" },
   { k: "⌘B", label: "显示 / 隐藏侧边栏" },
   { k: "⌘/", label: "注释当前行" },
+  { k: "⇧⌥F", label: "格式化 JSON" },
   { k: "⌘+ / ⌘- / ⌘0", label: "放大 / 缩小 / 重置字号" },
   { k: "⌘,", label: "设置" },
   { k: "拖拽", label: "拖入文件即可打开" },

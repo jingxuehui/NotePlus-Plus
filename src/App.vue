@@ -35,6 +35,7 @@ import {
   findNextMatch,
   findPrevMatch,
 } from "./find/bridge";
+import { formatJsonDocument } from "./editor/format";
 
 // 主题 / 配色 / 缩放等由 settings store 统一应用
 
@@ -125,6 +126,10 @@ function onKeydown(e: KeyboardEvent) {
     e.preventDefault();
     if (e.shiftKey) findPrevMatch();
     else findNextMatch();
+  } else if (e.shiftKey && e.altKey && !mod && e.code === "KeyF") {
+    // ⇧⌥F：格式化 JSON
+    e.preventDefault();
+    formatJsonDocument();
   } else if (mod && (key === "=" || key === "+")) {
     e.preventDefault();
     zoomIn();

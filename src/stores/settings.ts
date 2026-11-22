@@ -109,6 +109,8 @@ export function applyVisual(s: Settings) {
   body.style.setProperty("--accent", light ? accent.light : accent.dark);
   body.style.setProperty("--accent-tint", light ? accent.tintLight : accent.tintDark);
   body.style.setProperty("--accent-edge", light ? accent.edgeLight : accent.edgeDark);
+  // 文本选中底色跟随主题：深色用更实的强调色，浅色用浅淡的强调色
+  body.style.setProperty("--selection-bg", light ? `${accent.light}4d` : `${accent.dark}8c`);
   body.style.setProperty("--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px");
   document.documentElement.style.fontSize = `${(s.zoom / 100) * 16}px`;
 }
