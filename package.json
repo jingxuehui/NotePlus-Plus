@@ -1,14 +1,16 @@
 {
   "name": "noteplus-plus",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "NotePlus+ - A powerful Notepad++ style code editor for macOS",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "release": "node scripts/release.mjs && tauri build && node scripts/upload-release.mjs",
+    "release:upload": "node scripts/upload-release.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.6",

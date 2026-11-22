@@ -1,6 +1,6 @@
 [package]
 name = "noteplus"
-version = "1.0.0"
+version = "0.1.1"
 description = "NotePlus+ - A powerful Notepad++ style code editor for macOS"
 authors = ["NotePlus+"]
 edition = "2021"

@@ -106,12 +106,12 @@ NotePlus+ 是一款 Notepad++ 风格的轻量级代码编辑器，使用 Tauri 2
 
 ## Install
 
-从 release 产物直接安装（当前为 v1.0.0）：
+从 release 产物直接安装（当前为 v0.1.1）：
 
 ```bash
 # 构建产物位于
 src-tauri/target/release/bundle/macos/NotePlus+.app
-src-tauri/target/release/bundle/dmg/NotePlus+_1.0.0_aarch64.dmg
+src-tauri/target/release/bundle/dmg/NotePlus+_0.1.1_aarch64.dmg
 ```
 
 将 `NotePlus+.app` 拖入「应用程序」即可使用；dmg 双击挂载后拖拽安装。

@@ -106,12 +106,12 @@ NotePlus+ is a lightweight Notepad++-style code editor built with Tauri 2 — no
 
 ## Install
 
-Install directly from the build artifacts (currently v1.0.0):
+Install directly from the build artifacts (currently v0.1.1):
 
 ```bash
 # Build artifacts are located at
 src-tauri/target/release/bundle/macos/NotePlus+.app
-src-tauri/target/release/bundle/dmg/NotePlus+_1.0.0_aarch64.dmg
+src-tauri/target/release/bundle/dmg/NotePlus+_0.1.1_aarch64.dmg
 ```
 
 Drag `NotePlus+.app` into Applications, or mount the dmg and drag to install.

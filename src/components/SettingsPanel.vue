@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from "vue";
+import { getVersion } from "@tauri-apps/api/app";
 import {
   DEFAULT_SETTINGS,
   applyVisual,
@@ -22,6 +23,10 @@ const navItems: { key: SectionKey; label: string }[] = [
 
 const section = ref<SectionKey>("appearance");
 const search = ref("");
+
+// 应用版本：初值取 package.json，挂载后以 Tauri 打包元数据（tauri.conf.json）为准
+const appVersion = ref<string>(__APP_VERSION__);
+const copyrightYear = new Date().getFullYear();
 
 // 草稿：控件只改草稿并实时预览，「应用」才提交到全局设置
 const draft = reactive<Settings>({ ...settings });
@@ -78,7 +83,15 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener("keydown", onKey, true));
+onMounted(() => {
+  window.addEventListener("keydown", onKey, true);
+  // 与实际打包版本保持一致（tauri.conf.json 的 version）
+  getVersion()
+    .then((v) => {
+      if (v) appVersion.value = v;
+    })
+    .catch(() => undefined);
+});
 onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
 </script>
 
@@ -267,7 +280,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
                   </svg>
                 </div>
                 <div class="update-info">
-                  <div class="update-title">NotePlus+ <span class="ver-chip">v1.0.0</span></div>
+                  <div class="update-title">NotePlus+ <span class="ver-chip">v{{ appVersion }}</span></div>
                   <div class="update-sub">当前为 {{ draft.updateChannel === "preview" ? "预览版" : "稳定版" }}最新构建</div>
                 </div>
                 <button class="btn" @click="checkUpdate">检查更新</button>
@@ -316,7 +329,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
                 <span class="about-plus">+</span>
               </div>
               <div class="about-name">NotePlus+</div>
-              <div class="about-ver">v1.0.0 · macOS</div>
+              <div class="about-ver">v{{ appVersion }} · macOS</div>
               <div class="about-desc">macOS 上的轻量级代码编辑器，为高效编辑而生。</div>
               <div class="group-title">技术栈</div>
               <div class="stack-list">
@@ -329,7 +342,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
               </div>
               <div class="group-title">版本信息</div>
               <div class="info-table">
-                <div><span>应用版本</span><span>1.0.0 (2026)</span></div>
+                <div><span>应用版本</span><span>{{ appVersion }} ({{ copyrightYear }})</span></div>
                 <div><span>构建目标</span><span>macOS · Apple Silicon</span></div>
                 <div><span>许可协议</span><span>MIT License</span></div>
               </div>
