@@ -51,9 +51,12 @@ export function darkTheme(): Extension {
           { backgroundColor: "#31415f" },
         ".cm-activeLine": { backgroundColor: "#26272e" },
         ".cm-gutters": {
-          backgroundColor: "#1e1f24",
+          // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部
+          backgroundColor: "#1a1b20",
           color: "#5c6370",
           border: "none",
+          borderRight: "1px solid #2d2e35",
+          height: "100%",
         },
         ".cm-activeLineGutter": {
           backgroundColor: "#26272e",
@@ -125,9 +128,12 @@ export function lightTheme(): Extension {
           { backgroundColor: "#cfe1f7" },
         ".cm-activeLine": { backgroundColor: "#f3f5f8" },
         ".cm-gutters": {
-          backgroundColor: "#ffffff",
+          // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部
+          backgroundColor: "#f7f8fa",
           color: "#9aa2ad",
           border: "none",
+          borderRight: "1px solid #e6e9ee",
+          height: "100%",
         },
         ".cm-activeLineGutter": { backgroundColor: "#f3f5f8", color: "#2d3138" },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
