@@ -9,6 +9,25 @@ export type AccentName = "blue" | "indigo" | "teal";
 export type RadiusName = "none" | "small" | "large";
 export type IconStyle = "default" | "black";
 
+export interface ToolbarVisibility {
+  sidebar: boolean;
+  newFile: boolean;
+  openFile: boolean;
+  openFolder: boolean;
+  save: boolean;
+  saveAll: boolean;
+  find: boolean;
+  format: boolean;
+  saveAs: boolean;
+  reveal: boolean;
+  closeTab: boolean;
+  closeOthers: boolean;
+  closeAll: boolean;
+  shortcutHint: boolean;
+  statusBar: boolean;
+  systemSettings: boolean;
+}
+
 export interface Settings {
   theme: ThemeMode; // 实际生效的主题
   themeChoice: ThemeChoice; // 用户在设置里的选择
@@ -29,6 +48,8 @@ export interface Settings {
   exitOnClose: boolean;
   /** 图标与 Logo 样式 */
   iconStyle: IconStyle;
+  /** 工具栏 / 菜单入口显示项 */
+  toolbar: ToolbarVisibility;
 }
 
 const STORAGE_KEY = "noteplus.settings";
@@ -51,6 +72,24 @@ export const DEFAULT_SETTINGS: Settings = {
   updateChannel: "stable",
   exitOnClose: false,
   iconStyle: "default",
+  toolbar: {
+    sidebar: true,
+    newFile: true,
+    openFile: true,
+    openFolder: true,
+    save: true,
+    saveAll: true,
+    find: true,
+    format: true,
+    saveAs: true,
+    reveal: true,
+    closeTab: true,
+    closeOthers: true,
+    closeAll: true,
+    shortcutHint: true,
+    statusBar: true,
+    systemSettings: true,
+  },
 };
 
 function load(): Settings {
@@ -63,7 +102,11 @@ function load(): Settings {
         saved.exitOnClose = !saved.keepInDock;
         delete saved.keepInDock;
       }
-      return { ...DEFAULT_SETTINGS, ...saved };
+      return {
+        ...DEFAULT_SETTINGS,
+        ...saved,
+        toolbar: { ...DEFAULT_SETTINGS.toolbar, ...(saved.toolbar ?? {}) },
+      };
     }
   } catch {
     /* ignore */

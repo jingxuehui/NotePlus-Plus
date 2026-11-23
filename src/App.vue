@@ -180,6 +180,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="h-full flex flex-col bg-app text-main">
     <TitleBar
+      @close-active="activeTab && requestClose(activeTab.id)"
       @new="newTab"
       @open="openWithDialog"
       @open-folder="openFolder"
@@ -200,7 +201,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
-    <StatusBar />
+    <StatusBar v-if="settings.toolbar.statusBar" />
     <ConfirmModal />
     <Toast />
     <SettingsPanel v-if="ui.showSettings" />

@@ -10,6 +10,7 @@ import {
   type AccentName,
   type Settings,
   type ThemeChoice,
+  type ToolbarVisibility,
 } from "@/stores/settings";
 import { toggleSettings } from "@/stores/ui";
 import { notify } from "@/stores/toast";
@@ -55,6 +56,65 @@ const copyrightYear = new Date().getFullYear();
 // 草稿：控件只改草稿并实时预览，「应用」才提交到全局设置
 const draft = reactive<Settings>({ ...settings });
 const dirty = computed(() => JSON.stringify(draft) !== JSON.stringify(settings));
+
+// ---------- 工具栏显示项（拖拽排序仅影响当前会话的展示顺序） ----------
+type ToolbarKey = keyof ToolbarVisibility;
+interface ToolbarItem {
+  key: ToolbarKey;
+  label: string;
+}
+const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
+  {
+    title: "主操作栏",
+    items: [
+      { key: "sidebar", label: "侧边栏" },
+      { key: "newFile", label: "新建文件" },
+      { key: "openFile", label: "打开文件" },
+      { key: "openFolder", label: "打开文件夹" },
+      { key: "save", label: "保存文件" },
+      { key: "saveAll", label: "全部保存" },
+      { key: "find", label: "查找替换" },
+      { key: "format", label: "格式化 JSON" },
+    ],
+  },
+  {
+    title: "更多菜单",
+    items: [
+      { key: "saveAs", label: "另存为" },
+      { key: "reveal", label: "在 Finder 中显示" },
+      { key: "closeTab", label: "关闭当前标签" },
+      { key: "closeOthers", label: "关闭其他标签" },
+      { key: "closeAll", label: "关闭全部标签" },
+    ],
+  },
+  {
+    title: "右侧工具栏",
+    items: [
+      { key: "shortcutHint", label: "快捷键提示" },
+      { key: "statusBar", label: "状态栏" },
+    ],
+  },
+  {
+    title: "系统入口",
+    items: [{ key: "systemSettings", label: "设置" }],
+  },
+]);
+
+let dragFrom: { group: number; index: number } | null = null;
+function onToolbarDragStart(g: number, i: number) {
+  dragFrom = { group: g, index: i };
+}
+function onToolbarDrop(g: number, i: number, e: DragEvent) {
+  e.preventDefault();
+  if (!dragFrom || dragFrom.group !== g || dragFrom.index === i) {
+    dragFrom = null;
+    return;
+  }
+  const items = toolbarGroups[g].items;
+  const [moved] = items.splice(dragFrom.index, 1);
+  items.splice(i, 0, moved);
+  dragFrom = null;
+}
 
 watch(
   draft,
@@ -348,6 +408,36 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </div>
+
+              <!-- 工具栏显示项 -->
+              <div class="section-divider" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')"></div>
+              <div class="toolbar-settings" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')">
+                <div class="toolbar-desc">拖拽调整同一区域的顺序，隐藏的主操作和系统入口仍可从“更多”访问。</div>
+                <div class="toolbar-grid">
+                  <div class="toolbar-group" v-for="(group, gi) in toolbarGroups" :key="group.title">
+                    <div class="toolbar-group-title">{{ group.title }}</div>
+                    <div
+                      class="toolbar-row"
+                      v-for="(item, ii) in group.items"
+                      :key="item.key"
+                      draggable="true"
+                      @dragstart="onToolbarDragStart(gi, ii)"
+                      @dragover.prevent
+                      @drop="onToolbarDrop(gi, ii, $event)"
+                    >
+                      <button
+                        class="switch"
+                        :class="{ on: draft.toolbar[item.key] }"
+                        role="switch"
+                        :aria-checked="draft.toolbar[item.key]"
+                        @click="draft.toolbar[item.key] = !draft.toolbar[item.key]"
+                      ><span class="knob"></span></button>
+                      <span class="toolbar-row-label">{{ item.label }}</span>
+                      <span class="drag-handle" title="拖拽排序">⠿</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
 
@@ -565,6 +655,46 @@ onBeforeUnmount(() => {
   height: 1px;
   background: var(--border);
   margin: 16px 0 12px;
+}
+.toolbar-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.toolbar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+}
+.toolbar-group {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  background: var(--panel-2);
+}
+.toolbar-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+}
+.toolbar-row .switch { transform: scale(0.9); transform-origin: left center; }
+.toolbar-row-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+}
+.drag-handle {
+  color: var(--muted);
+  font-size: 15px;
+  cursor: grab;
+  user-select: none;
 }
 
 .group-title {
