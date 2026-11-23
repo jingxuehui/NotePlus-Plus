@@ -29,19 +29,74 @@ const navItems: { key: SectionKey; label: string }[] = [
 const section = ref<SectionKey>("appearance");
 const search = ref("");
 
-// 配色主题：自定义下拉（原生 select 的 option 无法渲染彩色圆点）
+// 配色主题：与 DBX 一致的 13 套主题（原生 select 的 option 无法渲染彩色圆点）
 const ACCENT_LABELS: Record<AccentName, string> = {
-  blue: "钴蓝",
-  indigo: "靛蓝",
-  teal: "青绿",
+  pearl: "珍珠",
+  mist: "薄雾",
+  graphite: "石墨",
+  cobalt: "钴蓝",
+  sage: "鼠尾草",
+  amber: "琥珀",
+  blush: "粉色",
+  vscode: "VS Code",
+  idea: "IntelliJ IDEA",
+  xcode: "Xcode",
+  jetbrains: "JetBrains",
+  cursor: "Cursor",
+  claude: "Claude",
+};
+// DBX 配色预览色
+const ACCENT_PREVIEW: Record<AccentName, string> = {
+  pearl: "#ffffff",
+  mist: "#e4eaf2",
+  graphite: "#d8dce4",
+  cobalt: "#d8e6f7",
+  sage: "#dbe9e2",
+  amber: "#f4e4b8",
+  blush: "#f4d9e6",
+  vscode: "#007acc",
+  idea: "#4b6eaf",
+  xcode: "#0a84ff",
+  jetbrains: "#7b61ff",
+  cursor: "#6ba4ff",
+  claude: "#c47a50",
 };
 const accentOptions = computed(() =>
   (Object.keys(ACCENT_LABELS) as AccentName[]).map((key) => ({
     key,
     label: ACCENT_LABELS[key],
-    color: draft.theme === "light" ? ACCENTS[key].light : ACCENTS[key].dark,
+    color: ACCENT_PREVIEW[key] ?? (draft.theme === "light" ? ACCENTS[key].light : ACCENTS[key].dark),
   }))
 );
+
+// 与 DBX 一致的语言 / 缩放档位 / 界面字体选项
+const LANGUAGE_OPTIONS = [
+  { value: "en-US", flag: "🇺🇸", label: "English" },
+  { value: "az", flag: "🇦🇿", label: "Azərbaycan" },
+  { value: "es", flag: "🇪🇸", label: "Español" },
+  { value: "id", flag: "🇮🇩", label: "Bahasa Indonesia" },
+  { value: "it", flag: "🇮🇹", label: "Italiano" },
+  { value: "ja", flag: "🇯🇵", label: "日本語" },
+  { value: "ko", flag: "🇰🇷", label: "한국어" },
+  { value: "pt-BR", flag: "🇧🇷", label: "Português" },
+  { value: "pl", flag: "🇵🇱", label: "Polski" },
+  { value: "ru", flag: "🇷🇺", label: "Русский" },
+  { value: "th", flag: "🇹🇭", label: "ภาษาไทย" },
+  { value: "tr", flag: "🇹🇷", label: "Türkçe" },
+  { value: "zh-CN", flag: "🇨🇳", label: "简体中文" },
+  { value: "zh-TW", flag: "繁", label: "繁體中文" },
+];
+const ZOOM_OPTIONS = [75, 90, 95, 100, 105, 110, 115, 120, 125, 150, 175];
+const UI_FONT_OPTIONS = [
+  { value: "system", label: "系统默认" },
+  { value: "mono", label: "等宽字体" },
+  { value: '"PingFang SC", "Helvetica Neue", sans-serif', label: "苹方 / PingFang SC" },
+  { value: '"Microsoft YaHei", sans-serif', label: "微软雅黑" },
+  { value: '"Helvetica Neue", Arial, sans-serif', label: "Helvetica Neue" },
+  { value: '"Noto Sans CJK SC", sans-serif', label: "思源黑体" },
+  { value: "Menlo, Consolas, monospace", label: "Menlo" },
+  { value: "Arial, sans-serif", label: "Arial" },
+];
 const accentOpen = ref(false);
 const accentWrap = ref<HTMLElement | null>(null);
 function onDocClick(e: MouseEvent) {
@@ -235,8 +290,7 @@ onBeforeUnmount(() => {
                   <label class="field-label">语言 / Language </label>
                   <div class="select-wrap">
                     <select v-model="draft.language">
-                      <option value="zh-CN">🇨🇳 简体中文</option>
-                      <option value="en-US">🇺🇸 English</option>
+                      <option v-for="l in LANGUAGE_OPTIONS" :key="l.value" :value="l.value">{{ l.flag }} {{ l.label }}</option>
                     </select>
                   </div>
                 </div>
@@ -265,29 +319,23 @@ onBeforeUnmount(() => {
                 <div class="field" v-show="matches('界面缩放', '缩放')">
                   <label class="field-label">界面缩放 <HintTip text="调整应用整体界面大小，不影响编辑器内的文字大小。" /></label>
                   <div class="select-wrap">
-                    <select v-model="draft.zoom">
-                      <option :value="80">80%</option>
-                      <option :value="100">100%</option>
-                      <option :value="120">120%</option>
-                      <option :value="140">140%</option>
+                    <select v-model.number="draft.zoom">
+                      <option v-for="z in ZOOM_OPTIONS" :key="z" :value="z">{{ z }}%</option>
                     </select>
                   </div>
                 </div>
-                <div class="field" v-show="matches('字体平滑')">
+                <div class="field field-inline" v-show="matches('字体平滑')">
                   <label class="field-label">字体平滑 <HintTip text="关闭后界面文字不使用抗锯齿，部分屏幕下显示更锐利。" /></label>
-                  <div class="field-switch">
-                    <button class="switch" :class="{ on: draft.fontSmoothing }" role="switch"
-                      :aria-checked="draft.fontSmoothing" @click="draft.fontSmoothing = !draft.fontSmoothing">
-                      <span class="knob"></span>
-                    </button>
-                  </div>
+                  <button class="switch" :class="{ on: draft.fontSmoothing }" role="switch"
+                    :aria-checked="draft.fontSmoothing" @click="draft.fontSmoothing = !draft.fontSmoothing">
+                    <span class="knob"></span>
+                  </button>
                 </div>
                 <div class="field" v-show="matches('界面字体', '字体')">
                   <label class="field-label">界面字体 <HintTip text="切换界面使用系统默认字体或等宽字体，不影响编辑器字体。" /></label>
                   <div class="select-wrap">
                     <select v-model="draft.uiFont">
-                      <option value="system">系统默认</option>
-                      <option value="mono">等宽字体</option>
+                      <option v-for="f in UI_FONT_OPTIONS" :key="f.value" :value="f.value">{{ f.label }}</option>
                     </select>
                   </div>
                 </div>
@@ -713,12 +761,30 @@ onBeforeUnmount(() => {
 }
 .group-title:first-child { margin-top: 8px; }
 
+/* 与 DBX 外观设置一致：三列格子，每项独立成框 */
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+.grid > .field {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.grid > .field:hover {
+  border-color: var(--muted);
+  background: var(--hover);
 }
 .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.field-inline .field-label { flex: 1; }
 .field-label { font-size: 14px; color: var(--text); }
 .field-label.mt { margin: 18px 0 10px; display: block; }
 .hint { color: var(--muted); font-size: 12px; margin-left: 4px; cursor: help; }
@@ -773,11 +839,12 @@ select:focus { border-color: var(--accent); }
 }
 .accent-trigger:hover { border-color: var(--muted); }
 .accent-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
+  border: 1px solid var(--border);
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
 }
 .accent-menu {
   position: absolute;
@@ -815,9 +882,22 @@ select:focus { border-color: var(--accent); }
 .pair-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 22px;
-  align-items: start;
+  gap: 12px 14px;
+  align-items: stretch;
+  margin-top: 12px;
 }
+.pair-row > div {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.pair-row > div:hover {
+  border-color: var(--muted);
+  background: var(--hover);
+}
+.pair-row .field-label.mt { margin: 0 0 10px; }
 .segmented { display: inline-flex; gap: 4px; }
 .segmented button {
   display: inline-flex;

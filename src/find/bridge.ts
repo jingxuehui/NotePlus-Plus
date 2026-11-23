@@ -28,7 +28,7 @@ let unlisteners: UnlistenFn[] = [];
 
 /** 当前强调色：查找窗口是独立 WebView，需要显式同步才能与主窗口一致 */
 function currentAccent(): string {
-  const a = ACCENTS[settings.accent] ?? ACCENTS.blue;
+  const a = ACCENTS[settings.accent] ?? ACCENTS.cobalt;
   return settings.theme === "light" ? a.light : a.dark;
 }
 

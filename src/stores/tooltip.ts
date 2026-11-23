@@ -80,6 +80,12 @@ export function installGlobalTooltip(): () => void {
     attributeFilter: ["title"],
     subtree: true,
   });
+  // 安装时就收走已有的原生 title，避免首次悬浮闪出系统原生提示（大问号光标/气泡）
+  document.querySelectorAll<HTMLElement>("[title]").forEach((el) => {
+    const text = el.getAttribute("title") || "";
+    if (text) el.dataset.tip = text;
+    el.removeAttribute("title");
+  });
 
   document.addEventListener("mouseover", onOver, true);
   document.addEventListener("mouseout", onOut, true);

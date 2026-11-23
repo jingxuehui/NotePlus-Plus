@@ -5,7 +5,20 @@ import { setExitOnClose, setIconStyle } from "@/commands";
 
 export type ThemeMode = "dark" | "light";
 export type ThemeChoice = "dark" | "light" | "system";
-export type AccentName = "blue" | "indigo" | "teal";
+export type AccentName =
+  | "pearl"
+  | "mist"
+  | "graphite"
+  | "cobalt"
+  | "sage"
+  | "amber"
+  | "blush"
+  | "vscode"
+  | "idea"
+  | "xcode"
+  | "jetbrains"
+  | "cursor"
+  | "claude";
 export type RadiusName = "none" | "small" | "large";
 export type IconStyle = "default" | "black";
 
@@ -35,11 +48,11 @@ export interface Settings {
   fontSize: number;
   wordWrap: boolean;
   sidebarVisible: boolean;
-  language: "zh-CN" | "en-US";
+  language: string;
   accent: AccentName;
-  zoom: 80 | 100 | 120 | 140;
+  zoom: number;
   fontSmoothing: boolean;
-  uiFont: "system" | "mono";
+  uiFont: string;
   radius: RadiusName;
   layout: "modern" | "classic";
   tabOverflow: "scroll" | "wrap";
@@ -62,7 +75,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wordWrap: false,
   sidebarVisible: true,
   language: "zh-CN",
-  accent: "blue",
+  accent: "cobalt",
   zoom: 100,
   fontSmoothing: true,
   uiFont: "system",
@@ -104,6 +117,15 @@ function load(): Settings {
         saved.exitOnClose = !saved.keepInDock;
         delete saved.keepInDock;
       }
+      // 旧版 3 套配色映射到 DBX 调色板
+      const legacyAccents: Record<string, AccentName> = {
+        blue: "cobalt",
+        indigo: "jetbrains",
+        teal: "sage",
+      };
+      if (saved.accent && legacyAccents[saved.accent]) {
+        saved.accent = legacyAccents[saved.accent];
+      }
       return {
         ...DEFAULT_SETTINGS,
         ...saved,
@@ -128,31 +150,32 @@ interface AccentColors {
   edgeLight: string;
 }
 
+function accentColors(dark: string, light: string): AccentColors {
+  return {
+    dark,
+    light,
+    tintDark: `${dark}40`,
+    tintLight: `${light}33`,
+    edgeDark: `${dark}66`,
+    edgeLight: `${light}5c`,
+  };
+}
+
+/** 与 DBX 的 13 套配色对应（色值取自其预览色 / 主题强调色） */
 export const ACCENTS: Record<AccentName, AccentColors> = {
-  blue: {
-    dark: "#4fc3f7",
-    light: "#0b6cb5",
-    tintDark: "#4fc3f740",
-    tintLight: "#0b6cb533",
-    edgeDark: "#4fc3f766",
-    edgeLight: "#0b6cb55c",
-  },
-  indigo: {
-    dark: "#a9a3ff",
-    light: "#5b4bd6",
-    tintDark: "#a9a3ff40",
-    tintLight: "#5b4bd633",
-    edgeDark: "#a9a3ff66",
-    edgeLight: "#5b4bd65c",
-  },
-  teal: {
-    dark: "#5ee0b5",
-    light: "#0f8a68",
-    tintDark: "#5ee0b540",
-    tintLight: "#0f8a6833",
-    edgeDark: "#5ee0b566",
-    edgeLight: "#0f8a685c",
-  },
+  pearl: accentColors("#e8f1fa", "#0b6cb5"),
+  mist: accentColors("#a9c4e2", "#37618f"),
+  graphite: accentColors("#b7bdc9", "#4a5261"),
+  cobalt: accentColors("#4fc3f7", "#0b6cb5"),
+  sage: accentColors("#7fd6ad", "#2b7a5b"),
+  amber: accentColors("#f0bc63", "#a86a12"),
+  blush: accentColors("#f0a4c4", "#a83a6b"),
+  vscode: accentColors("#4fc1ff", "#007acc"),
+  idea: accentColors("#9bb7ee", "#4b6eaf"),
+  xcode: accentColors("#5ab4ff", "#0a84ff"),
+  jetbrains: accentColors("#b3a1ff", "#7b61ff"),
+  cursor: accentColors("#9cc8ff", "#4c8fe0"),
+  claude: accentColors("#e0a37d", "#b5653d"),
 };
 
 /** 把一组设置应用到界面（支持设置弹框的实时预览） */
@@ -165,7 +188,7 @@ export function applyVisual(s: Settings) {
   body.classList.toggle("layout-modern", s.layout === "modern");
   body.classList.toggle("tab-wrap", s.tabOverflow === "wrap");
 
-  const accent = ACCENTS[s.accent] ?? ACCENTS.blue;
+  const accent = ACCENTS[s.accent] ?? ACCENTS.cobalt;
   const light = s.theme === "light";
   body.style.setProperty("--accent", light ? accent.light : accent.dark);
   body.style.setProperty("--accent-tint", light ? accent.tintLight : accent.tintDark);
@@ -174,6 +197,12 @@ export function applyVisual(s: Settings) {
   body.style.setProperty("--selection-bg", light ? `${accent.light}4d` : `${accent.dark}8c`);
   body.style.setProperty("--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px");
   document.documentElement.style.fontSize = `${(s.zoom / 100) * 16}px`;
+
+  const uiFonts: Record<string, string> = {
+    system: "",
+    mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+  };
+  body.style.setProperty("--ui-font-family", uiFonts[s.uiFont] ?? s.uiFont);
 }
 
 // 真实系统外观由 Rust 侧提供，WKWebView 的 prefers-color-scheme 在 macOS 上不可靠

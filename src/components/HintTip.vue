@@ -22,10 +22,10 @@ onBeforeUnmount(hideTip);
     @focus="show"
     @blur="hideTip"
   >
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+    <svg class="hint-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
       <circle cx="8" cy="8" r="6.4" />
-      <path d="M6.2 6.1a1.9 1.9 0 1 1 2.7 1.7c-.6.3-.9.7-.9 1.5" stroke-linecap="round" />
-      <circle cx="8" cy="11.6" r="0.75" fill="currentColor" stroke="none" />
+      <path d="M6.3 6.2a1.85 1.85 0 1 1 2.6 1.6c-.6.3-.95.7-.95 1.45" stroke-linecap="round" />
+      <circle cx="8" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
     </svg>
   </span>
 </template>
@@ -34,12 +34,24 @@ onBeforeUnmount(hideTip);
 .hint {
   display: inline-flex;
   align-items: center;
-  vertical-align: middle;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
   color: var(--muted);
+  font-size: 0;
+  line-height: 0;
+  vertical-align: middle;
   margin-left: 4px;
-  cursor: help;
+  cursor: pointer;
 }
 .hint:focus {
   outline: none;
+}
+.hint-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
 }
 </style>
