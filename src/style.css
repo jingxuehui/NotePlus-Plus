@@ -11,6 +11,9 @@
   --accent: #4fc3f7;
   --selection-bg: #4fc3f78c;
   --danger: #f07178;
+  --tip-bg: #171b24;
+  --tip-border: #333947;
+  --tip-text: #f2f4f8;
 }
 
 body.theme-light {
@@ -24,6 +27,10 @@ body.theme-light {
   --accent: #0b6cb5;
   --selection-bg: #0b6cb54d;
   --danger: #bf1c2e;
+  /* 亮色主题下的提示仍用深色气泡，与深色界面保持一致的视觉语言 */
+  --tip-bg: #1f2430;
+  --tip-border: #39404f;
+  --tip-text: #ffffff;
 }
 
 * {

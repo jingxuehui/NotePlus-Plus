@@ -1,27 +1,15 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue";
+import { hideTip, showTip } from "@/stores/tooltip";
 
-defineProps<{ text: string }>();
-
-const visible = ref(false);
-const pos = ref({ x: 0, y: 0 });
+const props = defineProps<{ text: string }>();
 const anchor = ref<HTMLElement | null>(null);
 
 function show() {
-  if (!anchor.value) return;
-  const r = anchor.value.getBoundingClientRect();
-  pos.value = {
-    x: Math.max(140, Math.min(window.innerWidth - 140, r.left + r.width / 2)),
-    y: r.top - 8,
-  };
-  visible.value = true;
+  if (anchor.value) showTip(props.text, anchor.value.getBoundingClientRect());
 }
 
-function hide() {
-  visible.value = false;
-}
-
-onBeforeUnmount(hide);
+onBeforeUnmount(hideTip);
 </script>
 
 <template>
@@ -30,9 +18,9 @@ onBeforeUnmount(hide);
     class="hint"
     tabindex="0"
     @mouseenter="show"
-    @mouseleave="hide"
+    @mouseleave="hideTip"
     @focus="show"
-    @blur="hide"
+    @blur="hideTip"
   >
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
       <circle cx="8" cy="8" r="6.4" />
@@ -40,15 +28,6 @@ onBeforeUnmount(hide);
       <circle cx="8" cy="11.6" r="0.75" fill="currentColor" stroke="none" />
     </svg>
   </span>
-  <Teleport to="body">
-    <div
-      v-if="visible"
-      class="hint-tip"
-      :style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
-    >
-      {{ text }}
-    </div>
-  </Teleport>
 </template>
 
 <style scoped>
@@ -62,22 +41,5 @@ onBeforeUnmount(hide);
 }
 .hint:focus {
   outline: none;
-}
-.hint-tip {
-  position: fixed;
-  z-index: 2000;
-  transform: translate(-50%, -100%);
-  width: max-content;
-  max-width: 260px;
-  padding: 8px 10px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: normal;
-  pointer-events: none;
 }
 </style>

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { settings } from "@/stores/settings";
+import { settings, cycleTheme } from "@/stores/settings";
 import { ui, toggleSettings } from "@/stores/ui";
 import { openFindWindow } from "@/find/bridge";
 import { activeTab, saveTabAs, closeOtherTabs, closeAllTabs } from "@/stores/tabs";
 import { revealInFinder } from "@/commands";
 import { formatJsonDocument } from "@/editor/format";
 import ShortcutHint from "./ShortcutHint.vue";
+import ThemeIcon from "./ThemeIcon.vue";
 
 const emit = defineEmits<{
   new: [];
@@ -145,6 +146,16 @@ function runMore(action: () => void) {
     <!-- 快捷键提示 -->
     <ShortcutHint v-if="settings.toolbar.shortcutHint" />
 
+    <!-- 右上角主题切换：点击按 亮色 / 暗色 / 跟随系统 循环 -->
+    <span
+      v-if="settings.toolbar.themeToggle"
+      class="icon-btn theme-toggle"
+      title="主题"
+      @click="cycleTheme"
+    >
+      <ThemeIcon :key="settings.themeChoice" class="theme-icon-anim" :mode="settings.themeChoice" :size="17" />
+    </span>
+
     <!-- 右上角设置入口（与其他工具栏按钮一致的透明样式） -->
     <span
       v-if="settings.toolbar.systemSettings"
@@ -253,6 +264,24 @@ function runMore(action: () => void) {
 }
 .more-menu button:hover:not(:disabled) { background: var(--hover); }
 .more-menu button:disabled { opacity: 0.4; cursor: default; }
+.icon-btn.theme-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+.theme-icon-anim {
+  animation: theme-icon-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes theme-icon-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-18deg) scale(0.72);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
 .settings-trigger {
   display: inline-flex;
   align-items: center;

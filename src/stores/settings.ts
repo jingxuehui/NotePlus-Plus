@@ -25,6 +25,7 @@ export interface ToolbarVisibility {
   closeAll: boolean;
   shortcutHint: boolean;
   statusBar: boolean;
+  themeToggle: boolean;
   systemSettings: boolean;
 }
 
@@ -88,6 +89,7 @@ export const DEFAULT_SETTINGS: Settings = {
     closeAll: true,
     shortcutHint: true,
     statusBar: true,
+    themeToggle: true,
     systemSettings: true,
   },
 };
@@ -182,6 +184,19 @@ export function systemTheme(): ThemeMode {
   return systemIsDark ? "dark" : "light";
 }
 
+/** 直接选择主题（设置面板与标题栏主题菜单共用） */
+export function chooseTheme(choice: ThemeChoice): void {
+  settings.themeChoice = choice;
+  settings.theme = choice === "system" ? systemTheme() : choice;
+}
+
+/** 顶栏主题按钮：点击按 亮色 → 暗色 → 跟随系统 循环切换 */
+export function cycleTheme(): void {
+  const order: ThemeChoice[] = ["light", "dark", "system"];
+  const next = order[(order.indexOf(settings.themeChoice) + 1) % order.length];
+  chooseTheme(next);
+}
+
 function onSystemThemeChanged(dark: boolean) {
   systemIsDark = dark;
   if (settings.themeChoice === "system") {
@@ -221,6 +236,13 @@ watch(settings, (s) => {
 
 export function resetSettings() {
   Object.assign(settings, DEFAULT_SETTINGS);
+}
+
+/** 一键切换亮色 / 暗色（同时把主题选择固定为对应值，不再跟随系统） */
+export function toggleTheme() {
+  const next: ThemeMode = settings.theme === "dark" ? "light" : "dark";
+  settings.themeChoice = next;
+  settings.theme = next;
 }
 
 export function zoomIn() {

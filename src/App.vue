@@ -10,6 +10,8 @@ import StatusBar from "./components/StatusBar.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
 import Welcome from "./components/Welcome.vue";
 import Toast from "./components/Toast.vue";
+import GlobalTooltip from "./components/GlobalTooltip.vue";
+import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { confirmChoice, toggleSettings, ui } from "./stores/ui";
 import {
@@ -151,9 +153,11 @@ function onKeydown(e: KeyboardEvent) {
 
 // ---------- 拖拽文件打开 ----------
 let unlistenDrag: (() => void) | null = null;
+let uninstallTip: (() => void) | null = null;
 
 onMounted(async () => {
   initVisualSettings();
+  uninstallTip = installGlobalTooltip();
   window.addEventListener("keydown", onKeydown);
   initFindBridge();
   // 恢复上次会话（标签页 / 未保存内容 / 打开的文件夹）
@@ -174,6 +178,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKeydown);
   unlistenDrag?.();
+  uninstallTip?.();
 });
 </script>
 
@@ -204,6 +209,7 @@ onBeforeUnmount(() => {
     <StatusBar v-if="settings.toolbar.statusBar" />
     <ConfirmModal />
     <Toast />
+    <GlobalTooltip />
     <SettingsPanel v-if="ui.showSettings" />
   </div>
 </template>

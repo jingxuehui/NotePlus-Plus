@@ -15,6 +15,7 @@ import {
 import { toggleSettings } from "@/stores/ui";
 import { notify } from "@/stores/toast";
 import HintTip from "@/components/HintTip.vue";
+import ThemeIcon from "@/components/ThemeIcon.vue";
 
 const emit = defineEmits<{ close: [] }>();
 
@@ -92,6 +93,7 @@ const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
     items: [
       { key: "shortcutHint", label: "快捷键提示" },
       { key: "statusBar", label: "状态栏" },
+      { key: "themeToggle", label: "主题切换按钮" },
     ],
   },
   {
@@ -304,9 +306,15 @@ onBeforeUnmount(() => {
                 <div v-show="matches('主题', '亮色', '暗色', '跟随系统')">
                   <label class="field-label mt">主题</label>
                   <div class="segmented">
-                    <button :class="{ on: draft.themeChoice === 'light' }" @click="setThemeChoice('light')">☀ 亮色</button>
-                    <button :class="{ on: draft.themeChoice === 'dark' }" @click="setThemeChoice('dark')">☾ 暗色</button>
-                    <button :class="{ on: draft.themeChoice === 'system' }" @click="setThemeChoice('system')">◐ 跟随系统</button>
+                    <button :class="{ on: draft.themeChoice === 'light' }" @click="setThemeChoice('light')">
+                      <ThemeIcon mode="light" :size="15" /> 亮色
+                    </button>
+                    <button :class="{ on: draft.themeChoice === 'dark' }" @click="setThemeChoice('dark')">
+                      <ThemeIcon mode="dark" :size="15" /> 暗色
+                    </button>
+                    <button :class="{ on: draft.themeChoice === 'system' }" @click="setThemeChoice('system')">
+                      <ThemeIcon mode="system" :size="15" /> 跟随系统
+                    </button>
                   </div>
                 </div>
                 <div v-show="matches('圆角')">
@@ -812,6 +820,10 @@ select:focus { border-color: var(--accent); }
 }
 .segmented { display: inline-flex; gap: 4px; }
 .segmented button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 32px;
   padding: 0 16px;
   border: 1px solid var(--border);
