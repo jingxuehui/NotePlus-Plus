@@ -128,6 +128,7 @@ const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
       { key: "openFile", label: "打开文件" },
       { key: "openFolder", label: "打开文件夹" },
       { key: "save", label: "保存文件" },
+      { key: "saveAs", label: "另存为" },
       { key: "saveAll", label: "全部保存" },
       { key: "find", label: "查找替换" },
       { key: "format", label: "格式化 JSON" },
@@ -135,13 +136,7 @@ const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
   },
   {
     title: "更多菜单",
-    items: [
-      { key: "saveAs", label: "另存为" },
-      { key: "reveal", label: "在 Finder 中显示" },
-      { key: "closeTab", label: "关闭当前标签" },
-      { key: "closeOthers", label: "关闭其他标签" },
-      { key: "closeAll", label: "关闭全部标签" },
-    ],
+    items: [],
   },
   {
     title: "右侧工具栏",
@@ -171,6 +166,46 @@ function onToolbarDrop(g: number, i: number, e: DragEvent) {
   const [moved] = items.splice(dragFrom.index, 1);
   items.splice(i, 0, moved);
   dragFrom = null;
+}
+
+// ---------- 标签页右键菜单显示项 ----------
+type TabMenuKey = keyof Settings["tabMenu"];
+interface TabMenuItem {
+  key: TabMenuKey;
+  label: string;
+}
+const tabMenuGroups = reactive<{ title: string; items: TabMenuItem[] }[]>([
+  {
+    title: "标签页操作",
+    items: [
+      { key: "rename", label: "重命名标签页" },
+      { key: "pin", label: "固定 / 取消固定标签页" },
+      { key: "reveal", label: "在 Finder 中显示" },
+    ],
+  },
+  {
+    title: "关闭操作",
+    items: [
+      { key: "close", label: "关闭标签页" },
+      { key: "closeOthers", label: "关闭其他标签页" },
+      { key: "closeAll", label: "关闭全部标签页" },
+    ],
+  },
+]);
+let tabDragFrom: { group: number; index: number } | null = null;
+function onTabMenuDragStart(g: number, i: number) {
+  tabDragFrom = { group: g, index: i };
+}
+function onTabMenuDrop(g: number, i: number, e: DragEvent) {
+  e.preventDefault();
+  if (!tabDragFrom || tabDragFrom.group !== g || tabDragFrom.index === i) {
+    tabDragFrom = null;
+    return;
+  }
+  const items = tabMenuGroups[g].items;
+  const [moved] = items.splice(tabDragFrom.index, 1);
+  items.splice(i, 0, moved);
+  tabDragFrom = null;
 }
 
 watch(
@@ -468,10 +503,11 @@ onBeforeUnmount(() => {
               <!-- 工具栏显示项 -->
               <div class="section-divider" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')"></div>
               <div class="toolbar-settings" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')">
-                <div class="toolbar-desc">拖拽调整同一区域的顺序，隐藏的主操作和系统入口仍可从“更多”访问。</div>
+                <div class="toolbar-desc">拖拽调整同一区域的顺序，关闭开关可隐藏对应入口。</div>
                 <div class="toolbar-grid">
                   <div class="toolbar-group" v-for="(group, gi) in toolbarGroups" :key="group.title">
                     <div class="toolbar-group-title">{{ group.title }}</div>
+                    <div class="toolbar-empty" v-if="!group.items.length">暂无项目</div>
                     <div
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
@@ -487,6 +523,36 @@ onBeforeUnmount(() => {
                         role="switch"
                         :aria-checked="draft.toolbar[item.key]"
                         @click="draft.toolbar[item.key] = !draft.toolbar[item.key]"
+                      ><span class="knob"></span></button>
+                      <span class="toolbar-row-label">{{ item.label }}</span>
+                      <span class="drag-handle" title="拖拽排序">⠿</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 标签页右键菜单显示项 -->
+              <div class="section-divider" v-show="matches('右键', '标签页', '菜单')"></div>
+              <div class="toolbar-settings" v-show="matches('右键', '标签页', '菜单')">
+                <div class="toolbar-desc">控制标签页鼠标右键菜单中显示的操作，拖拽可调整同一区域的顺序。</div>
+                <div class="toolbar-grid">
+                  <div class="toolbar-group" v-for="(group, gi) in tabMenuGroups" :key="group.title">
+                    <div class="toolbar-group-title">{{ group.title }}</div>
+                    <div
+                      class="toolbar-row"
+                      v-for="(item, ii) in group.items"
+                      :key="item.key"
+                      draggable="true"
+                      @dragstart="onTabMenuDragStart(gi, ii)"
+                      @dragover.prevent
+                      @drop="onTabMenuDrop(gi, ii, $event)"
+                    >
+                      <button
+                        class="switch"
+                        :class="{ on: draft.tabMenu[item.key] }"
+                        role="switch"
+                        :aria-checked="draft.tabMenu[item.key]"
+                        @click="draft.tabMenu[item.key] = !draft.tabMenu[item.key]"
                       ><span class="knob"></span></button>
                       <span class="toolbar-row-label">{{ item.label }}</span>
                       <span class="drag-handle" title="拖拽排序">⠿</span>
@@ -745,6 +811,12 @@ onBeforeUnmount(() => {
   flex: 1;
   font-size: 13px;
   color: var(--text);
+}
+.toolbar-empty {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.7;
+  padding: 4px 0 6px;
 }
 .drag-handle {
   color: var(--muted);

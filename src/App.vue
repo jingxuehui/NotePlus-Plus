@@ -185,11 +185,11 @@ onBeforeUnmount(() => {
 <template>
   <div class="h-full flex flex-col bg-app text-main">
     <TitleBar
-      @close-active="activeTab && requestClose(activeTab.id)"
       @new="newTab"
       @open="openWithDialog"
       @open-folder="openFolder"
       @save="activeTab && saveTab(activeTab)"
+      @save-as="activeTab && saveTabAs(activeTab)"
       @save-all="saveAll"
     />
     <div class="flex flex-1 min-h-0 main-row">

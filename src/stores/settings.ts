@@ -22,20 +22,25 @@ export type AccentName =
 export type RadiusName = "none" | "small" | "large";
 export type IconStyle = "default" | "black";
 
+export interface ContextMenuVisibility {
+  rename: boolean;
+  pin: boolean;
+  reveal: boolean;
+  close: boolean;
+  closeOthers: boolean;
+  closeAll: boolean;
+}
+
 export interface ToolbarVisibility {
   sidebar: boolean;
   newFile: boolean;
   openFile: boolean;
   openFolder: boolean;
   save: boolean;
+  saveAs: boolean;
   saveAll: boolean;
   find: boolean;
   format: boolean;
-  saveAs: boolean;
-  reveal: boolean;
-  closeTab: boolean;
-  closeOthers: boolean;
-  closeAll: boolean;
   shortcutHint: boolean;
   statusBar: boolean;
   themeToggle: boolean;
@@ -64,6 +69,8 @@ export interface Settings {
   iconStyle: IconStyle;
   /** 工具栏 / 菜单入口显示项 */
   toolbar: ToolbarVisibility;
+  /** 标签页右键菜单显示项 */
+  tabMenu: ContextMenuVisibility;
 }
 
 const STORAGE_KEY = "noteplus.settings";
@@ -96,14 +103,18 @@ export const DEFAULT_SETTINGS: Settings = {
     find: true,
     format: true,
     saveAs: true,
-    reveal: true,
-    closeTab: true,
-    closeOthers: true,
-    closeAll: true,
     shortcutHint: true,
     statusBar: true,
     themeToggle: true,
     systemSettings: true,
+  },
+  tabMenu: {
+    rename: true,
+    pin: true,
+    reveal: true,
+    close: true,
+    closeOthers: true,
+    closeAll: true,
   },
 };
 
@@ -126,10 +137,19 @@ function load(): Settings {
       if (saved.accent && legacyAccents[saved.accent]) {
         saved.accent = legacyAccents[saved.accent];
       }
+      // 旧版「更多菜单」里的项目已迁移：另存为 → 主操作栏，在 Finder 中显示 / 关闭* → 标签页右键菜单
+      if (saved.toolbar) {
+        const legacy = saved.toolbar as unknown as Record<string, unknown>;
+        delete legacy.reveal;
+        delete legacy.closeTab;
+        delete legacy.closeOthers;
+        delete legacy.closeAll;
+      }
       return {
         ...DEFAULT_SETTINGS,
         ...saved,
         toolbar: { ...DEFAULT_SETTINGS.toolbar, ...(saved.toolbar ?? {}) },
+        tabMenu: { ...DEFAULT_SETTINGS.tabMenu, ...(saved.tabMenu ?? {}) },
       };
     }
   } catch {
