@@ -25,6 +25,7 @@ import {
   saveAll,
   removeTab,
   closeAllTabs,
+  closeOtherTabs,
 } from "./stores/tabs";
 import { loadRoot, treeState } from "./stores/filetree";
 import { initSessionAutosave, restoreSession } from "./stores/session";
@@ -114,7 +115,7 @@ function onKeydown(e: KeyboardEvent) {
     if (tabsState.activeId !== null) requestClose(tabsState.activeId);
   } else if (mod && e.shiftKey && !e.altKey && key === "w") {
     e.preventDefault();
-    tabsState.tabs.forEach((t) => removeTab(t.id));
+    closeAllTabs();
   } else if (mod && key === "f") {
     e.preventDefault();
     openFindWindow();
@@ -188,7 +189,11 @@ onBeforeUnmount(() => {
     <div class="flex flex-1 min-h-0 main-row">
       <FileTree v-if="settings.sidebarVisible" @close-folder="closeFolder" />
       <div class="flex-1 flex flex-col min-w-0 min-h-0 right-col">
-        <TabBar @close="requestClose" />
+        <TabBar
+          @close="requestClose"
+          @close-others="closeOtherTabs"
+          @close-all="closeAllTabs"
+        />
         <div class="flex-1 min-h-0 relative">
           <EditorPane v-if="tabsState.tabs.length" />
           <Welcome v-else @open="openWithDialog" @open-folder="openFolder" @open-path="openPath" />

@@ -9,6 +9,9 @@ use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 /// 真实系统外观缓存（由 Rust 侧维护，前端不依赖 WKWebView 媒体查询）
 static SYSTEM_DARK: AtomicBool = AtomicBool::new(true);
 
+/// 「关闭窗口时退出程序」：由前端设置同步过来，默认关闭（即默认隐藏驻留 Dock）
+static EXIT_ON_CLOSE: AtomicBool = AtomicBool::new(false);
+
 /// 读取的文本文件信息
 #[derive(Serialize)]
 pub struct TextFileInfo {
@@ -351,6 +354,38 @@ fn get_system_dark() -> bool {
     SYSTEM_DARK.load(Ordering::Relaxed)
 }
 
+/// 前端设置变化时同步：关闭窗口是否直接退出（否则隐藏驻留 Dock）
+#[tauri::command]
+fn set_exit_on_close(enabled: bool) {
+    EXIT_ON_CLOSE.store(enabled, Ordering::Relaxed);
+}
+
+/// 切换 Dock 图标样式：默认彩色图标 / 黑色底板图标
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn set_icon_style(black: bool) {
+    use objc2::{AllocAnyThread, MainThreadMarker};
+    use objc2_app_kit::{NSApplication, NSImage};
+    use objc2_foundation::NSData;
+
+    let bytes: &[u8] = if black {
+        include_bytes!("../icons/icon_black_round.png")
+    } else {
+        include_bytes!("../icons/icon_round.png")
+    };
+    // Tauri 的命令处理器运行在主线程，这里与 tauri 内部设置图标的方式一致
+    let mtm = unsafe { MainThreadMarker::new_unchecked() };
+    let app = NSApplication::sharedApplication(mtm);
+    let data = NSData::with_bytes(bytes);
+    if let Some(icon) = NSImage::initWithData(NSImage::alloc(), &data) {
+        unsafe { app.setApplicationIconImage(Some(&icon)) };
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn set_icon_style(_black: bool) {}
+
 fn session_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     let dir = app
         .path()
@@ -440,13 +475,18 @@ pub fn run() {
             close_find_window,
             set_find_theme,
             get_system_dark,
+            set_exit_on_close,
+            set_icon_style,
             save_session,
             load_session,
             clear_session
         ])
         .on_window_event(|window, event| match event {
-            // macOS 习惯：点红绿灯关闭主窗口时只隐藏窗口，程序继续驻留 Dock
-            tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
+            // 「关闭窗口时退出程序」关闭时：点红绿灯只隐藏主窗口，程序驻留 Dock；
+            // 开启时不拦截，最后一个窗口销毁后应用退出。
+            tauri::WindowEvent::CloseRequested { api, .. }
+                if window.label() == "main" && !EXIT_ON_CLOSE.load(Ordering::Relaxed) =>
+            {
                 api.prevent_close();
                 if let Some(find) = window.get_webview_window("find") {
                     let _ = find.close();
@@ -475,9 +515,10 @@ pub fn run() {
         // 点击 Dock 图标（或应用被重新激活）时恢复主窗口
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Reopen { .. } => show_main_window(app_handle),
-        // 所有窗口都被销毁时不退出进程（仅 Cmd+Q / 主动 exit 才真正退出）
+        // 「关闭窗口时退出程序」关闭时，所有窗口都被销毁也不退出
+        // （仅 Cmd+Q / 主动 exit 才真正退出）
         tauri::RunEvent::ExitRequested { code, api, .. } => {
-            if code.is_none() {
+            if code.is_none() && !EXIT_ON_CLOSE.load(Ordering::Relaxed) {
                 api.prevent_exit();
             }
         }

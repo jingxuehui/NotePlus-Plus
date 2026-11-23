@@ -1,11 +1,13 @@
 import { reactive, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { setExitOnClose, setIconStyle } from "@/commands";
 
 export type ThemeMode = "dark" | "light";
 export type ThemeChoice = "dark" | "light" | "system";
 export type AccentName = "blue" | "indigo" | "teal";
 export type RadiusName = "none" | "small" | "large";
+export type IconStyle = "default" | "black";
 
 export interface Settings {
   theme: ThemeMode; // 实际生效的主题
@@ -23,6 +25,10 @@ export interface Settings {
   tabOverflow: "scroll" | "wrap";
   autoUpdate: boolean;
   updateChannel: "stable" | "preview";
+  /** 关闭窗口时退出程序（关闭则只隐藏到 Dock） */
+  exitOnClose: boolean;
+  /** 图标与 Logo 样式 */
+  iconStyle: IconStyle;
 }
 
 const STORAGE_KEY = "noteplus.settings";
@@ -43,12 +49,22 @@ export const DEFAULT_SETTINGS: Settings = {
   tabOverflow: "scroll",
   autoUpdate: true,
   updateChannel: "stable",
+  exitOnClose: false,
+  iconStyle: "default",
 };
 
 function load(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    if (raw) {
+      const saved = JSON.parse(raw) as Partial<Settings> & { keepInDock?: boolean };
+      // 兼容旧版「关闭窗口时驻留 Dock」字段（语义与 exitOnClose 相反）
+      if (typeof saved.keepInDock === "boolean") {
+        saved.exitOnClose = !saved.keepInDock;
+        delete saved.keepInDock;
+      }
+      return { ...DEFAULT_SETTINGS, ...saved };
+    }
   } catch {
     /* ignore */
   }
@@ -133,6 +149,9 @@ function onSystemThemeChanged(dark: boolean) {
 /** 初始化视觉设置，并监听系统主题变化 */
 export function initVisualSettings() {
   applyVisual(settings);
+  // 启动时把关窗行为、Dock 图标样式同步到 Rust
+  setExitOnClose(settings.exitOnClose).catch(() => undefined);
+  setIconStyle(settings.iconStyle === "black").catch(() => undefined);
   // 启动时读取真实系统外观
   invoke<boolean>("get_system_dark")
     .then(onSystemThemeChanged)
@@ -153,6 +172,8 @@ export function initVisualSettings() {
 watch(settings, (s) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
   applyVisual(s);
+  setExitOnClose(s.exitOnClose).catch(() => undefined);
+  setIconStyle(s.iconStyle === "black").catch(() => undefined);
 });
 
 export function resetSettings() {

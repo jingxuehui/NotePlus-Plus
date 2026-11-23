@@ -13,6 +13,7 @@ import {
 } from "@/stores/settings";
 import { toggleSettings } from "@/stores/ui";
 import { notify } from "@/stores/toast";
+import HintTip from "@/components/HintTip.vue";
 
 const emit = defineEmits<{ close: [] }>();
 
@@ -169,7 +170,7 @@ onBeforeUnmount(() => {
               <div class="group-title" v-show="matches('通用') || !search.trim()">通用</div>
               <div class="grid">
                 <div class="field" v-show="matches('语言', 'Language')">
-                  <label class="field-label">语言 / Language <span class="hint">ⓘ</span></label>
+                  <label class="field-label">语言 / Language </label>
                   <div class="select-wrap">
                     <select v-model="draft.language">
                       <option value="zh-CN">🇨🇳 简体中文</option>
@@ -200,7 +201,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="field" v-show="matches('界面缩放', '缩放')">
-                  <label class="field-label">界面缩放 <span class="hint">ⓘ</span></label>
+                  <label class="field-label">界面缩放 <HintTip text="调整应用整体界面大小，不影响编辑器内的文字大小。" /></label>
                   <div class="select-wrap">
                     <select v-model="draft.zoom">
                       <option :value="80">80%</option>
@@ -211,7 +212,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="field" v-show="matches('字体平滑')">
-                  <label class="field-label">字体平滑 <span class="hint">ⓘ</span></label>
+                  <label class="field-label">字体平滑 <HintTip text="关闭后界面文字不使用抗锯齿，部分屏幕下显示更锐利。" /></label>
                   <div class="field-switch">
                     <button class="switch" :class="{ on: draft.fontSmoothing }" role="switch"
                       :aria-checked="draft.fontSmoothing" @click="draft.fontSmoothing = !draft.fontSmoothing">
@@ -220,7 +221,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="field" v-show="matches('界面字体', '字体')">
-                  <label class="field-label">界面字体 <span class="hint">ⓘ</span></label>
+                  <label class="field-label">界面字体 <HintTip text="切换界面使用系统默认字体或等宽字体，不影响编辑器字体。" /></label>
                   <div class="select-wrap">
                     <select v-model="draft.uiFont">
                       <option value="system">系统默认</option>
@@ -259,6 +260,7 @@ onBeforeUnmount(() => {
               </div>
 
               <!-- 界面布局 -->
+              <div class="section-divider" v-show="matches('界面布局', '布局')"></div>
               <div v-show="matches('界面布局', '布局')">
                 <label class="field-label mt">界面布局</label>
                 <div class="choice-row">
@@ -287,6 +289,46 @@ onBeforeUnmount(() => {
                   </button>
                 </div>
               </div>
+
+              <!-- 关闭主窗口行为 -->
+              <div class="pref-row boxed-pref" v-show="matches('关闭窗口', '退出程序', 'Dock')">
+                <div>
+                  <div class="pref-title">关闭窗口时退出程序</div>
+                  <div class="pref-desc">开启后，点击窗口关闭按钮将彻底退出 NotePlus+，而不是隐藏到 Dock。</div>
+                </div>
+                <button class="switch" :class="{ on: draft.exitOnClose }" role="switch" :aria-checked="draft.exitOnClose"
+                  @click="draft.exitOnClose = !draft.exitOnClose"><span class="knob"></span></button>
+              </div>
+
+              <!-- 图标与 Logo 样式 -->
+              <div v-show="matches('图标', 'Logo', '黑色')">
+                <label class="field-label mt">图标与 Logo 样式</label>
+                <div class="choice-row">
+                  <button class="choice-card icon-choice" :class="{ on: draft.iconStyle === 'default' }" @click="draft.iconStyle = 'default'">
+                    <span class="logo-preview default">
+                      <svg width="26" height="26" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                        <rect x="7" y="4" width="20" height="26" rx="4" />
+                        <line x1="12" y1="12" x2="22" y2="12" /><line x1="12" y1="17" x2="22" y2="17" />
+                        <line x1="12" y1="22" x2="18" y2="22" />
+                      </svg>
+                    </span>
+                    <span class="choice-title">默认</span>
+                    <span class="choice-desc">使用彩色 NotePlus+ 应用图标。</span>
+                  </button>
+                  <button class="choice-card icon-choice" :class="{ on: draft.iconStyle === 'black' }" @click="draft.iconStyle = 'black'">
+                    <span class="logo-preview black">
+                      <svg width="26" height="26" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                        <rect x="7" y="4" width="20" height="26" rx="4" />
+                        <line x1="12" y1="12" x2="22" y2="12" /><line x1="12" y1="17" x2="22" y2="17" />
+                        <line x1="12" y1="22" x2="18" y2="22" />
+                      </svg>
+                    </span>
+                    <span class="choice-title">黑色</span>
+                    <span class="choice-desc">应用内使用黑色标识，Dock 使用黑色底板图标。</span>
+                  </button>
+                </div>
+              </div>
+
 
               <!-- 编辑器行为 -->
               <div class="group-title" v-show="matches('编辑器') || !search.trim()">编辑器</div>
@@ -359,7 +401,7 @@ onBeforeUnmount(() => {
           <!-- 关于我们 -->
           <template v-else>
             <div class="content-scroll page-pad about-page">
-              <div class="about-logo">
+              <div class="about-logo" :class="{ black: draft.iconStyle === 'black' }">
                 <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                   <rect x="7" y="4" width="20" height="26" rx="4" />
                   <line x1="12" y1="12" x2="22" y2="12" /><line x1="12" y1="17" x2="22" y2="17" />
@@ -417,8 +459,8 @@ onBeforeUnmount(() => {
 }
 
 .settings-window {
-  width: min(940px, 92vw);
-  height: min(620px, 86vh);
+  width: min(1000px, 94vw);
+  height: min(700px, 90vh);
   display: flex;
   flex-direction: column;
   background: var(--panel);
@@ -427,7 +469,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   animation: pop 0.16s ease-out;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 @keyframes pop {
@@ -440,13 +482,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 42px;
-  padding: 0 14px;
+  height: 48px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .win-gear { color: var(--accent); }
-.win-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.win-title { font-size: 16px; font-weight: 600; color: var(--text); }
 .win-close {
   margin-left: auto;
   display: inline-flex;
@@ -464,7 +506,7 @@ onBeforeUnmount(() => {
 .win-body { display: flex; flex: 1; min-height: 0; }
 
 .nav {
-  width: 152px;
+  width: 176px;
   flex-shrink: 0;
   padding: 10px 8px;
   background: var(--panel-2);
@@ -474,14 +516,14 @@ onBeforeUnmount(() => {
   gap: 2px;
 }
 .nav-item {
-  height: 30px;
-  padding: 0 10px;
+  height: 36px;
+  padding: 0 12px;
   text-align: left;
   border: none;
   border-radius: var(--ui-radius, 6px);
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
@@ -498,7 +540,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  height: 40px;
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius, 6px);
@@ -512,32 +554,37 @@ onBeforeUnmount(() => {
   outline: none;
   background: transparent;
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
   user-select: text;
 }
 .search-box input::placeholder { color: var(--muted); }
 
 .content-scroll { flex: 1; overflow-y: auto; padding: 4px 2px 20px; }
 .page-pad { padding-top: 8px; }
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0 12px;
+}
 
 .group-title {
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  margin: 16px 0 10px;
+  margin: 18px 0 12px;
 }
 .group-title:first-child { margin-top: 8px; }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 22px;
+  gap: 14px 24px;
 }
-.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.field-label { font-size: 11.5px; color: var(--text); }
-.field-label.mt { margin: 16px 0 8px; display: block; }
-.hint { color: var(--muted); font-size: 10px; margin-left: 2px; }
-.field-switch { height: 32px; display: flex; align-items: center; }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field-label { font-size: 14px; color: var(--text); }
+.field-label.mt { margin: 18px 0 10px; display: block; }
+.hint { color: var(--muted); font-size: 12px; margin-left: 4px; cursor: help; }
+.field-switch { height: 34px; display: flex; align-items: center; }
 
 /* 下拉 */
 .select-wrap { position: relative; }
@@ -556,14 +603,14 @@ onBeforeUnmount(() => {
 }
 select {
   width: 100%;
-  height: 32px;
-  padding: 0 28px 0 10px;
+  height: 36px;
+  padding: 0 30px 0 12px;
   appearance: none;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius, 6px);
   background: var(--panel-2);
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
   outline: none;
   cursor: pointer;
 }
@@ -573,8 +620,8 @@ select:focus { border-color: var(--accent); }
 .accent-select { position: relative; }
 .accent-trigger {
   width: 100%;
-  height: 32px;
-  padding: 0 28px 0 10px;
+  height: 36px;
+  padding: 0 30px 0 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -582,7 +629,7 @@ select:focus { border-color: var(--accent); }
   border-radius: var(--ui-radius, 6px);
   background: var(--panel-2);
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   text-align: left;
 }
@@ -608,7 +655,7 @@ select:focus { border-color: var(--accent); }
 }
 .accent-menu > button {
   width: 100%;
-  height: 30px;
+  height: 34px;
   padding: 0 10px;
   display: flex;
   align-items: center;
@@ -617,7 +664,7 @@ select:focus { border-color: var(--accent); }
   border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: transparent;
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   text-align: left;
 }
@@ -635,13 +682,13 @@ select:focus { border-color: var(--accent); }
 }
 .segmented { display: inline-flex; gap: 4px; }
 .segmented button {
-  height: 28px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius, 6px);
   background: var(--panel-2);
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -666,7 +713,7 @@ select:focus { border-color: var(--accent); }
   cursor: pointer;
 }
 .step-btn:hover { background: var(--hover); }
-.step-value { min-width: 48px; text-align: center; font-size: 12px; color: var(--text); }
+.step-value { min-width: 52px; text-align: center; font-size: 14px; color: var(--text); }
 
 /* 开关 */
 .switch {
@@ -695,7 +742,7 @@ select:focus { border-color: var(--accent); }
 .choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .choice-card {
   text-align: left;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius, 6px);
   background: var(--panel-2);
@@ -709,9 +756,32 @@ select:focus { border-color: var(--accent); }
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--panel-2));
 }
-.choice-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.choice-title { font-size: 14px; font-weight: 600; color: var(--text); }
 .choice-card.on .choice-title { color: var(--accent); }
-.choice-desc { font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+.choice-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* 图标样式卡片：图标居左，标题与说明居右 */
+.icon-choice {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+}
+.logo-preview {
+  grid-row: 1 / 3;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.logo-preview.default { background: linear-gradient(145deg, #2b3f76, #16708f); }
+.logo-preview.black { background: #000; }
 
 /* 更新管理 */
 .update-card {
@@ -731,27 +801,36 @@ select:focus { border-color: var(--accent); }
   color: var(--accent);
 }
 .update-info { flex: 1; }
-.update-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.update-title { font-size: 16px; font-weight: 600; color: var(--text); }
 .ver-chip {
-  font-size: 10px; font-weight: 500;
+  font-size: 12px; font-weight: 500;
   color: var(--accent);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1px 7px;
   margin-left: 6px;
 }
-.update-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.update-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
 .pref-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 16px;
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
-.pref-title { font-size: 12px; color: var(--text); }
-.pref-desc { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+.pref-title { font-size: 14px; color: var(--text); }
+.pref-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+/* 「关闭窗口时退出程序」单独加边框强调 */
+.boxed-pref {
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  background: var(--panel-2);
+}
 
 /* 关于我们 */
 .about-page { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 18px; }
+.about-logo.black { background: #000; }
 .about-logo {
   position: relative;
   width: 68px; height: 68px;
@@ -769,9 +848,9 @@ select:focus { border-color: var(--accent); }
   color: #101820;
   font-size: 17px; font-weight: 700; line-height: 24px;
 }
-.about-name { font-size: 21px; font-weight: 700; color: var(--text); margin-top: 16px; }
-.about-ver { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.about-desc { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.about-name { font-size: 24px; font-weight: 700; color: var(--text); margin-top: 16px; }
+.about-ver { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.about-desc { font-size: 13px; color: var(--muted); margin-top: 10px; }
 .about-page .group-title { align-self: flex-start; width: 100%; text-align: left; }
 .stack-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; }
 .stack-chip {
@@ -780,39 +859,39 @@ select:focus { border-color: var(--accent); }
   border-radius: 20px;
   background: var(--panel-2);
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
 }
 .info-table { width: 100%; }
 .info-table > div {
   display: flex; justify-content: space-between;
   padding: 9px 2px;
   border-bottom: 1px solid var(--border);
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text);
 }
 .info-table > div > span:first-child { color: var(--muted); }
-.about-copy { font-size: 10.5px; color: var(--muted); margin: 20px 0 8px; }
+.about-copy { font-size: 12px; color: var(--muted); margin: 20px 0 8px; }
 
 /* 底部 */
 .win-footer {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 52px;
-  padding: 0 16px;
+  height: 56px;
+  padding: 0 18px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 .spacer { flex: 1; }
-.dirty-hint { font-size: 10.5px; color: var(--accent); margin-left: 6px; }
+.dirty-hint { font-size: 12px; color: var(--accent); margin-left: 6px; }
 .btn {
-  height: 28px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius, 6px);
   background: var(--panel-2);
   color: var(--text);
-  font-size: 11.5px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
 }

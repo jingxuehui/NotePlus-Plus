@@ -55,3 +55,13 @@ export function loadSession(): Promise<string | null> {
 export function clearSession(): Promise<void> {
   return invoke("clear_session");
 }
+
+/** 同步「关闭窗口时退出程序」设置到 Rust 侧 */
+export function setExitOnClose(enabled: boolean): Promise<void> {
+  return invoke("set_exit_on_close", { enabled });
+}
+
+/** 切换 Dock 图标：默认彩色 / 黑色底板 */
+export function setIconStyle(black: boolean): Promise<void> {
+  return invoke("set_icon_style", { black });
+}

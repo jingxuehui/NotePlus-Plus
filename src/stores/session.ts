@@ -24,6 +24,8 @@ interface SessionTab {
   encoding: string;
   eol: string;
   dirty: boolean;
+  /** 固定标签页（旧版快照没有该字段，按未固定处理） */
+  pinned?: boolean;
 }
 
 interface SessionData {
@@ -50,6 +52,7 @@ function serialize(): SessionData {
       encoding: t.encoding,
       eol: t.eol,
       dirty: t.dirty,
+      pinned: t.pinned,
     };
   });
   const activeIndex = tabsState.tabs.findIndex((t) => t.id === tabsState.activeId);
@@ -122,16 +125,25 @@ export async function restoreSession(): Promise<boolean> {
   for (const st of data.tabs) {
     const path = st.path ?? null;
     const name = st.name || path?.split("/").pop() || "未命名";
+    const pinned = st.pinned === true;
     if (!st.dirty && path) {
       try {
         const info = await readTextFile(path);
-        restoreTab(path, name, info.content, info.encoding, info.eol, false);
+        restoreTab(path, name, info.content, info.encoding, info.eol, false, pinned);
         continue;
       } catch {
         /* 落到快照内容 */
       }
     }
-    restoreTab(path, name, st.content ?? "", st.encoding || "UTF-8", st.eol || "LF", st.dirty);
+    restoreTab(
+      path,
+      name,
+      st.content ?? "",
+      st.encoding || "UTF-8",
+      st.eol || "LF",
+      st.dirty,
+      pinned
+    );
   }
 
   if (tabsState.tabs.length) {

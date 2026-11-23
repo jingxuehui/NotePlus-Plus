@@ -20,6 +20,8 @@ export interface Tab {
   encoding: string;
   eol: string;
   language: string;
+  /** 固定标签页：始终排在标签栏最前面 */
+  pinned: boolean;
 }
 
 interface TabsState {
@@ -92,6 +94,7 @@ function makeTab(
     encoding,
     eol,
     language: path ? languageName(path) : "纯文本",
+    pinned: false,
   };
   setState(tab, createStateForFile(path, content, editorHooks));
   return tab;
@@ -119,13 +122,61 @@ export function restoreTab(
   content: string,
   encoding: string,
   eol: string,
-  dirty: boolean
+  dirty: boolean,
+  pinned = false
 ): Tab {
   const tab = makeTab(path, name, content, encoding, eol);
   tab.dirty = dirty;
+  tab.pinned = pinned;
   tabsState.tabs.push(tab);
   return tab;
 }
+
+/**
+ * 固定 / 取消固定标签页。
+ * 固定标签统一排列在最前面（按固定顺序追加），取消固定后回到非固定区开头，
+ * 这样标签栏的物理顺序即展示顺序，其余按索引处理激活标签的逻辑不用改。
+ */
+export function setPinned(id: number, pinned: boolean): void {
+  const tab = tabsState.tabs.find((t) => t.id === id);
+  if (!tab || tab.pinned === pinned) return;
+  tab.pinned = pinned;
+
+  const idx = tabsState.tabs.indexOf(tab);
+  tabsState.tabs.splice(idx, 1);
+  if (pinned) {
+    // 追加到固定区末尾
+    const pinnedCount = tabsState.tabs.filter((t) => t.pinned).length;
+    tabsState.tabs.splice(pinnedCount, 0, tab);
+  } else {
+    // 回到非固定区开头
+    const firstUnpinned = tabsState.tabs.findIndex((t) => !t.pinned);
+    tabsState.tabs.splice(
+      firstUnpinned < 0 ? tabsState.tabs.length : firstUnpinned,
+      0,
+      tab
+    );
+  }
+}
+
+/** 切换固定状态 */
+export function togglePinned(id: number): void {
+  const tab = tabsState.tabs.find((t) => t.id === id);
+  if (tab) setPinned(id, !tab.pinned);
+}
+
+/** 重命名标签（只改显示名，不改动文件路径 / 语法类型） */
+export function renameTab(id: number, name: string): void {
+  const tab = tabsState.tabs.find((t) => t.id === id);
+  if (!tab) return;
+  const trimmed = name.trim();
+  if (trimmed) tab.name = trimmed;
+}
+
+/** 已固定的标签数量（标签栏用它画分组分隔） */
+export const pinnedCount = computed(
+  () => tabsState.tabs.filter((t) => t.pinned).length
+);
 
 export async function openPath(path: string): Promise<void> {
   const existing = tabsState.tabs.find((t) => t.path === path);
@@ -230,4 +281,17 @@ export function closeAllTabs() {
   tabsState.tabs.forEach((t) => stateStore.delete(t.id));
   tabsState.tabs = [];
   tabsState.activeId = null;
+}
+
+/** 关闭除指定标签外的全部标签，并保留该标签为激活状态 */
+export function closeOtherTabs(id: number): void {
+  const keep = tabsState.tabs.find((t) => t.id === id);
+  if (!keep) return;
+  for (let i = tabsState.tabs.length - 1; i >= 0; i--) {
+    const t = tabsState.tabs[i];
+    if (t.id === id) continue;
+    stateStore.delete(t.id);
+    tabsState.tabs.splice(i, 1);
+  }
+  tabsState.activeId = id;
 }
