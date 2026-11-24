@@ -270,13 +270,14 @@ const emit = defineEmits<{
 
   <Teleport to="body">
     <div v-if="moreOpen" class="more-menu" :style="{ left: morePos.x + 'px', top: morePos.y + 'px' }">
-      <button class="more-menu-item" @click="openTools">
+      <button v-if="settings.toolbar.tools" class="more-menu-item" @click="openTools">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14.7 6.3a2.4 2.4 0 0 0-3.4 3.4L5 16v3h3l6.3-6.3a2.4 2.4 0 0 0 3.4-3.4l-2-2z" />
           <path d="M4 4h6M4 4v6" />
         </svg>
         <span>工具箱</span>
       </button>
+      <div v-if="!settings.toolbar.tools" class="more-menu-empty">暂无可用工具</div>
     </div>
   </Teleport>
 </template>
@@ -437,4 +438,10 @@ const emit = defineEmits<{
 .more-menu-item svg { color: var(--muted); }
 .more-menu-item:hover { background: var(--hover); }
 .more-menu-item:hover svg { color: var(--accent); }
+.more-menu-empty {
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
 </style>

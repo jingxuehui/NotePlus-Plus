@@ -48,6 +48,8 @@ export interface ToolbarVisibility {
   github: boolean;
   gitee: boolean;
   moreMenu: boolean;
+  /** 更多菜单中的「工具箱」入口 */
+  tools: boolean;
   systemSettings: boolean;
 }
 
@@ -121,6 +123,7 @@ export const DEFAULT_SETTINGS: Settings = {
     github: true,
     gitee: true,
     moreMenu: true,
+    tools: true,
     systemSettings: true,
   },
   tabMenu: {

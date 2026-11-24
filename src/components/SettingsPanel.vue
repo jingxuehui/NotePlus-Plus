@@ -146,7 +146,7 @@ const toolbarGroupDefs: { title: string; items: ToolbarItem[] }[] = [
   },
   {
     title: "更多菜单",
-    items: [],
+    items: [{ key: "tools", label: "工具箱" }],
   },
   {
     title: "右侧工具栏",
@@ -293,24 +293,24 @@ function setThemeChoice(choice: ThemeChoice) {
     choice === "system" ? systemTheme() : (choice as "dark" | "light");
 }
 
+/** 提交草稿时深拷贝，避免 settings 与 draft 共享嵌套对象引用（共享后再次修改草稿会同步改动已保存设置，dirty 恒为 false） */
+function commitDraft() {
+  Object.assign(settings, structuredClone(toRaw(draft)));
+}
+
 function apply() {
-  Object.assign(settings, draft);
+  commitDraft();
   notify("设置已应用", false);
 }
 
 function applyAndClose() {
-  Object.assign(settings, draft);
+  commitDraft();
   close();
 }
 
 function restoreDefaults() {
-  const defaults = {
-    ...DEFAULT_SETTINGS,
-    toolbarOrder: [...DEFAULT_SETTINGS.toolbarOrder],
-    tabMenuOrder: [...DEFAULT_SETTINGS.tabMenuOrder],
-  };
-  Object.assign(settings, defaults);
-  Object.assign(draft, defaults);
+  Object.assign(settings, structuredClone(toRaw(DEFAULT_SETTINGS)));
+  Object.assign(draft, structuredClone(toRaw(DEFAULT_SETTINGS)));
   notify("已恢复默认设置", false);
 }
 
@@ -587,7 +587,7 @@ onBeforeUnmount(() => {
                       ><span class="knob"></span></button>
                     </div>
                     <div class="toolbar-empty" v-if="!group.items.length && group.title !== '更多菜单'">暂无项目</div>
-                    <div class="toolbar-hint" v-if="group.title === '更多菜单'">开关已开启时，顶部工具栏会显示「更多」入口</div>
+                    <div class="toolbar-hint" v-if="group.title === '更多菜单'">标题旁开关控制顶部「更多」入口；下方开关控制更多菜单里的工具箱</div>
                     <div
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
