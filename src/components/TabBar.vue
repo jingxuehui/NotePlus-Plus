@@ -9,6 +9,7 @@ import {
 } from "@/stores/tabs";
 import { settings } from "@/stores/settings";
 import { revealInFinder } from "@/commands";
+import FileTypeIcon from "./FileTypeIcon.vue";
 
 const emit = defineEmits<{
   close: [id: number];
@@ -134,11 +135,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
       @contextmenu="openMenu(tab.id, $event)"
     >
       <span class="dirty-dot" v-if="tab.dirty"></span>
-      <span class="tab-file-icon" v-else>
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-          <path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 13V6L9 1.5z" />
-          <path d="M9 1.5V6h4.5" />
-        </svg>
+      <span class="tab-file-icon">
+        <FileTypeIcon :path="tab.path" :name="tab.name" :size="14" :dirty="tab.dirty" />
       </span>
       <input
         v-if="renaming?.id === tab.id"
@@ -414,6 +412,10 @@ body.layout-modern .tab-item.active {
 body.layout-modern .tab-file-icon {
   display: inline-flex;
   color: var(--accent);
+}
+/* 现代分窗：未保存状态改由图标外圈的强调色提示，不再显示小圆点 */
+body.layout-modern .dirty-dot {
+  display: none;
 }
 body.layout-modern .close-btn {
   opacity: 0.6;
