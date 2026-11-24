@@ -11,6 +11,7 @@ export const ui = reactive({
   modal: null as ModalRequest | null,
   showSettings: false,
   showUpdateCenter: false,
+  showTools: false,
 });
 
 /** 打开 / 关闭设置弹框 */
@@ -21,6 +22,11 @@ export function toggleSettings(force?: boolean) {
 /** 打开 / 关闭更新中心 */
 export function toggleUpdateCenter(force?: boolean) {
   ui.showUpdateCenter = force ?? !ui.showUpdateCenter;
+}
+
+/** 打开 / 关闭工具面板 */
+export function toggleTools(force?: boolean) {
+  ui.showTools = force ?? !ui.showTools;
 }
 
 let modalResolve: ((choice: string) => void) | null = null;

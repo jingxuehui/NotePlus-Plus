@@ -574,8 +574,20 @@ onBeforeUnmount(() => {
                 <div class="toolbar-desc">用 ↑↓ 或拖拽手柄调整同一区域的顺序，关闭开关可隐藏对应入口。</div>
                 <div class="toolbar-grid">
                   <div class="toolbar-group" v-for="(group, gi) in toolbarGroups" :key="group.title">
-                    <div class="toolbar-group-title">{{ group.title }}</div>
-                    <div class="toolbar-empty" v-if="!group.items.length">暂无项目</div>
+                    <div class="toolbar-group-title">
+                      <span>{{ group.title }}</span>
+                      <button
+                        v-if="group.title === '更多菜单'"
+                        class="switch group-switch"
+                        :class="{ on: draft.toolbar.moreMenu }"
+                        role="switch"
+                        title="在顶部工具栏显示「更多」入口"
+                        :aria-checked="draft.toolbar.moreMenu"
+                        @click="draft.toolbar.moreMenu = !draft.toolbar.moreMenu"
+                      ><span class="knob"></span></button>
+                    </div>
+                    <div class="toolbar-empty" v-if="!group.items.length && group.title !== '更多菜单'">暂无项目</div>
+                    <div class="toolbar-hint" v-if="group.title === '更多菜单'">开关已开启时，顶部工具栏会显示「更多」入口</div>
                     <div
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
@@ -879,11 +891,16 @@ onBeforeUnmount(() => {
   background: var(--panel-2);
 }
 .toolbar-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 8px;
 }
+.group-switch { transform: scale(0.82); transform-origin: right center; }
 .toolbar-row {
   display: flex;
   align-items: center;

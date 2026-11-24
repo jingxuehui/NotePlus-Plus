@@ -12,6 +12,7 @@ import Welcome from "./components/Welcome.vue";
 import Toast from "./components/Toast.vue";
 import GlobalTooltip from "./components/GlobalTooltip.vue";
 import UpdateCenter from "./components/UpdateCenter.vue";
+import ToolsPanel from "./components/ToolsPanel.vue";
 import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { updater } from "./stores/updater";
@@ -215,5 +216,6 @@ onBeforeUnmount(() => {
     <GlobalTooltip />
     <SettingsPanel v-if="ui.showSettings" />
     <UpdateCenter v-if="ui.showUpdateCenter" />
+    <ToolsPanel v-if="ui.showTools" />
   </div>
 </template>

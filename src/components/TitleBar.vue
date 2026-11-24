@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { settings, cycleTheme } from "@/stores/settings";
-import { ui, toggleSettings, toggleUpdateCenter } from "@/stores/ui";
+import { ui, toggleSettings, toggleUpdateCenter, toggleTools } from "@/stores/ui";
 import { updater } from "@/stores/updater";
 import { openFindWindow } from "@/find/bridge";
 import { activeTab } from "@/stores/tabs";
@@ -42,6 +42,30 @@ async function onUpdateClick() {
   // 先打开更新中心，由弹窗自己在挂载后异步加载，避免请求阻塞页面出现
   toggleUpdateCenter(true);
 }
+
+// ---------- 更多菜单 ----------
+const moreOpen = ref(false);
+const moreTrigger = ref<HTMLElement | null>(null);
+const morePos = ref({ x: 0, y: 0 });
+
+function toggleMore(e: MouseEvent) {
+  if (moreOpen.value) { moreOpen.value = false; return; }
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  morePos.value = { x: Math.min(rect.left, window.innerWidth - 180), y: rect.bottom + 4 };
+  moreOpen.value = true;
+}
+function openTools() {
+  moreOpen.value = false;
+  toggleTools(true);
+}
+function onMoreDocClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (moreOpen.value && !target.closest(".more-trigger") && !target.closest(".more-menu")) {
+    moreOpen.value = false;
+  }
+}
+onMounted(() => document.addEventListener("mousedown", onMoreDocClick));
+onBeforeUnmount(() => document.removeEventListener("mousedown", onMoreDocClick));
 
 const emit = defineEmits<{
   new: [];
@@ -153,6 +177,20 @@ const emit = defineEmits<{
           <line x1="8" y1="5.4" x2="8" y2="10.6" stroke-dasharray="1 1.6" />
         </svg>
       </span>
+      <!-- 更多菜单入口：默认开启时显示在主操作栏末尾 -->
+      <span
+        v-if="settings.toolbar.moreMenu"
+        ref="moreTrigger"
+        class="icon-btn more-trigger"
+        :class="{ active: moreOpen }"
+        :style="{ order: orderOf('moreMenu') }"
+        title="更多"
+        @click="toggleMore"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+        </svg>
+      </span>
     </div>
 
     <div class="titlebar-fill" data-tauri-drag-region></div>
@@ -229,6 +267,18 @@ const emit = defineEmits<{
       </svg>
     </span>
   </div>
+
+  <Teleport to="body">
+    <div v-if="moreOpen" class="more-menu" :style="{ left: morePos.x + 'px', top: morePos.y + 'px' }">
+      <button class="more-menu-item" @click="openTools">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a2.4 2.4 0 0 0-3.4 3.4L5 16v3h3l6.3-6.3a2.4 2.4 0 0 0 3.4-3.4l-2-2z" />
+          <path d="M4 4h6M4 4v6" />
+        </svg>
+        <span>工具箱</span>
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -358,4 +408,33 @@ const emit = defineEmits<{
 .settings-trigger.active {
   color: var(--accent);
 }
+.more-trigger.active { color: var(--accent); background: var(--hover); }
+.more-menu {
+  position: fixed;
+  z-index: 80;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--ui-radius, 6px);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.more-menu-item svg { color: var(--muted); }
+.more-menu-item:hover { background: var(--hover); }
+.more-menu-item:hover svg { color: var(--accent); }
 </style>
