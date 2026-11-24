@@ -10,7 +10,7 @@ import {
 } from "@/commands";
 
 const appVersion = ref(__APP_VERSION__);
-const source = ref<"github" | "gitee">("github");
+const source = ref<"github" | "gitee">("gitee");
 const releases = ref<ReleaseInfo[]>([]);
 const checking = ref(false);
 const loading = ref(false);

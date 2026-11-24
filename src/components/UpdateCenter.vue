@@ -100,7 +100,7 @@ function close() {
 }
 
 function openDownloadPage() {
-  const url = source.value === "github"
+  const url = source.value === "gitee"
     ? "https://github.com/jingxuehui/NotePlus-Plus/releases"
     : "https://gitee.com/jingxuehui/NotePlus-Plus/releases";
   openExternal(url).catch((e) => console.error("打开下载页失败", e));
