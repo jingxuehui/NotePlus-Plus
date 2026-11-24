@@ -134,7 +134,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
       @auxclick="onAuxClick(tab.id, $event)"
       @contextmenu="openMenu(tab.id, $event)"
     >
-      <span class="dirty-dot" v-if="tab.dirty"></span>
       <span class="tab-file-icon">
         <FileTypeIcon :path="tab.path" :name="tab.name" :size="14" :dirty="tab.dirty" />
       </span>
@@ -258,13 +257,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   font-size: 12px;
   user-select: text;
 }
-.dirty-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
 .close-btn {
   display: inline-flex;
   align-items: center;
@@ -272,25 +264,25 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  opacity: 0;
+  opacity: 0.6;
   flex-shrink: 0;
 }
 .tab-item:hover .close-btn {
-  opacity: 0.7;
+  opacity: 0.9;
 }
 .close-btn:hover {
   opacity: 1 !important;
   background: var(--hover);
 }
 
-/* 文件图标：仅现代分窗显示（经典紧凑沿用未保存小圆点） */
+/* 文件类型图标：所有布局均显示（未保存状态由图标外圈的强调色提示） */
 .tab-file-icon {
-  display: none;
+  display: inline-flex;
   align-items: center;
   flex-shrink: 0;
 }
 
-/* 置顶按钮：悬停显示；已置顶时常亮。放在关闭按钮左侧，左键即可切换 */
+/* 置顶按钮：常显（悬停加深）；已置顶时用强调色突出。放在关闭按钮左侧，左键即可切换 */
 .pin-btn {
   display: inline-flex;
   align-items: center;
@@ -299,11 +291,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   height: 16px;
   border-radius: 4px;
   color: var(--muted);
-  opacity: 0;
+  opacity: 0.55;
   flex-shrink: 0;
 }
 .tab-item:hover .pin-btn {
-  opacity: 0.7;
+  opacity: 0.9;
 }
 .pin-btn.on {
   color: var(--accent);
@@ -410,12 +402,7 @@ body.layout-modern .tab-item.active {
   box-shadow: none;
 }
 body.layout-modern .tab-file-icon {
-  display: inline-flex;
   color: var(--accent);
-}
-/* 现代分窗：未保存状态改由图标外圈的强调色提示，不再显示小圆点 */
-body.layout-modern .dirty-dot {
-  display: none;
 }
 body.layout-modern .close-btn {
   opacity: 0.6;

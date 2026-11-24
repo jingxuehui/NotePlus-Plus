@@ -252,6 +252,30 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 用系统默认浏览器打开外部链接（仓库主页）
+#[tauri::command]
+fn open_external(url: String) -> Result<(), String> {
+    if !url.starts_with("https://") {
+        return Err("仅支持 https 链接".into());
+    }
+    #[cfg(target_os = "macos")]
+    Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    Command::new("cmd")
+        .args(["/C", "start", "", &url])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "linux")]
+    Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// 打开（或聚焦）macOS 风格的「查找和替换」独立窗口
 #[tauri::command]
 fn open_find_window(app: tauri::AppHandle, dark: bool) -> Result<(), String> {
@@ -471,6 +495,7 @@ pub fn run() {
             write_text_file,
             read_dir_tree,
             reveal_in_finder,
+            open_external,
             open_find_window,
             close_find_window,
             set_find_theme,

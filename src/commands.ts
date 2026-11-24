@@ -44,6 +44,11 @@ export function revealInFinder(path: string): Promise<void> {
   return invoke("reveal_in_finder", { path });
 }
 
+/** 用系统默认浏览器打开外部链接 */
+export function openExternal(url: string): Promise<void> {
+  return invoke("open_external", { url });
+}
+
 export function saveSession(json: string): Promise<void> {
   return invoke("save_session", { json });
 }
