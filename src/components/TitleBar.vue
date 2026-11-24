@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { settings, cycleTheme } from "@/stores/settings";
 import { ui, toggleSettings, toggleUpdateCenter } from "@/stores/ui";
+import { updater } from "@/stores/updater";
 import { openFindWindow } from "@/find/bridge";
 import { activeTab } from "@/stores/tabs";
 import { openExternal } from "@/commands";
@@ -21,6 +23,24 @@ function openRepo(url: string) {
 function orderOf(key: string): number {
   const i = settings.toolbarOrder.indexOf(key);
   return i < 0 ? 90 : i;
+}
+
+const { hasUpdate, isDownloaded, updateVersion } = updater;
+
+/** dbx 风格：有更新时按钮变成带文字的操作按钮，否则保持安静的图标按钮 */
+const updateTitle = computed(() => {
+  if (isDownloaded.value) return `v${updateVersion.value} 已下载，重启即可更新`;
+  if (hasUpdate.value) return `发现新版本 ${updateVersion.value}`;
+  return "检查更新";
+});
+
+async function onUpdateClick() {
+  if (isDownloaded.value) {
+    await updater.install();
+    return;
+  }
+  toggleUpdateCenter(true);
+  void updater.refreshManually();
 }
 
 const emit = defineEmits<{
@@ -141,15 +161,16 @@ const emit = defineEmits<{
     <span
       v-if="settings.toolbar.updateButton"
       class="update-trigger"
+      :class="{ 'has-update': hasUpdate }"
       :style="{ order: orderOf('updateButton') }"
-      title="更新中心"
-      @click="toggleUpdateCenter(true)"
+      :title="updateTitle"
+      @click="onUpdateClick"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
         <path d="M12 13v8" /><path d="m8 17 4 4 4-4" />
       </svg>
-      <span>更新</span>
+      <span v-if="hasUpdate">更新</span>
     </span>
 
     <!-- 仓库快捷入口：GitHub / Gitee -->
@@ -269,21 +290,30 @@ const emit = defineEmits<{
 .update-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  width: 26px;
   height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--accent);
+  padding: 0;
+  border: 1px solid transparent;
   border-radius: 6px;
-  background: var(--accent);
-  /* 文字取面板底色：暗色主题用深色、亮色主题用白色，自动适配各种强调色 */
-  color: var(--panel);
+  background: transparent;
+  color: var(--text);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   flex-shrink: 0;
-  transition: filter 0.15s;
 }
-.update-trigger:hover { filter: brightness(1.12); }
+.update-trigger:hover { background: var(--hover); }
+.update-trigger.has-update {
+  width: auto;
+  padding: 0 10px;
+  border-color: var(--accent);
+  background: var(--accent);
+  /* 文字取面板底色：暗色主题用深色、亮色主题用白色，自动适配各种强调色 */
+  color: var(--panel);
+}
+.update-trigger.has-update:hover { background: var(--accent); filter: brightness(1.12); }
 .repo-link.gitee {
   color: #d8573f;
 }

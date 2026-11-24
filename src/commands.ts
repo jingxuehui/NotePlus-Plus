@@ -49,6 +49,43 @@ export function openExternal(url: string): Promise<void> {
   return invoke("open_external", { url });
 }
 
+export interface ReleaseAsset {
+  name: string;
+  size: number;
+  downloadUrl: string;
+}
+
+export interface ReleaseInfo {
+  tag: string;
+  name: string;
+  body: string;
+  publishedAt: string;
+  htmlUrl: string;
+  prerelease: boolean;
+  assets: ReleaseAsset[];
+}
+
+export interface DownloadedAsset {
+  path: string;
+  name: string;
+  size: number;
+}
+
+/** 从 GitHub / Gitee 拉取 releases 发布说明 */
+export function fetchReleases(source: string): Promise<ReleaseInfo[]> {
+  return invoke("fetch_releases", { source });
+}
+
+/** 下载 release 安装包到应用缓存目录 */
+export function downloadAsset(url: string, name: string): Promise<DownloadedAsset> {
+  return invoke("download_asset", { url, name });
+}
+
+/** 打开安装包并退出应用 */
+export function restartAndUpdate(path: string): Promise<void> {
+  return invoke("restart_and_update", { path });
+}
+
 export function saveSession(json: string): Promise<void> {
   return invoke("save_session", { json });
 }

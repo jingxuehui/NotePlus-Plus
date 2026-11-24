@@ -252,6 +252,202 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 发布资源（安装包）
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReleaseAsset {
+    pub name: String,
+    pub size: u64,
+    pub download_url: String,
+}
+
+/// 发布信息（供更新中心展示）
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReleaseInfo {
+    pub tag: String,
+    pub name: String,
+    pub body: String,
+    pub published_at: String,
+    pub html_url: String,
+    pub prerelease: bool,
+    pub assets: Vec<ReleaseAsset>,
+}
+
+/// 拉取仓库 releases 列表（GitHub / Gitee），返回归一化后的数组
+#[tauri::command]
+fn fetch_releases(source: String) -> Result<Vec<ReleaseInfo>, String> {
+    let url = match source.as_str() {
+        "github" => "https://api.github.com/repos/jingxuehui/NotePlus-Plus/releases",
+        "gitee" => "https://gitee.com/api/v5/repos/jingxuehui/NotePlus-Plus/releases",
+        _ => return Err("未知的更新源".into()),
+    };
+    let output = Command::new("curl")
+        .args(["-sS", "-L", "-m", "15", "-H", "Accept: application/json", url])
+        .output()
+        .map_err(|e| format!("请求发布信息失败: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "请求发布信息失败: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let raw = String::from_utf8_lossy(&output.stdout);
+    let list: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|e| format!("解析发布信息失败: {e}"))?;
+    let arr = list
+        .as_array()
+        .ok_or_else(|| "发布信息格式错误".to_string())?;
+
+    let mut releases: Vec<ReleaseInfo> = arr
+        .iter()
+        .map(|r| {
+            let tag = r["tag_name"].as_str().unwrap_or_default().to_string();
+            // Gitee 只返回 created_at，没有 published_at
+            let published_at = r["published_at"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .or_else(|| r["created_at"].as_str())
+                .unwrap_or_default()
+                .to_string();
+            // Gitee 不返回 html_url，用 tag 拼出发布页地址
+            let html_url = r["html_url"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| match source.as_str() {
+                    "gitee" => format!("https://gitee.com/jingxuehui/NotePlus-Plus/releases/tag/{tag}"),
+                    _ => format!("https://github.com/jingxuehui/NotePlus-Plus/releases/tag/{tag}"),
+                });
+            let assets: Vec<ReleaseAsset> = r["assets"]
+                .as_array()
+                .map(|list| {
+                    list.iter()
+                        .filter_map(|a| {
+                            let name = a["name"].as_str().unwrap_or_default();
+                            let download_url = a["browser_download_url"]
+                                .as_str()
+                                .unwrap_or_default();
+                            if name.is_empty() || download_url.is_empty() {
+                                return None;
+                            }
+                            Some(ReleaseAsset {
+                                name: name.to_string(),
+                                size: a["size"].as_u64().unwrap_or(0),
+                                download_url: download_url.to_string(),
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            ReleaseInfo {
+                tag,
+                name: r["name"].as_str().unwrap_or_default().to_string(),
+                body: r["body"].as_str().unwrap_or_default().to_string(),
+                published_at,
+                html_url,
+                prerelease: r["prerelease"].as_bool().unwrap_or(false),
+                assets,
+            }
+        })
+        .collect();
+    // 统一按发布时间倒序展示
+    releases.sort_by(|a, b| b.published_at.cmp(&a.published_at));
+    Ok(releases)
+}
+
+/// 已下载的安装包
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadedAsset {
+    pub path: String,
+    pub name: String,
+    pub size: u64,
+}
+
+/// 下载 release 安装包到应用缓存目录，已下载过则直接复用
+#[tauri::command]
+fn download_asset(app: AppHandle, url: String, name: String) -> Result<DownloadedAsset, String> {
+    if !url.starts_with("https://") {
+        return Err("下载地址不安全".into());
+    }
+    let safe_name: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '+') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if safe_name.is_empty() || safe_name == "." || safe_name == ".." {
+        return Err("安装包文件名无效".into());
+    }
+    let dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("updates");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(&safe_name);
+    if let Ok(meta) = fs::metadata(&path) {
+        if meta.is_file() && meta.len() > 0 {
+            return Ok(DownloadedAsset {
+                path: path.to_string_lossy().to_string(),
+                name: safe_name,
+                size: meta.len(),
+            });
+        }
+    }
+    let path_str = path.to_string_lossy().to_string();
+    let output = Command::new("curl")
+        .args([
+            "-fL", "-sS", "--retry", "2", "-m", "300", "-o", &path_str, &url,
+        ])
+        .output()
+        .map_err(|e| format!("下载安装包失败: {e}"))?;
+    if !output.status.success() {
+        let _ = fs::remove_file(&path);
+        return Err(format!(
+            "下载安装包失败: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let size = fs::metadata(&path).map_err(|e| e.to_string())?.len();
+    Ok(DownloadedAsset {
+        path: path_str,
+        name: safe_name,
+        size,
+    })
+}
+
+/// 打开已下载的安装包并退出应用，由系统安装流程完成更新
+#[tauri::command]
+fn restart_and_update(app: AppHandle, path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if !p.is_file() {
+        return Err("安装包不存在".into());
+    }
+    #[cfg(target_os = "macos")]
+    Command::new("open")
+        .arg(p)
+        .spawn()
+        .map_err(|e| format!("打开安装包失败: {e}"))?;
+    #[cfg(target_os = "windows")]
+    Command::new("cmd")
+        .args(["/C", "start", "", &path])
+        .spawn()
+        .map_err(|e| format!("打开安装包失败: {e}"))?;
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    Command::new("xdg-open")
+        .arg(p)
+        .spawn()
+        .map_err(|e| format!("打开安装包失败: {e}"))?;
+    app.exit(0);
+    Ok(())
+}
+
 /// 用系统默认浏览器打开外部链接（仓库主页）
 #[tauri::command]
 fn open_external(url: String) -> Result<(), String> {
@@ -495,6 +691,9 @@ pub fn run() {
             write_text_file,
             read_dir_tree,
             reveal_in_finder,
+            fetch_releases,
+            download_asset,
+            restart_and_update,
             open_external,
             open_find_window,
             close_find_window,

@@ -66,6 +66,8 @@ export interface Settings {
   tabOverflow: "scroll" | "wrap";
   autoUpdate: boolean;
   updateChannel: "stable" | "preview";
+  /** 已忽略的更新版本 tag */
+  ignoredVersion: string;
   /** 关闭窗口时退出程序（关闭则只隐藏到 Dock） */
   exitOnClose: boolean;
   /** 图标与 Logo 样式 */
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tabOverflow: "scroll",
   autoUpdate: true,
   updateChannel: "stable",
+  ignoredVersion: "",
   exitOnClose: false,
   iconStyle: "default",
   toolbar: {

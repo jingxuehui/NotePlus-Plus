@@ -14,6 +14,7 @@ import GlobalTooltip from "./components/GlobalTooltip.vue";
 import UpdateCenter from "./components/UpdateCenter.vue";
 import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
+import { updater } from "./stores/updater";
 import { confirmChoice, toggleSettings, ui } from "./stores/ui";
 import {
   tabsState,
@@ -158,6 +159,7 @@ let uninstallTip: (() => void) | null = null;
 
 onMounted(async () => {
   initVisualSettings();
+  updater.initUpdater();
   uninstallTip = installGlobalTooltip();
   window.addEventListener("keydown", onKeydown);
   initFindBridge();
