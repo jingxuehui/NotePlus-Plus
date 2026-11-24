@@ -9,7 +9,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "release": "node scripts/release.mjs && tauri build && node scripts/upload-release.mjs",
+    "release": "node scripts/release.mjs && tauri build && bash scripts/post-build.sh && node scripts/upload-release.mjs",
     "release:upload": "node scripts/upload-release.mjs"
   },
   "dependencies": {
