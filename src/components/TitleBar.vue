@@ -39,8 +39,8 @@ async function onUpdateClick() {
     await updater.install();
     return;
   }
+  // 先打开更新中心，由弹窗自己在挂载后异步加载，避免请求阻塞页面出现
   toggleUpdateCenter(true);
-  void updater.refreshManually();
 }
 
 const emit = defineEmits<{

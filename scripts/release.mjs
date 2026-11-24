@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const confPath = join(root, "src-tauri", "tauri.conf.json");
@@ -34,6 +35,13 @@ writeFileSync(
 writeFileSync(
   cargoPath,
   replaceIn(readFileSync(cargoPath, "utf8"), /(^\s*version\s*=\s*")([^"]*)(")/m, newVersion)
+);
+
+// 把「未发布」提交归入新版本，自动生成 CHANGELOG.md
+execFileSync(
+  process.execPath,
+  [join(root, "scripts", "changelog.mjs"), "--version", newVersion],
+  { cwd: root, stdio: "inherit" }
 );
 
 console.log(`版本号: ${oldVersion} -> ${newVersion}`);

@@ -9,8 +9,14 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { releaseNotesFor } from "./changelog.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+// Release 正文取自 CHANGELOG.md 对应版本段落；缺失时回退到简单文案
+function releaseBody(version) {
+  return releaseNotesFor(version) ?? `NotePlus+ 正式版 ${version}`;
+}
 
 // ---------- 读取 token ----------
 function loadTokens() {
@@ -75,7 +81,7 @@ async function pushGitHub(version, artifacts, token) {
       body: JSON.stringify({
         tag_name: tag,
         name: `NotePlus+ ${version}`,
-        body: `NotePlus+ 正式版 ${version}`,
+        body: releaseBody(version),
         draft: false,
         prerelease: false,
       }),
@@ -122,7 +128,7 @@ async function pushGitee(version, artifacts, token) {
           access_token: token,
           tag_name: tag,
           name: `NotePlus+ ${version}`,
-          body: `NotePlus+ 正式版 ${version}`,
+          body: releaseBody(version),
           target_commitish: "main",
           prerelease: false,
         }),

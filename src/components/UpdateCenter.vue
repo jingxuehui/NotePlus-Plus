@@ -100,7 +100,7 @@ function close() {
 }
 
 function openDownloadPage() {
-  const url = source.value === "gitee"
+  const url = source.value === "github"
     ? "https://github.com/jingxuehui/NotePlus-Plus/releases"
     : "https://gitee.com/jingxuehui/NotePlus-Plus/releases";
   openExternal(url).catch((e) => console.error("打开下载页失败", e));
@@ -138,7 +138,13 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 watch(source, () => { void checkForUpdates(); });
-onMounted(() => window.addEventListener("keydown", onKeydown, true));
+onMounted(() => {
+  window.addEventListener("keydown", onKeydown, true);
+  // 页面先完成首屏渲染，下一次事件循环再拉取发布信息
+  setTimeout(() => {
+    if (!releases.value.length && !loading.value) void checkForUpdates();
+  }, 0);
+});
 onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 </script>
 
