@@ -26,10 +26,16 @@ let query: FindQueryState = { ...EMPTY_QUERY };
 let initialized = false;
 let unlisteners: UnlistenFn[] = [];
 
-/** 当前强调色：查找窗口是独立 WebView，需要显式同步才能与主窗口一致 */
-function currentAccent(): string {
+/** 当前强调色变量：查找窗口是独立 WebView，需要显式同步才能与主窗口一致 */
+function currentAccent() {
   const a = ACCENTS[settings.accent] ?? ACCENTS.cobalt;
-  return settings.theme === "light" ? a.light : a.dark;
+  const light = settings.theme === "light";
+  return {
+    accent: light ? a.light : a.dark,
+    tint: light ? a.tintLight : a.tintDark,
+    edge: light ? a.edgeLight : a.edgeDark,
+    selection: light ? `${a.light}4d` : `${a.dark}8c`,
+  };
 }
 
 function makeQuery(): SearchQuery {

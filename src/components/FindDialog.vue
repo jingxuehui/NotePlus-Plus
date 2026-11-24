@@ -106,10 +106,23 @@ function toggleSelectionOnly() {
   }
 }
 
-function applyTheme(theme: string, accent?: string) {
+type AccentPayload = {
+  accent: string;
+  tint: string;
+  edge: string;
+  selection: string;
+};
+
+function applyTheme(theme: string, colors?: AccentPayload) {
   document.body.classList.toggle("theme-light", theme === "light");
-  // 独立窗口不会执行主窗口的 applyVisual，需显式同步强调色
-  if (accent) document.body.style.setProperty("--accent", accent);
+  // 独立窗口不会执行主窗口的 applyVisual，需显式同步完整强调色变量
+  if (colors) {
+    const target = document.body.style;
+    target.setProperty("--accent", colors.accent);
+    target.setProperty("--accent-tint", colors.tint);
+    target.setProperty("--accent-edge", colors.edge);
+    target.setProperty("--selection-bg", colors.selection);
+  }
 }
 
 function onSearchKeydown(e: KeyboardEvent) {
@@ -149,7 +162,7 @@ onMounted(async () => {
     await listen<{
       selection: string;
       theme: string;
-      accent?: string;
+      accent?: AccentPayload;
       query: { search: string; replace: string; caseSensitive: boolean; regexp: boolean };
     }>("find:state", (e) => {
       const { selection, theme, accent, query } = e.payload;
@@ -166,7 +179,7 @@ onMounted(async () => {
     })
   );
   unlisteners.push(
-    await listen<{ theme: string; accent?: string }>("find:theme", (e) =>
+    await listen<{ theme: string; accent?: AccentPayload }>("find:theme", (e) =>
       applyTheme(e.payload.theme, e.payload.accent)
     )
   );

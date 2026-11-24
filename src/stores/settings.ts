@@ -256,12 +256,20 @@ export function applyVisual(s: Settings) {
 
   const accent = ACCENTS[s.accent] ?? ACCENTS.cobalt;
   const light = s.theme === "light";
-  body.style.setProperty("--accent", light ? accent.light : accent.dark);
-  body.style.setProperty("--accent-tint", light ? accent.tintLight : accent.tintDark);
-  body.style.setProperty("--accent-edge", light ? accent.edgeLight : accent.edgeDark);
-  // 文本选中底色跟随主题：深色用更实的强调色，浅色用浅淡的强调色
-  body.style.setProperty("--selection-bg", light ? `${accent.light}4d` : `${accent.dark}8c`);
-  body.style.setProperty("--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px");
+  const accentVars: Array<[string, string]> = [
+    ["--accent", light ? accent.light : accent.dark],
+    ["--accent-tint", light ? accent.tintLight : accent.tintDark],
+    ["--accent-edge", light ? accent.edgeLight : accent.edgeDark],
+    // 文本选中底色跟随主题：深色用更实的强调色，浅色用浅淡的强调色
+    ["--selection-bg", light ? `${accent.light}4d` : `${accent.dark}8c`],
+    ["--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px"],
+  ];
+  // 同时写到 html 根节点和 body：CodeMirror 等注入到页面中的样式从根节点继承
+  const root = document.documentElement;
+  for (const [key, value] of accentVars) {
+    body.style.setProperty(key, value);
+    root.style.setProperty(key, value);
+  }
   document.documentElement.style.fontSize = `${(s.zoom / 100) * 16}px`;
 
   const uiFonts: Record<string, string> = {

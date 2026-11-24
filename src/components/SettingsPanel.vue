@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from "vue";
+import { computed, onMounted, onBeforeUnmount, reactive, ref, toRaw, watch } from "vue";
 import { getVersion } from "@tauri-apps/api/app";
 import {
   ACCENTS,
@@ -110,7 +110,7 @@ const appVersion = ref<string>(__APP_VERSION__);
 const copyrightYear = new Date().getFullYear();
 
 // 草稿：控件只改草稿并实时预览，「应用」才提交到全局设置
-const draft = reactive<Settings>({ ...settings });
+const draft = reactive<Settings>(structuredClone(toRaw(settings)));
 const dirty = computed(() => JSON.stringify(draft) !== JSON.stringify(settings));
 
 // ---------- 工具栏显示项（拖拽排序写入 toolbarOrder，应用后标题栏按此顺序渲染） ----------
