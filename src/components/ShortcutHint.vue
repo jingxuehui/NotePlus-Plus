@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { SHORTCUTS } from "@/data/shortcuts";
+import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
 
 const open = ref(false);
 const root = ref<HTMLDivElement | null>(null);
-
-const SYM_RE = /^[⌘⇧⌥⌃]$/;
-function parts(k: string): string[] {
-  return k.match(/[⌘⇧⌥⌃]|[^⌘⇧⌥⌃]+/g) ?? [k];
-}
 
 function onDocClick(e: MouseEvent) {
   if (open.value && root.value && !root.value.contains(e.target as Node)) open.value = false;
@@ -49,9 +44,9 @@ onBeforeUnmount(() => {
       <div class="hint-title">键盘快捷键</div>
       <div v-for="s in SHORTCUTS" :key="s.k" class="hint-row">
         <span class="hint-key"
-          ><template v-for="(p, i) in parts(s.k)" :key="i"
-            ><span v-if="SYM_RE.test(p)" class="sym">{{ p }}</span
-            ><template v-else>{{ p }}</template></template
+          ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
+            ><span v-if="p.sym" class="sym">{{ p.text }}</span
+            ><template v-else>{{ p.text }}</template></template
           ></span
         >
         <span class="hint-label">{{ s.label }}</span>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { getRecent, clearRecent } from "@/stores/recent";
-import { SHORTCUTS } from "@/data/shortcuts";
+import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
 
 const emit = defineEmits<{
   open: [];
@@ -20,12 +20,6 @@ function clearAll() {
 const shortcuts = SHORTCUTS;
 
 
-// ⌘⇧⌥ 等符号在 SF Mono 里字形偏小，拆出来单独放大，与字母视觉等大；
-// 每个符号独立成段，便于单独微调（如 ⇧ 基线偏低）
-const SYM_RE = /^[⌘⇧⌥⌃]$/;
-function parts(k: string): string[] {
-  return k.match(/[⌘⇧⌥⌃]|[^⌘⇧⌥⌃]+/g) ?? [k];
-}
 </script>
 
 <template>
@@ -44,9 +38,9 @@ function parts(k: string): string[] {
       <div class="shortcut-list text-left">
         <div v-for="s in shortcuts" :key="s.k" class="row">
           <span class="k"
-            ><template v-for="(p, i) in parts(s.k)" :key="i"
-              ><span v-if="SYM_RE.test(p)" class="sym" :class="{ shift: p === '⇧' }">{{ p }}</span
-              ><template v-else>{{ p }}</template></template
+            ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
+              ><span v-if="p.sym" class="sym" :class="{ shift: p.text === '⇧' }">{{ p.text }}</span
+              ><template v-else>{{ p.text }}</template></template
             ></span
           >
           <span>{{ s.label }}</span>

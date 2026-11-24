@@ -11,6 +11,7 @@ import ConfirmModal from "./components/ConfirmModal.vue";
 import Welcome from "./components/Welcome.vue";
 import Toast from "./components/Toast.vue";
 import GlobalTooltip from "./components/GlobalTooltip.vue";
+import UpdateCenter from "./components/UpdateCenter.vue";
 import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { confirmChoice, toggleSettings, ui } from "./stores/ui";
@@ -211,5 +212,6 @@ onBeforeUnmount(() => {
     <Toast />
     <GlobalTooltip />
     <SettingsPanel v-if="ui.showSettings" />
+    <UpdateCenter v-if="ui.showUpdateCenter" />
   </div>
 </template>

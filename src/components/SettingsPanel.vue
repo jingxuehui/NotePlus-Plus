@@ -12,7 +12,7 @@ import {
   type ThemeChoice,
   type ToolbarVisibility,
 } from "@/stores/settings";
-import { toggleSettings } from "@/stores/ui";
+import { toggleSettings, toggleUpdateCenter } from "@/stores/ui";
 import { notify } from "@/stores/toast";
 import HintTip from "@/components/HintTip.vue";
 import ThemeIcon from "@/components/ThemeIcon.vue";
@@ -113,13 +113,23 @@ const copyrightYear = new Date().getFullYear();
 const draft = reactive<Settings>({ ...settings });
 const dirty = computed(() => JSON.stringify(draft) !== JSON.stringify(settings));
 
-// ---------- 工具栏显示项（拖拽排序仅影响当前会话的展示顺序） ----------
+// ---------- 工具栏显示项（拖拽排序写入 toolbarOrder，应用后标题栏按此顺序渲染） ----------
 type ToolbarKey = keyof ToolbarVisibility;
 interface ToolbarItem {
   key: ToolbarKey;
   label: string;
 }
-const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
+
+/** 按保存的顺序数组排列条目 */
+function orderItems<T extends { key: string }>(items: T[], order: string[]): T[] {
+  return [...items].sort((a, b) => {
+    const ia = order.indexOf(a.key);
+    const ib = order.indexOf(b.key);
+    return (ia < 0 ? 9999 : ia) - (ib < 0 ? 9999 : ib);
+  });
+}
+
+const toolbarGroupDefs: { title: string; items: ToolbarItem[] }[] = [
   {
     title: "主操作栏",
     items: [
@@ -141,6 +151,9 @@ const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
   {
     title: "右侧工具栏",
     items: [
+      { key: "updateButton", label: "更新按钮" },
+      { key: "github", label: "GitHub 入口" },
+      { key: "gitee", label: "Gitee 入口" },
       { key: "shortcutHint", label: "快捷键提示" },
       { key: "statusBar", label: "状态栏" },
       { key: "themeToggle", label: "主题切换按钮" },
@@ -150,22 +163,89 @@ const toolbarGroups = reactive<{ title: string; items: ToolbarItem[] }[]>([
     title: "系统入口",
     items: [{ key: "systemSettings", label: "设置" }],
   },
-]);
+];
+const toolbarGroups = reactive(
+  toolbarGroupDefs.map((g) => ({ ...g, items: orderItems(g.items, draft.toolbarOrder) }))
+);
 
-let dragFrom: { group: number; index: number } | null = null;
-function onToolbarDragStart(g: number, i: number) {
-  dragFrom = { group: g, index: i };
+// ---------- 通用拖拽排序（鼠标事件实现，兼容 Tauri WebView） ----------
+type SortKind = "toolbar" | "tabMenu";
+interface SortState {
+  kind: SortKind;
+  group: number;
+  index: number;
 }
-function onToolbarDrop(g: number, i: number, e: DragEvent) {
-  e.preventDefault();
-  if (!dragFrom || dragFrom.group !== g || dragFrom.index === i) {
-    dragFrom = null;
-    return;
+const sortState = ref<SortState | null>(null);
+const sortTarget = ref<{ group: number; index: number } | null>(null);
+/** 按下时缓存各行的屏幕位置，避免被浮层遮挡时 elementFromPoint 失效 */
+let sortRowRects: { group: number; index: number; top: number; bottom: number }[] = [];
+
+function isSortSource(kind: SortKind, g: number, i: number) {
+  const s = sortState.value;
+  return !!s && s.kind === kind && s.group === g && s.index === i;
+}
+function isSortTarget(kind: SortKind, g: number, i: number) {
+  const t = sortTarget.value;
+  return !!t && sortState.value?.kind === kind && t.group === g && t.index === i;
+}
+
+function onSortMove(e: PointerEvent) {
+  if (!sortState.value) return;
+  const hit = sortRowRects.find((r) => e.clientY >= r.top && e.clientY <= r.bottom);
+  sortTarget.value = hit ? { group: hit.group, index: hit.index } : null;
+}
+
+function endSort() {
+  const s = sortState.value;
+  const t = sortTarget.value;
+  if (s && t && t.group === s.group && t.index !== s.index) {
+    if (s.kind === "toolbar") {
+      const items = toolbarGroups[s.group].items;
+      const [moved] = items.splice(s.index, 1);
+      items.splice(t.index, 0, moved);
+      draft.toolbarOrder = toolbarGroups.flatMap((g) => g.items.map((i) => i.key));
+    } else {
+      const items = tabMenuGroups[s.group].items;
+      const [moved] = items.splice(s.index, 1);
+      items.splice(t.index, 0, moved);
+      draft.tabMenuOrder = tabMenuGroups.flatMap((g) => g.items.map((i) => i.key));
+    }
   }
-  const items = toolbarGroups[g].items;
-  const [moved] = items.splice(dragFrom.index, 1);
-  items.splice(i, 0, moved);
-  dragFrom = null;
+  sortState.value = null;
+  sortTarget.value = null;
+  sortRowRects = [];
+}
+
+/** 点击上移 / 下移调整顺序（拖拽之外的可靠方式） */
+function moveItem(kind: SortKind, g: number, i: number, delta: number) {
+  const j = i + delta;
+  const items = kind === "toolbar" ? toolbarGroups[g].items : tabMenuGroups[g].items;
+  if (j < 0 || j >= items.length) return;
+  [items[i], items[j]] = [items[j], items[i]];
+  if (kind === "toolbar") {
+    draft.toolbarOrder = toolbarGroups.flatMap((group) => group.items.map((item) => item.key));
+  } else {
+    draft.tabMenuOrder = tabMenuGroups.flatMap((group) => group.items.map((item) => item.key));
+  }
+}
+
+function startSort(kind: SortKind, g: number, i: number, e: PointerEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  sortState.value = { kind, group: g, index: i };
+  sortTarget.value = null;
+  sortRowRects = Array.from(
+    document.querySelectorAll<HTMLElement>(`[data-sort-row][data-sort-kind="${kind}"]`)
+  ).map((el) => {
+    const rect = el.getBoundingClientRect();
+    return {
+      group: Number(el.dataset.sortGroup),
+      index: Number(el.dataset.sortIndex),
+      top: rect.top,
+      bottom: rect.bottom,
+    };
+  });
 }
 
 // ---------- 标签页右键菜单显示项 ----------
@@ -174,7 +254,7 @@ interface TabMenuItem {
   key: TabMenuKey;
   label: string;
 }
-const tabMenuGroups = reactive<{ title: string; items: TabMenuItem[] }[]>([
+const tabMenuGroupDefs: { title: string; items: TabMenuItem[] }[] = [
   {
     title: "标签页操作",
     items: [
@@ -191,23 +271,10 @@ const tabMenuGroups = reactive<{ title: string; items: TabMenuItem[] }[]>([
       { key: "closeAll", label: "关闭全部标签页" },
     ],
   },
-]);
-let tabDragFrom: { group: number; index: number } | null = null;
-function onTabMenuDragStart(g: number, i: number) {
-  tabDragFrom = { group: g, index: i };
-}
-function onTabMenuDrop(g: number, i: number, e: DragEvent) {
-  e.preventDefault();
-  if (!tabDragFrom || tabDragFrom.group !== g || tabDragFrom.index === i) {
-    tabDragFrom = null;
-    return;
-  }
-  const items = tabMenuGroups[g].items;
-  const [moved] = items.splice(tabDragFrom.index, 1);
-  items.splice(i, 0, moved);
-  tabDragFrom = null;
-}
-
+];
+const tabMenuGroups = reactive(
+  tabMenuGroupDefs.map((g) => ({ ...g, items: orderItems(g.items, draft.tabMenuOrder) }))
+);
 watch(
   draft,
   (d) => applyVisual(d),
@@ -237,8 +304,13 @@ function applyAndClose() {
 }
 
 function restoreDefaults() {
-  Object.assign(settings, DEFAULT_SETTINGS);
-  Object.assign(draft, DEFAULT_SETTINGS);
+  const defaults = {
+    ...DEFAULT_SETTINGS,
+    toolbarOrder: [...DEFAULT_SETTINGS.toolbarOrder],
+    tabMenuOrder: [...DEFAULT_SETTINGS.tabMenuOrder],
+  };
+  Object.assign(settings, defaults);
+  Object.assign(draft, defaults);
   notify("已恢复默认设置", false);
 }
 
@@ -246,10 +318,6 @@ function close() {
   applyVisual(settings); // 撤销未应用的预览
   toggleSettings(false);
   emit("close");
-}
-
-function checkUpdate() {
-  notify(draft.updateChannel === "preview" ? "预览版已是最新" : "当前已是最新版本", false);
 }
 
 function onKey(e: KeyboardEvent) {
@@ -503,7 +571,7 @@ onBeforeUnmount(() => {
               <!-- 工具栏显示项 -->
               <div class="section-divider" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')"></div>
               <div class="toolbar-settings" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')">
-                <div class="toolbar-desc">拖拽调整同一区域的顺序，关闭开关可隐藏对应入口。</div>
+                <div class="toolbar-desc">用 ↑↓ 或拖拽手柄调整同一区域的顺序，关闭开关可隐藏对应入口。</div>
                 <div class="toolbar-grid">
                   <div class="toolbar-group" v-for="(group, gi) in toolbarGroups" :key="group.title">
                     <div class="toolbar-group-title">{{ group.title }}</div>
@@ -512,10 +580,14 @@ onBeforeUnmount(() => {
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
                       :key="item.key"
-                      draggable="true"
-                      @dragstart="onToolbarDragStart(gi, ii)"
-                      @dragover.prevent
-                      @drop="onToolbarDrop(gi, ii, $event)"
+                      data-sort-row
+                      data-sort-kind="toolbar"
+                      :data-sort-group="gi"
+                      :data-sort-index="ii"
+                      :class="{
+                        'sort-source': isSortSource('toolbar', gi, ii),
+                        'sort-target': isSortTarget('toolbar', gi, ii),
+                      }"
                     >
                       <button
                         class="switch"
@@ -525,7 +597,11 @@ onBeforeUnmount(() => {
                         @click="draft.toolbar[item.key] = !draft.toolbar[item.key]"
                       ><span class="knob"></span></button>
                       <span class="toolbar-row-label">{{ item.label }}</span>
-                      <span class="drag-handle" title="拖拽排序">⠿</span>
+                      <span class="move-btns">
+                        <button class="move-btn" title="上移" :disabled="ii === 0" @click="moveItem('toolbar', gi, ii, -1)">↑</button>
+                        <button class="move-btn" title="下移" :disabled="ii === group.items.length - 1" @click="moveItem('toolbar', gi, ii, 1)">↓</button>
+                      </span>
+                      <span class="drag-handle" title="按住拖拽排序" @pointerdown="startSort('toolbar', gi, ii, $event)" @pointermove="onSortMove" @pointerup="endSort" @pointercancel="endSort">⠿</span>
                     </div>
                   </div>
                 </div>
@@ -534,7 +610,7 @@ onBeforeUnmount(() => {
               <!-- 标签页右键菜单显示项 -->
               <div class="section-divider" v-show="matches('右键', '标签页', '菜单')"></div>
               <div class="toolbar-settings" v-show="matches('右键', '标签页', '菜单')">
-                <div class="toolbar-desc">控制标签页鼠标右键菜单中显示的操作，拖拽可调整同一区域的顺序。</div>
+                <div class="toolbar-desc">控制标签页鼠标右键菜单中显示的操作，用 ↑↓ 或拖拽手柄调整顺序。</div>
                 <div class="toolbar-grid">
                   <div class="toolbar-group" v-for="(group, gi) in tabMenuGroups" :key="group.title">
                     <div class="toolbar-group-title">{{ group.title }}</div>
@@ -542,10 +618,14 @@ onBeforeUnmount(() => {
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
                       :key="item.key"
-                      draggable="true"
-                      @dragstart="onTabMenuDragStart(gi, ii)"
-                      @dragover.prevent
-                      @drop="onTabMenuDrop(gi, ii, $event)"
+                      data-sort-row
+                      data-sort-kind="tabMenu"
+                      :data-sort-group="gi"
+                      :data-sort-index="ii"
+                      :class="{
+                        'sort-source': isSortSource('tabMenu', gi, ii),
+                        'sort-target': isSortTarget('tabMenu', gi, ii),
+                      }"
                     >
                       <button
                         class="switch"
@@ -555,7 +635,11 @@ onBeforeUnmount(() => {
                         @click="draft.tabMenu[item.key] = !draft.tabMenu[item.key]"
                       ><span class="knob"></span></button>
                       <span class="toolbar-row-label">{{ item.label }}</span>
-                      <span class="drag-handle" title="拖拽排序">⠿</span>
+                      <span class="move-btns">
+                        <button class="move-btn" title="上移" :disabled="ii === 0" @click="moveItem('tabMenu', gi, ii, -1)">↑</button>
+                        <button class="move-btn" title="下移" :disabled="ii === group.items.length - 1" @click="moveItem('tabMenu', gi, ii, 1)">↓</button>
+                      </span>
+                      <span class="drag-handle" title="按住拖拽排序" @pointerdown="startSort('tabMenu', gi, ii, $event)" @pointermove="onSortMove" @pointerup="endSort" @pointercancel="endSort">⠿</span>
                     </div>
                   </div>
                 </div>
@@ -576,7 +660,7 @@ onBeforeUnmount(() => {
                   <div class="update-title">NotePlus+ <span class="ver-chip">v{{ appVersion }}</span></div>
                   <div class="update-sub">当前为 {{ draft.updateChannel === "preview" ? "预览版" : "稳定版" }}最新构建</div>
                 </div>
-                <button class="btn" @click="checkUpdate">检查更新</button>
+                <button class="btn" @click="toggleUpdateCenter(true)">检查更新</button>
               </div>
 
               <div class="group-title">更新偏好</div>
@@ -605,7 +689,7 @@ onBeforeUnmount(() => {
                   <div class="pref-title">发布说明</div>
                   <div class="pref-desc">查看每个版本的变更记录</div>
                 </div>
-                <button class="btn" @click="notify('暂无发布说明', false)">查看</button>
+                <button class="btn" @click="toggleUpdateCenter(true)">查看</button>
               </div>
             </div>
           </template>
@@ -805,6 +889,13 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   height: 30px;
+  border-radius: 5px;
+  user-select: none;
+}
+.toolbar-row.sort-source { opacity: 0.4; }
+.toolbar-row.sort-target {
+  background: var(--accent-tint);
+  box-shadow: inset 0 0 0 1px var(--accent-edge);
 }
 .toolbar-row .switch { transform: scale(0.9); transform-origin: left center; }
 .toolbar-row-label {
@@ -818,10 +909,26 @@ onBeforeUnmount(() => {
   opacity: 0.7;
   padding: 4px 0 6px;
 }
+.move-btns { display: inline-flex; gap: 1px; }
+.move-btn {
+  width: 18px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.move-btn:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.move-btn:disabled { opacity: 0.25; cursor: default; }
 .drag-handle {
   color: var(--muted);
   font-size: 15px;
   cursor: grab;
+  padding: 0 2px;
   user-select: none;
 }
 

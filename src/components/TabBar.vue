@@ -33,6 +33,12 @@ const hasMenuItems = computed(
   () => Object.values(settings.tabMenu).some(Boolean)
 );
 
+/** 按设置中的拖拽顺序排列右键菜单项 */
+function menuOrder(key: string): number {
+  const i = settings.tabMenuOrder.indexOf(key);
+  return i < 0 ? 90 : i;
+}
+
 function openMenu(id: number, e: MouseEvent) {
   e.preventDefault();
   if (!hasMenuItems.value) return;
@@ -170,19 +176,19 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   <Teleport to="body">
     <div v-if="menu" class="tab-menu-mask" @click="closeMenu" @contextmenu.prevent="closeMenu"></div>
     <div v-if="menu" class="tab-menu" :style="{ left: menu.x + 'px', top: menu.y + 'px' }">
-      <button class="tab-menu-item" v-if="settings.tabMenu.rename" @click="menuRename">
+      <button class="tab-menu-item" v-if="settings.tabMenu.rename" :style="{ order: menuOrder('rename') }" @click="menuRename">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11.2 2.4l2.4 2.4-8 8-3.2.8.8-3.2 8-8z" /><path d="M9.8 3.8l2.4 2.4" />
         </svg>
         <span>重命名标签页</span>
       </button>
-      <button class="tab-menu-item" v-if="settings.tabMenu.pin" @click="menuPin">
+      <button class="tab-menu-item" v-if="settings.tabMenu.pin" :style="{ order: menuOrder('pin') }" @click="menuPin">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
           <path d="M6 2h4M8 2v4M5 6h6l-1 4H6L5 6zM8 10v4" />
         </svg>
         <span>{{ menuTab?.pinned ? "取消固定标签页" : "固定标签页" }}</span>
       </button>
-      <button class="tab-menu-item" v-if="settings.tabMenu.reveal && menuTab?.path" @click="menuReveal">
+      <button class="tab-menu-item" v-if="settings.tabMenu.reveal && menuTab?.path" :style="{ order: menuOrder('reveal') }" @click="menuReveal">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2.5 4.5a1.5 1.5 0 0 1 1.5-1.5h2l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5z" />
         </svg>
@@ -191,20 +197,21 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
       <div
         class="tab-menu-sep"
         v-if="(settings.tabMenu.rename || settings.tabMenu.pin || (settings.tabMenu.reveal && menuTab?.path)) && (settings.tabMenu.close || settings.tabMenu.closeOthers || settings.tabMenu.closeAll)"
+        :style="{ order: menuOrder('close') - 0.5 }"
       ></div>
-      <button class="tab-menu-item" v-if="settings.tabMenu.close" @click="menuClose">
+      <button class="tab-menu-item" v-if="settings.tabMenu.close" :style="{ order: menuOrder('close') }" @click="menuClose">
         <svg width="12" height="12" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.3">
           <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" /><line x1="8.5" y1="1.5" x2="1.5" y2="8.5" />
         </svg>
         <span>关闭标签页</span>
       </button>
-      <button class="tab-menu-item" @click="menuCloseOthers" v-if="settings.tabMenu.closeOthers && tabsState.tabs.length > 1">
+      <button class="tab-menu-item" :style="{ order: menuOrder('closeOthers') }" @click="menuCloseOthers" v-if="settings.tabMenu.closeOthers && tabsState.tabs.length > 1">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
           <rect x="2" y="3" width="12" height="10" rx="2" /><path d="M2 6.5h12M5 4.7h.01M8 4.7h.01" />
         </svg>
         <span>关闭其他标签页</span>
       </button>
-      <button class="tab-menu-item" v-if="settings.tabMenu.closeAll" @click="menuCloseAll">
+      <button class="tab-menu-item" v-if="settings.tabMenu.closeAll" :style="{ order: menuOrder('closeAll') }" @click="menuCloseAll">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
           <rect x="2" y="3" width="12" height="10" rx="2" /><path d="M5.5 6.5l5 3M10.5 6.5l-5 3" />
         </svg>
@@ -322,6 +329,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 .tab-menu {
   position: fixed;
   z-index: 901;
+  display: flex;
+  flex-direction: column;
   min-width: 168px;
   padding: 4px;
   background: var(--panel-2);

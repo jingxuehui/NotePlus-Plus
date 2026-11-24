@@ -44,6 +44,9 @@ export interface ToolbarVisibility {
   shortcutHint: boolean;
   statusBar: boolean;
   themeToggle: boolean;
+  updateButton: boolean;
+  github: boolean;
+  gitee: boolean;
   systemSettings: boolean;
 }
 
@@ -71,6 +74,10 @@ export interface Settings {
   toolbar: ToolbarVisibility;
   /** 标签页右键菜单显示项 */
   tabMenu: ContextMenuVisibility;
+  /** 标题栏各入口的显示顺序（key 列表，拖拽排序后持久化） */
+  toolbarOrder: string[];
+  /** 标签页右键菜单项的显示顺序 */
+  tabMenuOrder: string[];
 }
 
 const STORAGE_KEY = "noteplus.settings";
@@ -106,6 +113,9 @@ export const DEFAULT_SETTINGS: Settings = {
     shortcutHint: true,
     statusBar: true,
     themeToggle: true,
+    updateButton: true,
+    github: true,
+    gitee: true,
     systemSettings: true,
   },
   tabMenu: {
@@ -116,7 +126,34 @@ export const DEFAULT_SETTINGS: Settings = {
     closeOthers: true,
     closeAll: true,
   },
+  toolbarOrder: [
+    "sidebar", "newFile", "openFile", "openFolder",
+    "save", "saveAs", "saveAll",
+    "find", "format",
+    "updateButton", "github", "gitee", "themeToggle", "shortcutHint", "systemSettings",
+  ],
+  tabMenuOrder: ["rename", "pin", "reveal", "close", "closeOthers", "closeAll"],
 };
+
+/** 合并旧配置的顺序数组：保留已知项顺序，新增项插回默认相对位置 */
+function mergeOrder(defaults: string[], saved: unknown): string[] {
+  if (!Array.isArray(saved)) return [...defaults];
+  const result = [...new Set(saved.filter((k): k is string => typeof k === "string" && defaults.includes(k)))];
+  for (const key of defaults) {
+    if (result.includes(key)) continue;
+    const pos = defaults.indexOf(key);
+    let insertAt = result.length;
+    for (let i = pos - 1; i >= 0; i--) {
+      const idx = result.indexOf(defaults[i]);
+      if (idx >= 0) {
+        insertAt = idx + 1;
+        break;
+      }
+    }
+    result.splice(insertAt, 0, key);
+  }
+  return result;
+}
 
 function load(): Settings {
   try {
@@ -150,12 +187,18 @@ function load(): Settings {
         ...saved,
         toolbar: { ...DEFAULT_SETTINGS.toolbar, ...(saved.toolbar ?? {}) },
         tabMenu: { ...DEFAULT_SETTINGS.tabMenu, ...(saved.tabMenu ?? {}) },
+        toolbarOrder: mergeOrder(DEFAULT_SETTINGS.toolbarOrder, saved.toolbarOrder),
+        tabMenuOrder: mergeOrder(DEFAULT_SETTINGS.tabMenuOrder, saved.tabMenuOrder),
       };
     }
   } catch {
     /* ignore */
   }
-  return { ...DEFAULT_SETTINGS };
+  return {
+    ...DEFAULT_SETTINGS,
+    toolbarOrder: [...DEFAULT_SETTINGS.toolbarOrder],
+    tabMenuOrder: [...DEFAULT_SETTINGS.tabMenuOrder],
+  };
 }
 
 export const settings = reactive<Settings>(load());

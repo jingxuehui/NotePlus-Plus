@@ -10,11 +10,17 @@ interface ModalRequest {
 export const ui = reactive({
   modal: null as ModalRequest | null,
   showSettings: false,
+  showUpdateCenter: false,
 });
 
 /** 打开 / 关闭设置弹框 */
 export function toggleSettings(force?: boolean) {
   ui.showSettings = force ?? !ui.showSettings;
+}
+
+/** 打开 / 关闭更新中心 */
+export function toggleUpdateCenter(force?: boolean) {
+  ui.showUpdateCenter = force ?? !ui.showUpdateCenter;
 }
 
 let modalResolve: ((choice: string) => void) | null = null;
