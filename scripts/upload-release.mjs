@@ -130,7 +130,9 @@ async function pushGitee(version, artifacts, token) {
     );
   }
   if (!release?.id) throw new Error(`Gitee 创建发行版失败: ${JSON.stringify(release).slice(0, 300)}`);
-  for (const file of artifacts.filter((f) => f.endsWith(".dmg"))) {
+  // 精确匹配正式 dmg 命名，排除 hdiutil 的 rw.* 残留临时文件
+  const dmgRe = /^NotePlus\+_\d+\.\d+\.\d+_aarch64\.dmg$/;
+  for (const file of artifacts.filter((f) => dmgRe.test(f.split("/").pop()))) {
     const name = file.split("/").pop();
     const norm = (s) => s.replace(/\+/g, " ").replace(/\s+/g, " ").trim();
     const existing = (release.assets ?? []).some((a) => norm(a.name) === norm(name));
