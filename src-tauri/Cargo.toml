@@ -1,7 +1,7 @@
 [package]
 name = "noteplus"
 version = "0.1.4"
-description = "NotePlus+ - A powerful Notepad++ style code editor for macOS"
+description = "NotePlus+ - A Notepad++ style lightweight code editor for macOS & Windows"
 authors = ["NotePlus+"]
 edition = "2021"
 rust-version = "1.77"

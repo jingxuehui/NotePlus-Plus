@@ -15,6 +15,7 @@ import {
 import { toggleSettings, toggleUpdateCenter } from "@/stores/ui";
 import { notify } from "@/stores/toast";
 import { t } from "@/i18n";
+import { isMac } from "@/utils/platform";
 import HintTip from "@/components/HintTip.vue";
 import ThemeIcon from "@/components/ThemeIcon.vue";
 
@@ -510,8 +511,8 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <!-- 关闭主窗口行为 -->
-              <div class="pref-row boxed-pref" v-show="matches('关闭窗口', '退出程序', 'Dock')">
+              <!-- 关闭主窗口行为（macOS：Dock 驻留机制，Windows 无此概念） -->
+              <div class="pref-row boxed-pref" v-show="isMac && matches('关闭窗口', '退出程序', 'Dock')">
                 <div>
                   <div class="pref-title">{{ t("set.exitOnClose") }}</div>
                   <div class="pref-desc">{{ t("set.exitOnCloseDesc") }}</div>
@@ -520,8 +521,8 @@ onBeforeUnmount(() => {
                   @click="draft.exitOnClose = !draft.exitOnClose"><span class="knob"></span></button>
               </div>
 
-              <!-- 图标与 Logo 样式 -->
-              <div v-show="matches('图标', 'Logo', '黑色')">
+              <!-- 图标与 Logo 样式（macOS：Dock 图标，Windows 无此机制） -->
+              <div v-show="isMac && matches('图标', 'Logo', '黑色')">
                 <label class="field-label mt">{{ t("set.iconStyle") }}</label>
                 <div class="choice-row">
                   <button class="choice-card icon-choice" :class="{ on: draft.iconStyle === 'default' }" @click="draft.iconStyle = 'default'">
@@ -719,7 +720,7 @@ onBeforeUnmount(() => {
                 <span class="about-plus">+</span>
               </div>
               <div class="about-name">NotePlus+</div>
-              <div class="about-ver">v{{ appVersion }} · macOS</div>
+              <div class="about-ver">v{{ appVersion }} · {{ isMac ? "macOS" : "Windows" }}</div>
               <div class="about-desc">{{ t("about.desc") }}</div>
               <div class="group-title">{{ t("about.techStack") }}</div>
               <div class="stack-list">
@@ -733,7 +734,7 @@ onBeforeUnmount(() => {
               <div class="group-title">{{ t("about.versionInfo") }}</div>
               <div class="info-table">
                 <div><span>{{ t("about.appVersion") }}</span><span>{{ appVersion }} ({{ copyrightYear }})</span></div>
-                <div><span>{{ t("about.buildTarget") }}</span><span>macOS · Apple Silicon</span></div>
+                <div><span>{{ t("about.buildTarget") }}</span><span>{{ isMac ? "macOS · Apple Silicon" : "Windows x64" }}</span></div>
                 <div><span>{{ t("about.license") }}</span><span>MIT License</span></div>
               </div>
               <div class="about-copy">© {{ copyrightYear }} NotePlus+ · {{ t("about.builtWith") }}</div>

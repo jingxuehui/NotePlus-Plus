@@ -7,6 +7,8 @@ import { openFindWindow } from "@/find/bridge";
 import { activeTab } from "@/stores/tabs";
 import { openExternal } from "@/commands";
 import { t } from "@/i18n";
+import { isMac } from "@/utils/platform";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { formatJsonDocument } from "@/editor/format";
 import ShortcutHint from "./ShortcutHint.vue";
 import ThemeIcon from "./ThemeIcon.vue";
@@ -19,6 +21,12 @@ const REPO_LINKS = {
 function openRepo(url: string) {
   openExternal(url).catch((e) => console.error("打开仓库链接失败", e));
 }
+
+// ---------- Windows 自定义窗控（macOS 由系统红绿灯负责） ----------
+const winWindow = isMac ? null : getCurrentWindow();
+function winMinimize() { void winWindow?.minimize(); }
+function winMaxToggle() { void winWindow?.toggleMaximize(); }
+function winClose() { void winWindow?.close(); }
 
 /** 按设置中的拖拽顺序排列标题栏按钮 */
 function orderOf(key: string): number {
@@ -81,8 +89,8 @@ const emit = defineEmits<{
 <template>
   <!-- 自绘标题栏：红绿灯由系统绘制在左侧，工具栏按钮与标题同一行 -->
   <div class="titlebar" data-tauri-drag-region>
-    <!-- 红绿灯 + 系统原生标题占用的区域，标题由系统绘制，避免重复 -->
-    <div class="traffic-light-space" data-tauri-drag-region>
+    <!-- 红绿灯 + 系统原生标题占用的区域，标题由系统绘制，避免重复；Windows 无红绿灯，窄占位 -->
+    <div class="traffic-light-space" :class="{ 'tl-space-win': !isMac }" data-tauri-drag-region>
       <span class="app-title" data-tauri-drag-region>NotePlus+</span>
     </div>
 
@@ -267,6 +275,19 @@ const emit = defineEmits<{
         <circle cx="12" cy="12" r="3.2" />
       </svg>
     </span>
+
+    <!-- Windows 自定义窗控：最小化 / 最大化 / 关闭 -->
+    <div v-if="!isMac" class="win-controls">
+      <button class="win-btn" @click="winMinimize">
+        <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2"><line x1="1" y1="6" x2="11" y2="6" /></svg>
+      </button>
+      <button class="win-btn" @click="winMaxToggle">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1.5" y="1.5" width="9" height="9" rx="1" /></svg>
+      </button>
+      <button class="win-btn win-close" @click="winClose">
+        <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2"><line x1="1.5" y1="1.5" x2="10.5" y2="10.5" /><line x1="10.5" y1="1.5" x2="1.5" y2="10.5" /></svg>
+      </button>
+    </div>
   </div>
 
   <Teleport to="body">
@@ -303,6 +324,37 @@ const emit = defineEmits<{
   align-items: center;
   padding-left: 86px;
   pointer-events: none;
+}
+/* Windows：无边框窗口没有红绿灯，占位收窄并恢复事件（拖拽区） */
+.traffic-light-space.tl-space-win {
+  width: auto;
+  padding: 0 14px;
+  pointer-events: auto;
+}
+.win-controls {
+  display: flex;
+  align-self: stretch;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.win-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.win-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.win-btn.win-close:hover {
+  background: #e81123;
+  color: #fff;
 }
 .app-title {
   font-size: 13px;

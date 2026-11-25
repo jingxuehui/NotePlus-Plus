@@ -4,6 +4,7 @@ import { EditorSelection } from "@codemirror/state";
 import { undo as cmUndo, redo as cmRedo } from "@codemirror/commands";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { t } from "@/i18n";
+import { isMac } from "@/utils/platform";
 import { viewRef } from "@/editor/view";
 import { openFindWindow } from "@/find/bridge";
 
@@ -26,18 +27,19 @@ interface Item {
   shortcut?: string;
 }
 
+const MOD = isMac ? "⌘+" : "Ctrl+";
 const GROUPS: Item[][] = [
   [
-    { key: "ctx.undo", action: "undo", shortcut: "⌘+Z" },
-    { key: "ctx.redo", action: "redo", shortcut: "⇧+⌘+Z" },
+    { key: "ctx.undo", action: "undo", shortcut: `${MOD}Z` },
+    { key: "ctx.redo", action: "redo", shortcut: isMac ? "⇧+⌘+Z" : "Ctrl+Shift+Z" },
   ],
   [
-    { key: "ctx.cut", action: "cut", shortcut: "⌘+X" },
-    { key: "ctx.copy", action: "copy", shortcut: "⌘+C" },
-    { key: "ctx.paste", action: "paste", shortcut: "⌘+V" },
-    { key: "ctx.selectAll", action: "select-all", shortcut: "⌘+A" },
+    { key: "ctx.cut", action: "cut", shortcut: `${MOD}X` },
+    { key: "ctx.copy", action: "copy", shortcut: `${MOD}C` },
+    { key: "ctx.paste", action: "paste", shortcut: `${MOD}V` },
+    { key: "ctx.selectAll", action: "select-all", shortcut: `${MOD}A` },
   ],
-  [{ key: "ctx.findReplace", action: "find", shortcut: "⌘+F" }],
+  [{ key: "ctx.findReplace", action: "find", shortcut: `${MOD}F` }],
 ];
 
 async function run(action: Item["action"]) {

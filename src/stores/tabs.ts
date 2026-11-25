@@ -256,7 +256,7 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
   try {
     await writeTextFile(finalPath, docText(tab), tab.encoding, tab.eol);
     tab.path = finalPath;
-    tab.name = finalPath.split("/").pop() ?? finalPath;
+    tab.name = finalPath.split(/[\\/]/).pop() ?? finalPath;
     tab.language = languageName(finalPath);
     // 另存为其它类型后立即切换语法高亮
     if (viewRef.current && tabsState.activeId === tab.id) {

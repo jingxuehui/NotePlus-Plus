@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
 import { t } from "@/i18n";
+import { isMac } from "@/utils/platform";
 
 const open = ref(false);
 const root = ref<HTMLDivElement | null>(null);
@@ -44,11 +45,13 @@ onBeforeUnmount(() => {
     <div v-if="open" class="hint-pop">
       <div class="hint-title">{{ t("sc.title") }}</div>
       <div v-for="s in SHORTCUTS" :key="s.k" class="hint-row">
-        <span class="hint-key"
-          ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
-            ><span v-if="p.sym" class="sym">{{ p.text }}</span
-            ><template v-else>{{ p.text }}</template></template
-          ></span
+        <span class="hint-key" :class="{ plain: !isMac }"
+          ><template v-if="isMac"
+            ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
+              ><span v-if="p.sym" class="sym">{{ p.text }}</span
+              ><template v-else>{{ p.text }}</template></template
+            ></template
+          ><template v-else>{{ s.kw ?? s.k }}</template></span
         >
         <span class="hint-label">{{ t(s.label) }}</span>
       </div>
@@ -110,6 +113,10 @@ onBeforeUnmount(() => {
 .hint-key .sym {
   font-size: 12px;
   line-height: 1;
+}
+/* Windows 组合键为普通文本，不需要逐字符放大间距 */
+.hint-key.plain {
+  letter-spacing: 0.3px;
 }
 .hint-label {
   flex: 1;

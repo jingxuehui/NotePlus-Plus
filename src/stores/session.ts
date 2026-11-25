@@ -125,7 +125,7 @@ export async function restoreSession(): Promise<boolean> {
 
   for (const st of data.tabs) {
     const path = st.path ?? null;
-    const name = st.name || path?.split("/").pop() || t("common.untitled");
+    const name = st.name || path?.split(/[\\/]/).pop() || t("common.untitled");
     const pinned = st.pinned === true;
     if (!st.dirty && path) {
       try {

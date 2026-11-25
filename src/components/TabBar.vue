@@ -10,6 +10,7 @@ import {
 import { settings } from "@/stores/settings";
 import { revealInFinder } from "@/commands";
 import { t } from "@/i18n";
+import { isMac } from "@/utils/platform";
 import FileTypeIcon from "./FileTypeIcon.vue";
 
 const emit = defineEmits<{
@@ -193,7 +194,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2.5 4.5a1.5 1.5 0 0 1 1.5-1.5h2l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5z" />
         </svg>
-        <span>{{ t("tab.reveal") }}</span>
+        <span>{{ t(isMac ? "tab.reveal" : "tab.revealWin") }}</span>
       </button>
       <div
         class="tab-menu-sep"

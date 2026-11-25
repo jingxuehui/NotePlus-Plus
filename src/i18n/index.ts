@@ -1,9 +1,11 @@
 import { settings } from "@/stores/settings";
+import { isMac } from "@/utils/platform";
 
 /**
  * 轻量 i18n：词条跟随设置中的语言实时变化（t() 在渲染中读取 settings.language，天然响应式）。
  * 完整覆盖 zh-CN / zh-TW / en-US；其余语言按规则分流（中文简繁、其他回退英文）。
  * 支持占位符：t("key", { n: 3 }) → "共 {n} 项"。
+ * 非 macOS 平台自动把 ⌘/⇧/⌥ 符号转换为 Ctrl+/Shift+/Alt+ 显示。
  */
 export type Locale = "zh-CN" | "zh-TW" | "en-US";
 
@@ -23,6 +25,7 @@ const zhCN: Dict = {
   "tab.pin": "固定标签页",
   "tab.unpin": "取消固定标签页",
   "tab.reveal": "在 Finder 中显示",
+  "tab.revealWin": "在资源管理器中显示",
   "tab.close": "关闭标签页",
   "tab.closeOthers": "关闭其他标签页",
   "tab.closeAll": "关闭全部标签页",
@@ -89,7 +92,7 @@ const zhCN: Dict = {
   "tree.openFolder": "打开文件夹",
   "tree.emptyFolder": "空文件夹",
   // ===== 欢迎页 =====
-  "welcome.tagline": "macOS 上的轻量级代码编辑器",
+  "welcome.tagline": "轻量级代码编辑器",
   "welcome.openFile": "打开文件",
   "welcome.openFolder": "打开文件夹",
   "welcome.recent": "最近打开",
@@ -322,7 +325,7 @@ const zhCN: Dict = {
   "set.releaseNotes": "发布说明",
   "set.releaseNotesDesc": "查看每个版本的变更记录",
   "set.view": "查看",
-  "about.desc": "macOS 上的轻量级代码编辑器，为高效编辑而生。",
+  "about.desc": "轻量级代码编辑器，为高效编辑而生。",
   "about.techStack": "技术栈",
   "about.versionInfo": "版本信息",
   "about.appVersion": "应用版本",
@@ -360,6 +363,7 @@ const zhTW: Dict = {
   "tab.pin": "釘選標籤頁",
   "tab.unpin": "取消釘選標籤頁",
   "tab.reveal": "在 Finder 中顯示",
+  "tab.revealWin": "在檔案總管中顯示",
   "tab.close": "關閉標籤頁",
   "tab.closeOthers": "關閉其他標籤頁",
   "tab.closeAll": "關閉全部標籤頁",
@@ -420,7 +424,7 @@ const zhTW: Dict = {
   "tree.emptyLine2": "在側邊欄瀏覽並快速開啟檔案",
   "tree.openFolder": "開啟資料夾",
   "tree.emptyFolder": "空資料夾",
-  "welcome.tagline": "macOS 上的輕量級程式碼編輯器",
+  "welcome.tagline": "輕量級程式碼編輯器",
   "welcome.openFile": "開啟檔案",
   "welcome.openFolder": "開啟資料夾",
   "welcome.recent": "最近開啟",
@@ -648,7 +652,7 @@ const zhTW: Dict = {
   "set.releaseNotes": "發布說明",
   "set.releaseNotesDesc": "查看每個版本的變更記錄",
   "set.view": "檢視",
-  "about.desc": "macOS 上的輕量級程式碼編輯器，為高效編輯而生。",
+  "about.desc": "輕量級程式碼編輯器，為高效編輯而生。",
   "about.techStack": "技術棧",
   "about.versionInfo": "版本資訊",
   "about.appVersion": "應用版本",
@@ -684,6 +688,7 @@ const enUS: Dict = {
   "tab.pin": "Pin Tab",
   "tab.unpin": "Unpin Tab",
   "tab.reveal": "Reveal in Finder",
+  "tab.revealWin": "Reveal in Explorer",
   "tab.close": "Close Tab",
   "tab.closeOthers": "Close Other Tabs",
   "tab.closeAll": "Close All Tabs",
@@ -744,7 +749,7 @@ const enUS: Dict = {
   "tree.emptyLine2": "Browse and quickly open files in the sidebar",
   "tree.openFolder": "Open Folder",
   "tree.emptyFolder": "Empty folder",
-  "welcome.tagline": "A lightweight code editor for macOS",
+  "welcome.tagline": "A lightweight code editor",
   "welcome.openFile": "Open File",
   "welcome.openFolder": "Open Folder",
   "welcome.recent": "Recent",
@@ -972,7 +977,7 @@ const enUS: Dict = {
   "set.releaseNotes": "Release Notes",
   "set.releaseNotesDesc": "See what changed in each version",
   "set.view": "View",
-  "about.desc": "A lightweight code editor for macOS, built for efficient editing.",
+  "about.desc": "A lightweight code editor built for efficient editing.",
   "about.techStack": "Tech Stack",
   "about.versionInfo": "Version Info",
   "about.appVersion": "App Version",
@@ -1011,7 +1016,7 @@ export function resolveLocale(lang: string): Locale {
   return "en-US";
 }
 
-/** 取词条：当前语言 → 英文 → 键名本身；支持 {name} 占位符 */
+/** 取词条：当前语言 → 英文 → 键名本身；支持 {name} 占位符；非 macOS 平台转换快捷键符号 */
 export function t(key: string, params?: Record<string, string | number>): string {
   const locale = resolveLocale(settings.language);
   let s = DICTS[locale][key] ?? enUS[key] ?? key;
@@ -1019,6 +1024,9 @@ export function t(key: string, params?: Record<string, string | number>): string
     for (const [k, v] of Object.entries(params)) {
       s = s.replace(`{${k}}`, String(v));
     }
+  }
+  if (!isMac) {
+    s = s.replace(/⇧/g, "Shift+").replace(/⌥/g, "Alt+").replace(/⌘/g, "Ctrl+");
   }
   return s;
 }

@@ -1,5 +1,7 @@
 export interface Shortcut {
   k: string;
+  /** Windows 下显示的组合键（缺省时复用 k，但 mac 符号会原样显示，故 mac 组合键都应提供 kw） */
+  kw?: string;
   label: string;
 }
 
@@ -32,18 +34,18 @@ export function shortcutParts(k: string): ShortcutPart[] {
 
 /** 全局快捷键说明：欢迎页与标题栏的快捷键提示共用同一份数据（label 为 i18n 键，渲染时经 t() 翻译） */
 export const SHORTCUTS: Shortcut[] = [
-  { k: "⌘N", label: "sc.new" },
-  { k: "⌘O", label: "sc.open" },
-  { k: "⇧⌘O", label: "sc.openFolder" },
-  { k: "⌘S", label: "sc.save" },
-  { k: "⌥⌘S", label: "sc.saveAll" },
-  { k: "⌘W", label: "sc.closeTab" },
-  { k: "⌘F", label: "sc.findWindow" },
-  { k: "⌘G / ⇧⌘G", label: "sc.nextPrev" },
-  { k: "⌘B", label: "sc.sidebar" },
-  { k: "⌘/", label: "sc.comment" },
-  { k: "⇧⌥F", label: "sc.format" },
-  { k: "⌘+ / ⌘- / ⌘0", label: "sc.zoom" },
-  { k: "⌘,", label: "sc.settings" },
+  { k: "⌘N", kw: "Ctrl+N", label: "sc.new" },
+  { k: "⌘O", kw: "Ctrl+O", label: "sc.open" },
+  { k: "⇧⌘O", kw: "Ctrl+Shift+O", label: "sc.openFolder" },
+  { k: "⌘S", kw: "Ctrl+S", label: "sc.save" },
+  { k: "⌥⌘S", kw: "Ctrl+Alt+S", label: "sc.saveAll" },
+  { k: "⌘W", kw: "Ctrl+W", label: "sc.closeTab" },
+  { k: "⌘F", kw: "Ctrl+F", label: "sc.findWindow" },
+  { k: "⌘G / ⇧⌘G", kw: "Ctrl+G / Ctrl+Shift+G", label: "sc.nextPrev" },
+  { k: "⌘B", kw: "Ctrl+B", label: "sc.sidebar" },
+  { k: "⌘/", kw: "Ctrl+/", label: "sc.comment" },
+  { k: "⇧⌥F", kw: "Shift+Alt+F", label: "sc.format" },
+  { k: "⌘+ / ⌘- / ⌘0", kw: "Ctrl+= / Ctrl+- / Ctrl+0", label: "sc.zoom" },
+  { k: "⌘,", kw: "Ctrl+,", label: "sc.settings" },
   { k: "拖拽", label: "sc.drag" },
 ];

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "title": "NotePlus+",
+        "width": 1360,
+        "height": 880,
+        "minWidth": 960,
+        "minHeight": 600,
+        "center": true,
+        "dragDropEnabled": true,
+        "decorations": false
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["nsis", "msi"]
+  }
+}

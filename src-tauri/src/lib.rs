@@ -241,14 +241,31 @@ fn read_node(p: &Path, depth: u32, show_hidden: bool) -> std::io::Result<FileNod
     })
 }
 
-/// 在 Finder 中显示文件
+/// 在 Finder / 资源管理器中显示文件（按平台调用对应文件管理器）
 #[tauri::command]
 fn reveal_in_finder(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
     Command::new("open")
         .arg("-R")
         .arg(&path)
         .spawn()
         .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "windows")]
+    Command::new("explorer")
+        .arg(format!("/select,{}", path))
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        if let Some(parent) = std::path::Path::new(&path).parent() {
+            Command::new("xdg-open")
+                .arg(parent)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
+    }
     Ok(())
 }
 
@@ -732,7 +749,9 @@ pub fn run() {
             // 「关闭窗口时退出程序」关闭时：点红绿灯只隐藏主窗口，程序驻留 Dock；
             // 开启时不拦截，最后一个窗口销毁后应用退出。
             tauri::WindowEvent::CloseRequested { api, .. }
-                if window.label() == "main" && !EXIT_ON_CLOSE.load(Ordering::Relaxed) =>
+                if window.label() == "main"
+                    && cfg!(target_os = "macos")
+                    && !EXIT_ON_CLOSE.load(Ordering::Relaxed) =>
             {
                 api.prevent_close();
                 if let Some(find) = window.get_webview_window("find") {
@@ -765,7 +784,11 @@ pub fn run() {
         // 「关闭窗口时退出程序」关闭时，所有窗口都被销毁也不退出
         // （仅 Cmd+Q / 主动 exit 才真正退出）
         tauri::RunEvent::ExitRequested { code, api, .. } => {
-            if code.is_none() && !EXIT_ON_CLOSE.load(Ordering::Relaxed) {
+            // 仅 macOS 在关窗后驻留；Windows/Linux 关窗即退出
+            if code.is_none()
+                && cfg!(target_os = "macos")
+                && !EXIT_ON_CLOSE.load(Ordering::Relaxed)
+            {
                 api.prevent_exit();
             }
         }
