@@ -1,0 +1,62 @@
+name: Build Windows
+
+# 推送 v* tag（本地 pnpm release 经 API 创建 Release/Tag 后会自动触发）
+# 在 Windows runner 上编译 NSIS(.exe) / MSI 安装包，并补传到 GitHub / Gitee 的同一 Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # Windows 平台会自动合并 tauri.windows.conf.json（NSIS/MSI 目标）
+      - name: 打包 Windows 安装包
+        run: pnpm tauri build
+
+      - name: 补传 GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            src-tauri/target/release/bundle/nsis/*.exe \
+            src-tauri/target/release/bundle/msi/*.msi \
+            --clobber --repo "${GITHUB_REPOSITORY}"
+
+      - name: 补传 Gitee Release
+        shell: bash
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "未配置 GITEE_TOKEN secret，跳过 Gitee 上传"
+            exit 0
+          fi
+          node scripts/upload-gitee-assets.mjs "$GITHUB_REF_NAME" \
+            src-tauri/target/release/bundle/nsis/*.exe \
+            src-tauri/target/release/bundle/msi/*.msi
