@@ -374,6 +374,11 @@ const emit = defineEmits<{
   flex: 1;
   align-self: stretch;
 }
+/* 右侧图标组（更新 / 仓库 / 主题 / 快捷键 / 设置 / Windows 窗控）加大彼此间距；
+   用兄弟选择器只作用于填充区之后的元素，不影响左侧工具栏与红绿灯占位 */
+.titlebar > .titlebar-fill ~ * {
+  margin-left: 8px;
+}
 .icon-btn.disabled {
   opacity: 0.35;
   pointer-events: none;
