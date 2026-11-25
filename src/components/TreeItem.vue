@@ -3,6 +3,7 @@ import { computed } from "vue";
 import type { FileNode } from "@/commands";
 import { toggleExpand, treeState } from "@/stores/filetree";
 import { tabsState, activeTab, openPath } from "@/stores/tabs";
+import { t } from "@/i18n";
 
 const props = defineProps<{ node: FileNode; depth: number }>();
 
@@ -62,7 +63,7 @@ function onClick() {
       class="empty-dir text-muted"
       :style="{ paddingLeft: (depth + 1) * 14 + 28 + 'px' }"
     >
-      空文件夹
+      {{ t("tree.emptyFolder") }}
     </div>
   </div>
 </template>

@@ -6,6 +6,7 @@ import { updater } from "@/stores/updater";
 import { openFindWindow } from "@/find/bridge";
 import { activeTab } from "@/stores/tabs";
 import { openExternal } from "@/commands";
+import { t } from "@/i18n";
 import { formatJsonDocument } from "@/editor/format";
 import ShortcutHint from "./ShortcutHint.vue";
 import ThemeIcon from "./ThemeIcon.vue";
@@ -29,9 +30,9 @@ const { hasUpdate, isDownloaded, updateVersion } = updater;
 
 /** dbx 风格：有更新时按钮变成带文字的操作按钮，否则保持安静的图标按钮 */
 const updateTitle = computed(() => {
-  if (isDownloaded.value) return `v${updateVersion.value} 已下载，重启即可更新`;
-  if (hasUpdate.value) return `发现新版本 ${updateVersion.value}`;
-  return "检查更新";
+  if (isDownloaded.value) return t("titlebar.updateDownloaded", { v: updateVersion.value });
+  if (hasUpdate.value) return t("titlebar.updateAvailable", { v: updateVersion.value });
+  return t("titlebar.checkUpdate");
 });
 
 async function onUpdateClick() {
@@ -91,7 +92,7 @@ const emit = defineEmits<{
         class="icon-btn"
         :class="{ active: settings.sidebarVisible }"
         :style="{ order: orderOf('sidebar') }"
-        title="侧边栏 (⌘B)"
+        :title="t('titlebar.sidebar')"
         @click="settings.sidebarVisible = !settings.sidebarVisible"
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -99,19 +100,19 @@ const emit = defineEmits<{
           <line x1="6" y1="2.5" x2="6" y2="13.5" />
         </svg>
       </span>
-      <span v-if="settings.toolbar.newFile" class="icon-btn" :style="{ order: orderOf('newFile') }" title="新建文件 (⌘N)" @click="emit('new')">
+      <span v-if="settings.toolbar.newFile" class="icon-btn" :style="{ order: orderOf('newFile') }" :title="t('titlebar.newFile')" @click="emit('new')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
           <path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 13V6L9 1.5z" />
           <path d="M9 1.5V6h4.5" />
           <line x1="8" y1="8.5" x2="8" y2="12" /><line x1="6.2" y1="10.2" x2="9.8" y2="10.2" />
         </svg>
       </span>
-      <span v-if="settings.toolbar.openFile" class="icon-btn" :style="{ order: orderOf('openFile') }" title="打开文件 (⌘O)" @click="emit('open')">
+      <span v-if="settings.toolbar.openFile" class="icon-btn" :style="{ order: orderOf('openFile') }" :title="t('titlebar.openFile')" @click="emit('open')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
           <path d="M1.5 4.5A1.5 1.5 0 0 1 3 3h3l1.5 1.5H13A1.5 1.5 0 0 1 14.5 6v6A1.5 1.5 0 0 1 13 13.5H3A1.5 1.5 0 0 1 1.5 12v-7.5z" />
         </svg>
       </span>
-      <span v-if="settings.toolbar.openFolder" class="icon-btn" :style="{ order: orderOf('openFolder') }" title="打开文件夹 (⇧⌘O)" @click="emit('open-folder')">
+      <span v-if="settings.toolbar.openFolder" class="icon-btn" :style="{ order: orderOf('openFolder') }" :title="t('titlebar.openFolder')" @click="emit('open-folder')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
           <path d="M1.5 3.5A1.5 1.5 0 0 1 3 2h3.2l1.3 1.5H13A1.5 1.5 0 0 1 14.5 5v1H4.2a1.5 1.5 0 0 0-1.4 1l-1.3 4V3.5z" />
           <path d="M1.9 12.7 3.4 8.6a1 1 0 0 1 .94-.66h9.66a1 1 0 0 1 .94 1.34l-1.3 3.72a1.4 1.4 0 0 1-1.32.94H3.2a1.4 1.4 0 0 1-1.3-1.3z" />
@@ -122,7 +123,7 @@ const emit = defineEmits<{
         class="icon-btn"
         :class="{ 'sep-before': settings.toolbar.sidebar || settings.toolbar.newFile || settings.toolbar.openFile || settings.toolbar.openFolder }"
         :style="{ order: orderOf('save') }"
-        title="保存 (⌘S)"
+        :title="t('titlebar.save')"
         @click="emit('save')"
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -135,7 +136,7 @@ const emit = defineEmits<{
         class="icon-btn"
         :class="{ disabled: !activeTab }"
         :style="{ order: orderOf('saveAs') }"
-        title="另存为 (⇧⌘S)"
+        :title="t('titlebar.saveAs')"
         @click="emit('save-as')"
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
@@ -144,7 +145,7 @@ const emit = defineEmits<{
           <path d="M8 6.5v3.5M6.25 8.25h3.5" />
         </svg>
       </span>
-      <span v-if="settings.toolbar.saveAll" class="icon-btn" :style="{ order: orderOf('saveAll') }" title="全部保存 (⌥⌘S)" @click="emit('save-all')">
+      <span v-if="settings.toolbar.saveAll" class="icon-btn" :style="{ order: orderOf('saveAll') }" :title="t('titlebar.saveAll')" @click="emit('save-all')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
           <path d="M10.5 1.5h-6A1.5 1.5 0 0 0 3 3v8a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 11V4l-2.5-2.5z" />
           <path d="M5 12.5v2a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V6" />
@@ -155,7 +156,7 @@ const emit = defineEmits<{
         class="icon-btn"
         :class="{ 'sep-before': settings.toolbar.save || settings.toolbar.saveAs || settings.toolbar.saveAll }"
         :style="{ order: orderOf('find') }"
-        title="查找和替换 (⌘F)"
+        :title="t('titlebar.find')"
         @click="openFindWindow()"
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -168,7 +169,7 @@ const emit = defineEmits<{
         class="icon-btn"
         :class="{ disabled: !activeTab }"
         :style="{ order: orderOf('format') }"
-        title="格式化 JSON (⇧⌥F)"
+        :title="t('titlebar.format')"
         @click="activeTab && formatJsonDocument()"
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
@@ -184,7 +185,7 @@ const emit = defineEmits<{
         class="icon-btn more-trigger"
         :class="{ active: moreOpen }"
         :style="{ order: orderOf('moreMenu') }"
-        title="更多"
+        :title="t('titlebar.more')"
         @click="toggleMore"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -208,7 +209,7 @@ const emit = defineEmits<{
         <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
         <path d="M12 13v8" /><path d="m8 17 4 4 4-4" />
       </svg>
-      <span v-if="hasUpdate">更新</span>
+      <span v-if="hasUpdate">{{ t("titlebar.update") }}</span>
     </span>
 
     <!-- 仓库快捷入口：GitHub / Gitee -->
@@ -216,7 +217,7 @@ const emit = defineEmits<{
       v-if="settings.toolbar.github"
       class="icon-btn repo-link"
       :style="{ order: orderOf('github') }"
-      title="GitHub 仓库"
+      :title="t('titlebar.github')"
       @click="openRepo(REPO_LINKS.github)"
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -227,7 +228,7 @@ const emit = defineEmits<{
       v-if="settings.toolbar.gitee"
       class="icon-btn repo-link gitee"
       :style="{ order: orderOf('gitee') }"
-      title="Gitee 仓库"
+      :title="t('titlebar.gitee')"
       @click="openRepo(REPO_LINKS.gitee)"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -241,7 +242,7 @@ const emit = defineEmits<{
       v-if="settings.toolbar.themeToggle"
       class="icon-btn theme-toggle"
       :style="{ order: orderOf('themeToggle') }"
-      title="主题"
+      :title="t('titlebar.theme')"
       @click="cycleTheme"
     >
       <ThemeIcon :key="settings.themeChoice" class="theme-icon-anim" :mode="settings.themeChoice" :size="17" />
@@ -256,7 +257,7 @@ const emit = defineEmits<{
       class="settings-trigger"
       :class="{ active: ui.showSettings }"
       :style="{ order: orderOf('systemSettings') }"
-      title="设置 (⌘,)"
+      :title="t('titlebar.settings')"
       @click="toggleSettings()"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -275,9 +276,9 @@ const emit = defineEmits<{
           <path d="M14.7 6.3a2.4 2.4 0 0 0-3.4 3.4L5 16v3h3l6.3-6.3a2.4 2.4 0 0 0 3.4-3.4l-2-2z" />
           <path d="M4 4h6M4 4v6" />
         </svg>
-        <span>工具箱</span>
+        <span>{{ t("more.tools") }}</span>
       </button>
-      <div v-if="!settings.toolbar.tools" class="more-menu-empty">暂无可用工具</div>
+      <div v-if="!settings.toolbar.tools" class="more-menu-empty">{{ t("more.noTools") }}</div>
     </div>
   </Teleport>
 </template>

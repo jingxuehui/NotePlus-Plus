@@ -10,6 +10,7 @@ import { toggleTools } from "@/stores/ui";
 import { settings } from "@/stores/settings";
 import { darkTheme, lightTheme } from "@/editor/themes";
 import { notify } from "@/stores/toast";
+import { t } from "@/i18n";
 import { md5 } from "@/utils/md5";
 
 type TabId = "json-diff" | "crypto";
@@ -125,7 +126,7 @@ function runDiff() {
   diffResult.value = null;
   diffFilter.value = "all";
   try {
-    if (!leftJson.value.trim() || !rightJson.value.trim()) throw new Error("请先填写左右两侧的 JSON 内容");
+    if (!leftJson.value.trim() || !rightJson.value.trim()) throw new Error(t("tools.emptyBoth"));
     const a = JSON.parse(leftJson.value);
     const b = JSON.parse(rightJson.value);
     const rows: DiffRow[] = [];
@@ -145,7 +146,10 @@ function formatJson(side: "left" | "right") {
     setEditorText(view, JSON.stringify(value, null, 2));
     diffError.value = "";
   } catch (e) {
-    diffError.value = `${side === "left" ? "左侧" : "右侧"} JSON 解析失败：${e instanceof Error ? e.message : String(e)}`;
+    diffError.value = t("tools.parseFail", {
+      side: side === "left" ? t("tools.sideLeft") : t("tools.sideRight"),
+      msg: e instanceof Error ? e.message : String(e),
+    });
   }
 }
 
@@ -206,10 +210,10 @@ const formatOptions: { value: CryptoFormat; label: string }[] = [
 const isHash = computed(() => ["md5", "sha1", "sha256", "sha512"].includes(cryptoFormat.value));
 const needPassword = computed(() => cryptoFormat.value === "aes");
 const actionLabel = computed(() => {
-  if (isHash.value) return "生成";
+  if (isHash.value) return t("tools.generate");
   return cryptoFormat.value === "base64"
-    ? (cryptoAction.value === "encode" ? "编码" : "解码")
-    : (cryptoAction.value === "encode" ? "加密" : "解密");
+    ? (cryptoAction.value === "encode" ? t("tools.encode") : t("tools.decode"))
+    : (cryptoAction.value === "encode" ? t("tools.encrypt") : t("tools.decrypt"));
 });
 
 const enc = new TextEncoder();
@@ -255,7 +259,7 @@ async function aesEncrypt(text: string, password: string): Promise<string> {
 }
 async function aesDecrypt(payload: string, password: string): Promise<string> {
   const packed = fromBase64(payload);
-  if (packed.length < 28) throw new Error("密文格式不正确（应包含盐与 IV）");
+  if (packed.length < 28) throw new Error(t("tools.errBadCipher"));
   const salt = packed.slice(0, 16);
   const iv = packed.slice(16, 28);
   const cipher = packed.slice(28);
@@ -272,15 +276,15 @@ async function hashText(text: string): Promise<string> {
     case "sha1": return toHex(new Uint8Array(await crypto.subtle.digest("SHA-1", enc.encode(text))));
     case "sha256": return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(text))));
     case "sha512": return toHex(new Uint8Array(await crypto.subtle.digest("SHA-512", enc.encode(text))));
-    default: throw new Error("未选择摘要算法");
+    default: throw new Error(t("tools.errNoAlgo"));
   }
 }
 
 async function runCrypto() {
   cryptoError.value = "";
   cryptoOutput.value = "";
-  if (!cryptoInput.value) { cryptoError.value = "请输入内容"; return; }
-  if (needPassword.value && !cryptoPassword.value) { cryptoError.value = "请输入密码"; return; }
+  if (!cryptoInput.value) { cryptoError.value = t("tools.errEmptyInput"); return; }
+  if (needPassword.value && !cryptoPassword.value) { cryptoError.value = t("tools.errPassword"); return; }
   cryptoBusy.value = true;
   try {
     const encode = cryptoAction.value === "encode";
@@ -309,7 +313,7 @@ async function runCrypto() {
         break;
     }
   } catch (e) {
-    cryptoError.value = `操作失败：${e instanceof Error ? e.message : String(e)}`;
+    cryptoError.value = t("tools.opFailed", { msg: e instanceof Error ? e.message : String(e) });
   } finally {
     cryptoBusy.value = false;
   }
@@ -325,9 +329,9 @@ async function copyOutput() {
   if (!cryptoOutput.value) return;
   try {
     await navigator.clipboard.writeText(cryptoOutput.value);
-    notify("已复制到剪贴板", false);
+    notify(t("common.copied"), false);
   } catch {
-    notify("复制失败，请手动选择文本复制");
+    notify(t("common.copyFailed"));
   }
 }
 
@@ -348,9 +352,9 @@ onBeforeUnmount(() => {
     <div class="tools-overlay" @click.self="close">
       <div class="tools-window">
         <header class="tools-header">
-          <span class="tools-title">工具箱</span>
+          <span class="tools-title">{{ t("tools.title") }}</span>
           <span class="tools-spacer"></span>
-          <span class="tools-close" title="关闭" @click="close">
+          <span class="tools-close" :title="t('common.close')" @click="close">
             <svg width="12" height="12" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4">
               <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
             </svg>
@@ -358,46 +362,46 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="tools-tabs">
-          <button :class="{ on: activeTab === 'json-diff' }" @click="activeTab = 'json-diff'">JSON 对比</button>
-          <button :class="{ on: activeTab === 'crypto' }" @click="activeTab = 'crypto'">加解密</button>
+          <button :class="{ on: activeTab === 'json-diff' }" @click="activeTab = 'json-diff'">{{ t("tools.tabDiff") }}</button>
+          <button :class="{ on: activeTab === 'crypto' }" @click="activeTab = 'crypto'">{{ t("tools.tabCrypto") }}</button>
         </div>
 
         <div v-if="activeTab === 'json-diff'" class="tools-body diff-body">
           <div class="diff-toolbar">
-            <button class="tool-btn" @click="loadDiffSample">载入示例</button>
-            <button class="tool-btn" @click="formatJson('left')">格式化左</button>
-            <button class="tool-btn" @click="formatJson('right')">格式化右</button>
-            <button class="tool-btn" @click="swapJson">交换</button>
+            <button class="tool-btn" @click="loadDiffSample">{{ t("tools.loadSample") }}</button>
+            <button class="tool-btn" @click="formatJson('left')">{{ t("tools.formatLeft") }}</button>
+            <button class="tool-btn" @click="formatJson('right')">{{ t("tools.formatRight") }}</button>
+            <button class="tool-btn" @click="swapJson">{{ t("tools.swap") }}</button>
             <span class="tools-spacer"></span>
-            <button class="tool-btn primary" @click="runDiff">对比</button>
+            <button class="tool-btn primary" @click="runDiff">{{ t("tools.diff") }}</button>
           </div>
           <p v-if="diffError" class="tool-error">{{ diffError }}</p>
           <div class="diff-editors">
             <div class="diff-col">
-              <div class="diff-col-head">左侧 JSON</div>
+              <div class="diff-col-head">{{ t("tools.leftJson") }}</div>
               <div ref="leftEditorEl" class="json-editor"></div>
             </div>
             <div class="diff-col">
-              <div class="diff-col-head">右侧 JSON</div>
+              <div class="diff-col-head">{{ t("tools.rightJson") }}</div>
               <div ref="rightEditorEl" class="json-editor"></div>
             </div>
           </div>
           <div v-if="diffResult" class="diff-result">
             <div class="diff-result-head">
-              <span>对比结果</span>
-              <button class="diff-stat" :class="{ on: diffFilter === 'all' }" @click="diffFilter = 'all'">全部 {{ (diffResult ?? []).length }}</button>
-              <button class="diff-stat same" :class="{ on: diffFilter === 'same' }" @click="diffFilter = 'same'">相同 {{ diffCounts.same }}</button>
-              <button class="diff-stat added" :class="{ on: diffFilter === 'added' }" @click="diffFilter = 'added'">新增 {{ diffCounts.added }}</button>
-              <button class="diff-stat removed" :class="{ on: diffFilter === 'removed' }" @click="diffFilter = 'removed'">删除 {{ diffCounts.removed }}</button>
-              <button class="diff-stat changed" :class="{ on: diffFilter === 'changed' }" @click="diffFilter = 'changed'">修改 {{ diffCounts.changed }}</button>
+              <span>{{ t("tools.result") }}</span>
+              <button class="diff-stat" :class="{ on: diffFilter === 'all' }" @click="diffFilter = 'all'">{{ t("tools.all", { n: (diffResult ?? []).length }) }}</button>
+              <button class="diff-stat same" :class="{ on: diffFilter === 'same' }" @click="diffFilter = 'same'">{{ t("tools.sameN", { n: diffCounts.same }) }}</button>
+              <button class="diff-stat added" :class="{ on: diffFilter === 'added' }" @click="diffFilter = 'added'">{{ t("tools.addedN", { n: diffCounts.added }) }}</button>
+              <button class="diff-stat removed" :class="{ on: diffFilter === 'removed' }" @click="diffFilter = 'removed'">{{ t("tools.removedN", { n: diffCounts.removed }) }}</button>
+              <button class="diff-stat changed" :class="{ on: diffFilter === 'changed' }" @click="diffFilter = 'changed'">{{ t("tools.changedN", { n: diffCounts.changed }) }}</button>
             </div>
             <div class="diff-list">
-              <div v-if="!visibleDiffRows.length" class="diff-empty">没有差异，两侧内容一致。</div>
+              <div v-if="!visibleDiffRows.length" class="diff-empty">{{ t("tools.noDiff") }}</div>
               <div v-for="(row, i) in visibleDiffRows" :key="i" class="diff-row" :class="row.type">
-                <span class="diff-badge">{{ { same: '相同', added: '新增', removed: '删除', changed: '修改' }[row.type] }}</span>
+                <span class="diff-badge">{{ { same: t('tools.tSame'), added: t('tools.tAdded'), removed: t('tools.tRemoved'), changed: t('tools.tChanged') }[row.type] }}</span>
                 <span class="diff-path">{{ row.path }}</span>
-                <span class="diff-value">左：{{ row.left }}</span>
-                <span class="diff-value">右：{{ row.right }}</span>
+                <span class="diff-value">{{ t("tools.leftValue", { v: row.left }) }}</span>
+                <span class="diff-value">{{ t("tools.rightValue", { v: row.right }) }}</span>
               </div>
             </div>
           </div>
@@ -405,16 +409,16 @@ onBeforeUnmount(() => {
 
         <div v-else class="tools-body crypto-body">
           <div class="crypto-toolbar">
-            <label class="crypto-label">算法</label>
+            <label class="crypto-label">{{ t("tools.algorithm") }}</label>
             <select v-model="cryptoFormat" class="tool-select" @change="cryptoAction = 'encode'; cryptoOutput = ''; cryptoError = ''">
               <option v-for="opt in formatOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
             <template v-if="needPassword">
-              <label class="crypto-label">密码</label>
-              <input v-model="cryptoPassword" type="password" class="tool-input" placeholder="加密/解密密码" />
+              <label class="crypto-label">{{ t("tools.password") }}</label>
+              <input v-model="cryptoPassword" type="password" class="tool-input" :placeholder="t('tools.passwordPlaceholder')" />
             </template>
             <label v-if="isHash" class="crypto-check">
-              <input type="checkbox" v-model="hashPerLine" /> 按行分别生成
+              <input type="checkbox" v-model="hashPerLine" /> {{ t("tools.perLine") }}
             </label>
             <span class="tools-spacer"></span>
             <template v-if="!isHash">
@@ -423,35 +427,35 @@ onBeforeUnmount(() => {
                 :class="{ primary: cryptoAction === 'encode' }"
                 :disabled="cryptoBusy"
                 @click="cryptoAction = 'encode'; runCrypto()"
-              >{{ cryptoFormat === 'base64' ? '编码' : '加密' }}</button>
+              >{{ cryptoFormat === 'base64' ? t("tools.encode") : t("tools.encrypt") }}</button>
               <button
                 class="tool-btn"
                 :class="{ primary: cryptoAction === 'decode' }"
                 :disabled="cryptoBusy"
                 @click="cryptoAction = 'decode'; runCrypto()"
-              >{{ cryptoFormat === 'base64' ? '解码' : '解密' }}</button>
+              >{{ cryptoFormat === 'base64' ? t("tools.decode") : t("tools.decrypt") }}</button>
             </template>
             <button v-else class="tool-btn primary" :disabled="cryptoBusy" @click="runCrypto">
-              {{ cryptoBusy ? "处理中…" : "生成" }}
+              {{ cryptoBusy ? t("tools.processing") : t("tools.generate") }}
             </button>
           </div>
           <p v-if="cryptoError" class="tool-error">{{ cryptoError }}</p>
           <div class="crypto-fields">
             <div class="crypto-col">
-              <div class="diff-col-head">输入</div>
-              <textarea v-model="cryptoInput" class="tool-textarea" spellcheck="false" placeholder="输入待处理内容…"></textarea>
+              <div class="diff-col-head">{{ t("tools.input") }}</div>
+              <textarea v-model="cryptoInput" class="tool-textarea" spellcheck="false" :placeholder="t('tools.inputPlaceholder')"></textarea>
             </div>
             <div class="crypto-actions">
-              <button class="tool-btn" title="交换输入输出" @click="swapCrypto">⇄</button>
+              <button class="tool-btn" :title="t('tools.swapIOTip')" @click="swapCrypto">⇄</button>
             </div>
             <div class="crypto-col">
-              <div class="diff-col-head">输出</div>
-              <textarea :value="cryptoOutput" class="tool-textarea" readonly spellcheck="false" placeholder="结果显示在这里…"></textarea>
+              <div class="diff-col-head">{{ t("tools.output") }}</div>
+              <textarea :value="cryptoOutput" class="tool-textarea" readonly spellcheck="false" :placeholder="t('tools.outputPlaceholder')"></textarea>
             </div>
           </div>
           <div class="crypto-footer">
-            <button class="tool-btn" :disabled="!cryptoOutput" @click="copyOutput">复制结果</button>
-            <button class="tool-btn" @click="cryptoInput = ''; cryptoOutput = ''; cryptoError = ''">清空</button>
+            <button class="tool-btn" :disabled="!cryptoOutput" @click="copyOutput">{{ t("tools.copyResult") }}</button>
+            <button class="tool-btn" @click="cryptoInput = ''; cryptoOutput = ''; cryptoError = ''">{{ t("tools.clear") }}</button>
           </div>
         </div>
       </div>

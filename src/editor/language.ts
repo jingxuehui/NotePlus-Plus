@@ -1,5 +1,6 @@
 import type { Extension } from "@codemirror/state";
 import { LanguageSupport, StreamLanguage, type StreamParser } from "@codemirror/language";
+import { t } from "@/i18n";
 
 // 语言包名与加载器分开：名称用于状态栏显示（同步、零依赖），
 // 语法包本身按需 import，避免启动时把 20+ 套 Lezer 语法全部求值。
@@ -117,5 +118,5 @@ export async function loadLanguageFor(path: string): Promise<Extension | null> {
 }
 
 export function languageName(path: string): string {
-  return NAMES[fileExtension(path)] ?? "纯文本";
+  return NAMES[fileExtension(path)] ?? t("common.plainText");
 }

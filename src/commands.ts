@@ -107,3 +107,8 @@ export function setExitOnClose(enabled: boolean): Promise<void> {
 export function setIconStyle(black: boolean): Promise<void> {
   return invoke("set_icon_style", { black });
 }
+
+/** 同步应用语言到 Rust（写入 macOS AppleLanguages，重启后原生 UI 跟随） */
+export function setAppLanguage(lang: string): Promise<void> {
+  return invoke("set_app_language", { lang });
+}

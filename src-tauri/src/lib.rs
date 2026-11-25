@@ -472,9 +472,9 @@ fn open_external(url: String) -> Result<(), String> {
     Ok(())
 }
 
-/// 打开（或聚焦）macOS 风格的「查找和替换」独立窗口
+/// 打开（或聚焦）macOS 风格的「查找和替换」独立窗口（标题由前端按语言传入）
 #[tauri::command]
-fn open_find_window(app: tauri::AppHandle, dark: bool) -> Result<(), String> {
+fn open_find_window(app: tauri::AppHandle, dark: bool, title: Option<String>) -> Result<(), String> {
     let theme = if dark {
         Some(tauri::Theme::Dark)
     } else {
@@ -483,6 +483,9 @@ fn open_find_window(app: tauri::AppHandle, dark: bool) -> Result<(), String> {
 
     if let Some(win) = app.get_webview_window("find") {
         let _ = win.set_theme(theme);
+        if let Some(t) = &title {
+            let _ = win.set_title(t);
+        }
         let _ = win.show();
         let _ = win.unminimize();
         let _ = win.set_focus();
@@ -491,7 +494,7 @@ fn open_find_window(app: tauri::AppHandle, dark: bool) -> Result<(), String> {
     }
 
     let mut builder = WebviewWindowBuilder::new(&app, "find", WebviewUrl::App("index.html".into()))
-        .title("查找和替换")
+        .title(title.clone().unwrap_or_else(|| "Find & Replace".into()))
         .inner_size(400.0, 220.0)
         .resizable(false)
         .maximizable(false)
@@ -579,6 +582,25 @@ fn get_system_dark() -> bool {
 fn set_exit_on_close(enabled: bool) {
     EXIT_ON_CLOSE.store(enabled, Ordering::Relaxed);
 }
+
+/// 把应用内语言写入 macOS 用户默认（AppleLanguages）。
+/// 重启后原生菜单 / 系统对话框等跟随应用内设置的语言（Info.plist 已声明 CFBundleLocalizations）。
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn set_app_language(lang: String) {
+    use objc2_foundation::{NSArray, NSUserDefaults, NSString};
+
+    let defs = NSUserDefaults::standardUserDefaults();
+    let value = NSString::from_str(&lang);
+    let arr = NSArray::from_slice(&[&*value]);
+    unsafe {
+        defs.setObject_forKey(Some(&arr), &NSString::from_str("AppleLanguages"));
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn set_app_language(_lang: String) {}
 
 /// 切换 Dock 图标样式：默认彩色图标 / 黑色底板图标
 #[cfg(target_os = "macos")]
@@ -680,6 +702,7 @@ fn show_main_window(app: &AppHandle) {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             // 系统外观读取放到后台线程，避免同步 defaults 子进程阻塞窗口创建
             spawn_system_theme_watcher(app.handle().clone());
@@ -700,6 +723,7 @@ pub fn run() {
             get_system_dark,
             set_exit_on_close,
             set_icon_style,
+            set_app_language,
             save_session,
             load_session,
             clear_session

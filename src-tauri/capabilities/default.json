@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "NotePlus+ main window and find dialog capabilities",
   "windows": ["main", "find"],
-  "permissions": ["core:default", "core:window:allow-close", "core:window:allow-start-dragging", "dialog:default"]
+  "permissions": ["core:default", "core:window:allow-close", "core:window:allow-start-dragging", "dialog:default", "clipboard-manager:allow-read-text", "clipboard-manager:allow-write-text"]
 }

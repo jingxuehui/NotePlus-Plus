@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
+import { t } from "@/i18n";
 
 const open = ref(false);
 const root = ref<HTMLDivElement | null>(null);
@@ -27,7 +28,7 @@ onBeforeUnmount(() => {
     <span
       class="icon-btn"
       :class="{ active: open }"
-      title="快捷键提示"
+      :title="t('sc.tipTitle')"
       @click="open = !open"
     >
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
@@ -41,7 +42,7 @@ onBeforeUnmount(() => {
     </span>
 
     <div v-if="open" class="hint-pop">
-      <div class="hint-title">键盘快捷键</div>
+      <div class="hint-title">{{ t("sc.title") }}</div>
       <div v-for="s in SHORTCUTS" :key="s.k" class="hint-row">
         <span class="hint-key"
           ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
@@ -49,7 +50,7 @@ onBeforeUnmount(() => {
             ><template v-else>{{ p.text }}</template></template
           ></span
         >
-        <span class="hint-label">{{ s.label }}</span>
+        <span class="hint-label">{{ t(s.label) }}</span>
       </div>
     </div>
   </div>

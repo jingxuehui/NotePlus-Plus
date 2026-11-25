@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { getRecent, clearRecent } from "@/stores/recent";
 import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
+import { t } from "@/i18n";
 
 const emit = defineEmits<{
   open: [];
@@ -28,11 +29,11 @@ const shortcuts = SHORTCUTS;
       <div class="text-[42px] font-bold tracking-wide mb-1">
         Note<span class="accent">Plus</span><span class="accent">+</span>
       </div>
-      <p class="text-xs text-muted mb-8">macOS 上的轻量级代码编辑器</p>
+      <p class="text-xs text-muted mb-8">{{ t("welcome.tagline") }}</p>
 
       <div class="flex items-center justify-center gap-3 mb-10">
-        <button class="np-btn primary" @click="emit('open')">打开文件</button>
-        <button class="np-btn" @click="emit('open-folder')">打开文件夹</button>
+        <button class="np-btn primary" @click="emit('open')">{{ t("welcome.openFile") }}</button>
+        <button class="np-btn" @click="emit('open-folder')">{{ t("welcome.openFolder") }}</button>
       </div>
 
       <div class="shortcut-list text-left">
@@ -43,14 +44,14 @@ const shortcuts = SHORTCUTS;
               ><template v-else>{{ p.text }}</template></template
             ></span
           >
-          <span>{{ s.label }}</span>
+          <span>{{ t(s.label) }}</span>
         </div>
       </div>
 
       <div v-if="recent.length" class="mt-10 text-left">
         <div class="flex items-center gap-2 mb-2">
-          <span class="text-xs text-muted">最近打开</span>
-          <span class="text-xs accent cursor-pointer" @click="clearAll">清空</span>
+          <span class="text-xs text-muted">{{ t("welcome.recent") }}</span>
+          <span class="text-xs accent cursor-pointer" @click="clearAll">{{ t("welcome.clear") }}</span>
         </div>
         <div
           v-for="p in recent.slice(0, 8)"

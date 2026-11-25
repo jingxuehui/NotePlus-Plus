@@ -8,6 +8,7 @@ import {
 } from "./tabs";
 import { loadRoot, treeState } from "./filetree";
 import { settings } from "./settings";
+import { t } from "@/i18n";
 
 /**
  * 会话持久化：关闭程序后下次启动恢复
@@ -124,7 +125,7 @@ export async function restoreSession(): Promise<boolean> {
 
   for (const st of data.tabs) {
     const path = st.path ?? null;
-    const name = st.name || path?.split("/").pop() || "未命名";
+    const name = st.name || path?.split("/").pop() || t("common.untitled");
     const pinned = st.pinned === true;
     if (!st.dirty && path) {
       try {

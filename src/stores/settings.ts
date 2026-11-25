@@ -1,7 +1,7 @@
 import { reactive, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { setExitOnClose, setIconStyle } from "@/commands";
+import { setAppLanguage, setExitOnClose, setIconStyle } from "@/commands";
 
 export type ThemeMode = "dark" | "light";
 export type ThemeChoice = "dark" | "light" | "system";
@@ -319,9 +319,10 @@ function onSystemThemeChanged(dark: boolean) {
 /** 初始化视觉设置，并监听系统主题变化 */
 export function initVisualSettings() {
   applyVisual(settings);
-  // 启动时把关窗行为、Dock 图标样式同步到 Rust
+  // 启动时把关窗行为、Dock 图标样式、界面语言同步到 Rust
   setExitOnClose(settings.exitOnClose).catch(() => undefined);
   setIconStyle(settings.iconStyle === "black").catch(() => undefined);
+  setAppLanguage(settings.language).catch(() => undefined);
   // 启动时读取真实系统外观
   invoke<boolean>("get_system_dark")
     .then(onSystemThemeChanged)
@@ -345,6 +346,14 @@ watch(settings, (s) => {
   setExitOnClose(s.exitOnClose).catch(() => undefined);
   setIconStyle(s.iconStyle === "black").catch(() => undefined);
 });
+
+// 语言变化时同步到 Rust：重启后原生菜单 / 系统对话框跟随应用内语言
+watch(
+  () => settings.language,
+  (lang) => {
+    setAppLanguage(lang).catch(() => undefined);
+  }
+);
 
 export function resetSettings() {
   Object.assign(settings, DEFAULT_SETTINGS);

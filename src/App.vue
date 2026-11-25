@@ -19,6 +19,7 @@ import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { updater } from "./stores/updater";
 import { confirmChoice, toggleSettings, ui } from "./stores/ui";
+import { t } from "./i18n";
 import {
   tabsState,
   activeTab,
@@ -56,14 +57,14 @@ async function requestClose(tabId: number) {
     return;
   }
   const choice = await confirmChoice(
-    "未保存的更改",
-    `「${tab.name}」有未保存的更改，是否保存？`,
-    ["保存", "不保存", "取消"]
+    t("confirm.unsavedTitle"),
+    t("confirm.unsavedMsg", { name: tab.name }),
+    [t("common.save"), t("common.dontSave"), t("common.cancel")]
   );
-  if (choice === "保存") {
+  if (choice === t("common.save")) {
     const ok = await saveTab(tab);
     if (ok) removeTab(tabId);
-  } else if (choice === "不保存") {
+  } else if (choice === t("common.dontSave")) {
     removeTab(tabId);
   }
 }
@@ -81,11 +82,11 @@ async function openFolder() {
 }
 
 async function closeFolder() {
-  const choice = await confirmChoice("关闭文件夹", "确定关闭当前打开的文件夹吗？", [
-    "确定",
-    "取消",
+  const choice = await confirmChoice(t("confirm.closeFolderTitle"), t("confirm.closeFolderMsg"), [
+    t("common.confirm"),
+    t("common.cancel"),
   ]);
-  if (choice === "确定") {
+  if (choice === t("common.confirm")) {
     closeAllTabs();
     treeState.root = null;
     treeState.rootNode = null;

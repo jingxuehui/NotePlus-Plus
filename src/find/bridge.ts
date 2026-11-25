@@ -7,6 +7,7 @@ import type { EditorView } from "@codemirror/view";
 import { viewRef } from "@/editor/view";
 import { setMatchHighlight } from "@/editor/matchHighlight";
 import { settings, ACCENTS } from "@/stores/settings";
+import { t } from "@/i18n";
 
 export interface FindQueryState {
   search: string;
@@ -182,10 +183,10 @@ async function handleAction(action: string) {
   }
 }
 
-/** 打开（或聚焦）查找窗口，并把当前选区预填给对话框 */
+/** 打开（或聚焦）查找窗口，并把当前选区预填给对话框（窗口标题跟随应用语言） */
 export async function openFindWindow() {
   try {
-    await invoke("open_find_window", { dark: settings.theme === "dark" });
+    await invoke("open_find_window", { dark: settings.theme === "dark", title: t("find.windowTitle") });
   } catch (e) {
     console.error(e);
     return;

@@ -5,6 +5,7 @@ import { settings } from "@/stores/settings";
 import { openExternal, type ReleaseInfo } from "@/commands";
 import { updater } from "@/stores/updater";
 import { notify } from "@/stores/toast";
+import { t } from "@/i18n";
 
 const {
   appVersion,
@@ -27,7 +28,7 @@ type TabId = "app" | "changelog";
 const activeTab = ref<TabId>("app");
 const tabs = computed(() => [
   { id: "app" as const, label: "NotePlus+", count: hasUpdate.value ? 1 : 0 },
-  { id: "changelog" as const, label: "更新日志", count: 0 },
+  { id: "changelog" as const, label: t("uc.changelog"), count: 0 },
 ]);
 const totalUpdateCount = computed(() => tabs.value.reduce((n, t) => n + t.count, 0));
 
@@ -87,7 +88,7 @@ function toggleRelease(tag: string) {
 
 function checkUpdate() {
   void updater.refreshManually().then(() => {
-    notify(releases.value.length ? `已获取 ${releases.value.length} 个版本` : "检查完成", false);
+    notify(releases.value.length ? t("uc.fetchedToast", { n: releases.value.length }) : t("uc.checkDone"), false);
   });
 }
 
@@ -114,12 +115,12 @@ function ignoreVersion() {
   const r = latest.value;
   if (!r) return;
   updater.ignore();
-  notify(`已忽略版本 ${r.tag}`, false);
+  notify(t("uc.ignoredToast", { tag: r.tag }), false);
 }
 
 function restoreIgnored() {
   settings.ignoredVersion = "";
-  notify("已恢复更新提示", false);
+  notify(t("uc.restoredToast"), false);
 }
 
 async function restartUpdate() {
@@ -153,10 +154,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
     <div class="uc-overlay" @click.self="close">
       <div class="uc-window">
         <header class="uc-header">
-          <span class="uc-title">更新中心</span>
-          <span v-if="totalUpdateCount > 0" class="uc-count-badge">{{ totalUpdateCount }} 项可用更新</span>
+          <span class="uc-title">{{ t("uc.title") }}</span>
+          <span v-if="totalUpdateCount > 0" class="uc-count-badge">{{ t("uc.badge", { n: totalUpdateCount }) }}</span>
           <span class="uc-spacer"></span>
-          <span class="uc-close" title="关闭" @click="close">
+          <span class="uc-close" :title="t('common.close')" @click="close">
             <svg width="12" height="12" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4">
               <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
             </svg>
@@ -180,24 +181,24 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
           <div class="uc-scroll">
             <div v-if="activeTab === 'app'" class="uc-panel">
               <p v-if="loadError" class="uc-error-line">
-                获取失败：{{ loadError }}
-                <button class="uc-link" @click="retry">重试</button>
+                {{ t("uc.fetchFailed", { err: loadError }) }}
+                <button class="uc-link" @click="retry">{{ t("uc.retry") }}</button>
               </p>
               <template v-else-if="!releases.length">
-                <p v-if="loading" class="uc-inline"><span class="uc-spinner sm"></span> 正在检查更新…</p>
-                <p v-else class="uc-muted">暂无发布记录。</p>
+                <p v-if="loading" class="uc-inline"><span class="uc-spinner sm"></span> {{ t("uc.checking") }}</p>
+                <p v-else class="uc-muted">{{ t("uc.noReleases") }}</p>
               </template>
               <template v-else>
                 <p v-if="hasUpdate" class="uc-message">
-                  NotePlus+ {{ latest?.tag }} 已发布，当前版本为 {{ appVersion }}。
-                  <span v-if="latest?.prerelease" class="uc-pre">预览版</span>
+                  {{ t("uc.updateMsg", { tag: latest?.tag ?? "", ver: appVersion }) }}
+                  <span v-if="latest?.prerelease" class="uc-pre">{{ t("uc.pre") }}</span>
                 </p>
                 <p v-else class="uc-message muted">
                   <template v-if="settings.ignoredVersion">
-                    已忽略 NotePlus+ {{ settings.ignoredVersion }}。
-                    <button class="uc-link" @click="restoreIgnored">不再忽略</button>
+                    {{ t("uc.ignored", { ver: settings.ignoredVersion }) }}
+                    <button class="uc-link" @click="restoreIgnored">{{ t("uc.unignore") }}</button>
                   </template>
-                  <template v-else>NotePlus+ 已是最新版本 ({{ appVersion }})。</template>
+                  <template v-else>{{ t("uc.upToDate", { ver: appVersion }) }}</template>
                 </p>
 
                 <div v-if="parseBody(latest?.body ?? '').length" class="uc-notes">
@@ -207,34 +208,34 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
                     <div v-else class="uc-md-text">{{ b.text }}</div>
                   </template>
                 </div>
-                <div v-else class="uc-notes muted">详见发布页。</div>
+                <div v-else class="uc-notes muted">{{ t("uc.seeRelease") }}</div>
 
-                <p v-if="checking || loading" class="uc-inline"><span class="uc-spinner sm"></span> 正在检查更新…</p>
+                <p v-if="checking || loading" class="uc-inline"><span class="uc-spinner sm"></span> {{ t("uc.checking") }}</p>
                 <p v-if="downloadState === 'done'" class="uc-inline done">
-                  新版本 {{ latest?.tag }} 已下载，重启即可更新
+                  {{ t("uc.downloaded", { tag: latest?.tag ?? "" }) }}
                 </p>
                 <p v-if="downloadState === 'error'" class="uc-inline error">
-                  下载失败：{{ downloadError }}
-                  <button class="uc-link" @click="ensureDownloaded">重试下载</button>
+                  {{ t("uc.downloadFailed", { err: downloadError ?? "" }) }}
+                  <button class="uc-link" @click="ensureDownloaded">{{ t("uc.retryDownload") }}</button>
                 </p>
 
                 <div v-if="olderReleases.length" class="uc-history">
                   <button class="uc-history-toggle" @click="historyOpen = !historyOpen">
-                    <span>历史版本</span>
+                    <span>{{ t("uc.history") }}</span>
                     <svg class="uc-chevron" :class="{ open: historyOpen }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="m6 9 6 6 6-6" />
                     </svg>
                   </button>
                   <div v-show="historyOpen" class="uc-history-body">
-                    <p class="uc-hint">回退到旧版本前请先备份数据；旧版本可能无法读取新版本创建的数据或凭据。</p>
+                    <p class="uc-hint">{{ t("uc.historyHint") }}</p>
                     <div class="uc-history-list">
                       <div v-for="r in visibleOlderReleases" :key="r.tag" class="uc-history-row">
                         <span class="uc-tag">{{ r.tag }}</span>
-                        <span class="uc-muted tiny">发布于 {{ formatDate(r.publishedAt) }}</span>
-                        <button class="uc-btn sm" @click="openRelease(r)">打开下载页</button>
+                        <span class="uc-muted tiny">{{ t("uc.publishedAt", { date: formatDate(r.publishedAt) }) }}</span>
+                        <button class="uc-btn sm" @click="openRelease(r)">{{ t("uc.openDownload") }}</button>
                       </div>
                     </div>
-                    <button v-if="hasMoreHistory" class="uc-btn ghost wide" @click="historyVisibleCount += 5">加载更多</button>
+                    <button v-if="hasMoreHistory" class="uc-btn ghost wide" @click="historyVisibleCount += 5">{{ t("uc.loadMore") }}</button>
                   </div>
                 </div>
               </template>
@@ -243,22 +244,22 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
             <div v-else class="uc-panel changelog-panel">
               <div class="uc-panel-head">
                 <div>
-                  <div class="uc-panel-title">更新日志</div>
-                  <p class="uc-muted small">查看各版本的更新内容。</p>
+                  <div class="uc-panel-title">{{ t("uc.changelog") }}</div>
+                  <p class="uc-muted small">{{ t("uc.changelogDesc") }}</p>
                 </div>
                 <div class="uc-head-actions">
-                  <button class="uc-btn sm" :disabled="checking || loading" @click="checkUpdate">检查更新</button>
-                  <button class="uc-btn sm" @click="openDownloadPage">在官网查看</button>
+                  <button class="uc-btn sm" :disabled="checking || loading" @click="checkUpdate">{{ t("titlebar.checkUpdate") }}</button>
+                  <button class="uc-btn sm" @click="openDownloadPage">{{ t("uc.viewOnline") }}</button>
                 </div>
               </div>
 
-              <p v-if="loading && !releases.length" class="uc-inline"><span class="uc-spinner sm"></span> 正在加载更新日志…</p>
+              <p v-if="loading && !releases.length" class="uc-inline"><span class="uc-spinner sm"></span> {{ t("uc.loadingLog") }}</p>
               <div v-else class="uc-release-list">
                 <div v-for="r in visibleReleases" :key="r.tag" class="uc-release-item">
                   <button class="uc-release-toggle" @click="toggleRelease(r.tag)">
                     <span class="uc-tag-badge">{{ r.tag.replace(/^v/, '') }}</span>
                     <span v-if="r.tag === latest?.tag" class="uc-new">NEW</span>
-                    <span class="uc-muted tiny">发布于 {{ formatDate(r.publishedAt) }}</span>
+                    <span class="uc-muted tiny">{{ t("uc.publishedAt", { date: formatDate(r.publishedAt) }) }}</span>
                     <svg class="uc-chevron" :class="{ open: expandedTags.has(r.tag) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="m6 9 6 6 6-6" />
                     </svg>
@@ -271,11 +272,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
                         <div v-else class="uc-md-text">{{ b.text }}</div>
                       </template>
                     </template>
-                    <p v-else class="uc-muted small">详见发布页。</p>
+                    <p v-else class="uc-muted small">{{ t("uc.seeRelease") }}</p>
                     <button class="uc-btn sm ghost" @click="openRelease(r)">GitHub Release</button>
                   </div>
                 </div>
-                <button v-if="hasMoreReleases" class="uc-btn wide" @click="visibleCount += 5">加载更多</button>
+                <button v-if="hasMoreReleases" class="uc-btn wide" @click="visibleCount += 5">{{ t("uc.loadMore") }}</button>
               </div>
             </div>
           </div>
@@ -283,7 +284,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 
         <footer v-if="activeTab === 'app'" class="uc-footer">
           <div v-if="hasUpdate && downloadState !== 'done' && !downloading" class="uc-source">
-            <span class="uc-muted small">更新源</span>
+            <span class="uc-muted small">{{ t("uc.source") }}</span>
             <div class="uc-select-wrap">
               <select v-model="source">
                 <option value="gitee">Gitee</option>
@@ -293,16 +294,16 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
           </div>
           <span class="uc-spacer"></span>
           <template v-if="hasUpdate">
-            <button class="uc-btn ghost" @click="ignoreVersion">忽略此版本</button>
-            <button class="uc-btn" @click="openDownloadPage">打开下载页</button>
+            <button class="uc-btn ghost" @click="ignoreVersion">{{ t("uc.ignoreVersion") }}</button>
+            <button class="uc-btn" @click="openDownloadPage">{{ t("uc.openDownload") }}</button>
             <div v-if="downloading" class="uc-progress">
-              <span>下载中…</span>
+              <span>{{ t("uc.downloading") }}</span>
               <div class="uc-progress-track"><div class="uc-progress-fill"></div></div>
             </div>
-            <button v-else-if="downloadState === 'done'" class="uc-btn primary" title="将打开安装包并退出应用，按系统提示完成安装" @click="restartUpdate">重启并更新</button>
-            <button v-else class="uc-btn primary" @click="ensureDownloaded">后台下载</button>
+            <button v-else-if="downloadState === 'done'" class="uc-btn primary" :title="t('uc.restartTip')" @click="restartUpdate">{{ t("uc.restartUpdate") }}</button>
+            <button v-else class="uc-btn primary" @click="ensureDownloaded">{{ t("uc.backgroundDownload") }}</button>
           </template>
-          <button v-else class="uc-btn" @click="openDownloadPage">打开下载页</button>
+          <button v-else class="uc-btn" @click="openDownloadPage">{{ t("uc.openDownload") }}</button>
         </footer>
       </div>
     </div>

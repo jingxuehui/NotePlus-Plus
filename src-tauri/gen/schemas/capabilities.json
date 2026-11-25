@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"NotePlus+ main window and find dialog capabilities","local":true,"windows":["main","find"],"permissions":["core:default","core:window:allow-close","core:window:allow-start-dragging","dialog:default"]}}
+{"default":{"identifier":"default","description":"NotePlus+ main window and find dialog capabilities","local":true,"windows":["main","find"],"permissions":["core:default","core:window:allow-close","core:window:allow-start-dragging","dialog:default","clipboard-manager:allow-read-text","clipboard-manager:allow-write-text"]}}

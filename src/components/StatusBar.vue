@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { activeTab, cursorInfo } from "@/stores/tabs";
+import { t } from "@/i18n";
 
 const emit = defineEmits<{ "close-tab": [id: number] }>();
 
-const langLabel = computed(() => activeTab.value?.language ?? "纯文本");
+const langLabel = computed(() => activeTab.value?.language ?? t("common.plainText"));
 
 const eolLabel = computed(() => {
   switch (activeTab.value?.eol) {
     case "CRLF": return "CRLF";
     case "CR": return "CR";
-    case "MIXED": return "混合";
+    case "MIXED": return t("status.eolMixed");
     default: return "LF";
   }
 });
@@ -36,21 +37,21 @@ const ENCODING_GROUPS: { title: string; items: { value: string; label: string }[
     ],
   },
   {
-    title: "中文",
+    title: "status.encZh",
     items: [
-      { value: "GBK", label: "GBK · 简体中文" },
-      { value: "Big5", label: "Big5 · 繁体中文" },
+      { value: "GBK", label: "status.encGbk" },
+      { value: "Big5", label: "status.encBig5" },
     ],
   },
   {
-    title: "日文",
+    title: "status.encJa",
     items: [
       { value: "Shift_JIS", label: "Shift_JIS" },
       { value: "EUC-JP", label: "EUC-JP" },
     ],
   },
   {
-    title: "西欧",
+    title: "status.encWest",
     items: [{ value: "Windows-1252", label: "Windows-1252" }],
   },
 ];
@@ -80,22 +81,22 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 <template>
   <div class="status-bar flex items-center h-6 px-3 gap-4 bg-panel border-t border-line text-xs text-muted shrink-0 select-none">
     <span class="truncate flex-1" :title="activeTab?.path ?? ''">
-      {{ activeTab ? (activeTab.path ?? activeTab.name) : "就绪" }}
+      {{ activeTab ? (activeTab.path ?? activeTab.name) : t("common.ready") }}
     </span>
     <template v-if="activeTab">
-      <span>行 {{ cursorInfo.line }}，列 {{ cursorInfo.col }}</span>
-      <span v-if="cursorInfo.selected > 0">已选 {{ cursorInfo.selected }}</span>
-      <span>{{ cursorInfo.lines }} 行</span>
-      <span>{{ cursorInfo.chars }} 字符</span>
-      <span class="clickable" title="点击切换换行符" @click="cycleEol">{{ eolLabel }}</span>
+      <span>{{ t("status.lineCol", { line: cursorInfo.line, col: cursorInfo.col }) }}</span>
+      <span v-if="cursorInfo.selected > 0">{{ t("status.selected", { n: cursorInfo.selected }) }}</span>
+      <span>{{ t("status.lines", { n: cursorInfo.lines }) }}</span>
+      <span>{{ t("status.chars", { n: cursorInfo.chars }) }}</span>
+      <span class="clickable" :title="t('status.eolTip')" @click="cycleEol">{{ eolLabel }}</span>
       <div class="encoding-select" ref="encodingWrap">
-        <span class="clickable encoding-trigger" title="选择文件编码" @click="encodingOpen = !encodingOpen">
+        <span class="clickable encoding-trigger" :title="t('status.encodingTip')" @click="encodingOpen = !encodingOpen">
           {{ activeTab.encoding }}
         </span>
         <div class="encoding-menu" v-if="encodingOpen">
-          <div class="encoding-hint">以编码保存</div>
+          <div class="encoding-hint">{{ t("status.saveAsEncoding") }}</div>
           <div v-for="g in ENCODING_GROUPS" :key="g.title" class="encoding-group">
-            <div class="encoding-group-title">{{ g.title }}</div>
+            <div class="encoding-group-title">{{ t(g.title) }}</div>
             <button
               v-for="o in g.items"
               :key="o.value"
@@ -103,7 +104,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
               :class="{ on: activeTab.encoding === o.value }"
               @click="selectEncoding(o.value)"
             >
-              <span>{{ o.label }}</span>
+              <span>{{ t(o.label) }}</span>
               <span class="encoding-check" v-if="activeTab.encoding === o.value">✓</span>
             </button>
           </div>
@@ -111,7 +112,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
       </div>
       <span>{{ langLabel }}</span>
       <span class="dirty-indicator" :class="{ on: activeTab.dirty }">
-        {{ activeTab.dirty ? "未保存" : "" }}
+        {{ activeTab.dirty ? t("status.dirty") : "" }}
       </span>
     </template>
   </div>

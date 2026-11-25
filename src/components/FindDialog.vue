@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { t } from "@/i18n";
 
 const search = ref("");
 const replaceText = ref("");
@@ -243,7 +244,7 @@ function closeMenus() {
         ref="searchInput"
         v-model="search"
         class="field-input"
-        placeholder="查找"
+        :placeholder="t('find.searchPlaceholder')"
         spellcheck="false"
         @keydown="onSearchKeydown"
       />
@@ -256,7 +257,7 @@ function closeMenus() {
         >
           {{ h }}
         </div>
-        <div v-if="!searchHistory.length" class="history-empty">暂无历史记录</div>
+        <div v-if="!searchHistory.length" class="history-empty">{{ t("find.noHistory") }}</div>
       </div>
     </div>
 
@@ -276,7 +277,7 @@ function closeMenus() {
         ref="replaceInput"
         v-model="replaceText"
         class="field-input"
-        placeholder="替换"
+        :placeholder="t('find.replacePlaceholder')"
         spellcheck="false"
         @keydown="onReplaceKeydown"
       />
@@ -289,7 +290,7 @@ function closeMenus() {
         >
           {{ h }}
         </div>
-        <div v-if="!replaceHistory.length" class="history-empty">暂无历史记录</div>
+        <div v-if="!replaceHistory.length" class="history-empty">{{ t("find.noHistory") }}</div>
       </div>
     </div>
 
@@ -297,18 +298,18 @@ function closeMenus() {
     <div class="options">
       <button class="chip" :class="{ on: regexp }" @click.stop="regexp = !regexp">
         <span class="check" :class="{ checked: regexp }"></span>
-        正则表达式
-        <span class="q" title="支持 JS 正则语法，例如 \d+ 、(foo|bar)、^start">?</span>
+        {{ t("find.regexp") }}
+        <span class="q" :title="t('find.regexpTip')">?</span>
       </button>
       <button class="chip" :class="{ on: ignoreCase }" @click.stop="ignoreCase = !ignoreCase">
         <span class="check" :class="{ checked: ignoreCase }"></span>
-        忽略大小写
+        {{ t("find.ignoreCase") }}
       </button>
       <button class="chip" :class="{ on: selectionOnly }" @click.stop="toggleSelectionOnly">
         <span class="check" :class="{ checked: selectionOnly }"></span>
-        所选内容
+        {{ t("find.selectionOnly") }}
       </button>
-      <button class="round" :class="{ on: showCheat }" title="常用正则速查" @click.stop="showCheat = !showCheat">
+      <button class="round" :class="{ on: showCheat }" :title="t('find.cheatTip')" @click.stop="showCheat = !showCheat">
         <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="9" cy="9" r="7" />
           <path d="M6.8 7a2.2 2.2 0 1 1 2.9 2.1c-.5.2-.7.6-.7 1.1v.3" stroke-linecap="round" />
@@ -319,51 +320,51 @@ function closeMenus() {
 
     <!-- 正则速查 -->
     <div v-if="showCheat" class="cheat" @click.stop>
-      <div class="cheat-title">常用正则</div>
+      <div class="cheat-title">{{ t("find.cheatTitle") }}</div>
       <div
         class="cheat-row"
         v-for="r in [
-          ['\\d+', '数字'],
-          ['\\w+', '单词字符'],
-          ['(foo|bar)', '或匹配'],
-          ['^text', '行首'],
-          ['text$', '行尾'],
-          ['\\s+', '空白字符'],
+          ['\\d+', 'find.cheatDigits'],
+          ['\\w+', 'find.cheatWords'],
+          ['(foo|bar)', 'find.cheatOr'],
+          ['^text', 'find.cheatLineStart'],
+          ['text$', 'find.cheatLineEnd'],
+          ['\\s+', 'find.cheatWhitespace'],
         ]"
         :key="r[0]"
       >
-        <code>{{ r[0] }}</code><span>{{ r[1] }}</span>
+        <code>{{ r[0] }}</code><span>{{ t(r[1]) }}</span>
       </div>
     </div>
 
     <!-- 底部操作 -->
     <div class="footer">
       <span class="count">
-        {{ search ? (matchCount > 0 ? `${matchCount} 个匹配` : "无匹配") : "" }}
+        {{ search ? (matchCount > 0 ? t("find.matches", { n: matchCount }) : t("find.noMatches")) : "" }}
       </span>
 
       <div class="split-btn" @click="findAll">
-        <span>全部查找</span>
+        <span>{{ t("find.findAll") }}</span>
         <span class="caret" @click.stop="menuOpen = !menuOpen">
           <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor">
             <path d="M1.5 3.5 5 7l3.5-3.5z" />
           </svg>
         </span>
         <div v-if="menuOpen" class="menu" @click.stop>
-          <div class="menu-item" @click="findAll">全部查找</div>
-          <div class="menu-item" @click="clearHighlights">清除查找高亮</div>
+          <div class="menu-item" @click="findAll">{{ t("find.findAll") }}</div>
+          <div class="menu-item" @click="clearHighlights">{{ t("find.clearHighlights") }}</div>
         </div>
       </div>
 
-      <button class="btn" @click.stop="replaceEverything">全部替换</button>
-      <button class="btn" @click.stop="replaceOne">替换</button>
+      <button class="btn" @click.stop="replaceEverything">{{ t("find.replaceAll") }}</button>
+      <button class="btn" @click.stop="replaceOne">{{ t("find.replace") }}</button>
 
-      <button class="nav" title="上一个 (Shift+Enter)" @click.stop="prev">
+      <button class="nav" :title="t('find.prevTip')" @click.stop="prev">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M8.5 2.5 4 7l4.5 4.5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <button class="nav" title="下一个 (Enter)" @click.stop="next">
+      <button class="nav" :title="t('find.nextTip')" @click.stop="next">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M5.5 2.5 10 7l-4.5 4.5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>

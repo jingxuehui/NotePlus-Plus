@@ -8,6 +8,7 @@ import { readTextFile, writeTextFile } from "@/commands";
 import { pushRecent } from "./recent";
 import { settings } from "./settings";
 import { notify } from "./toast";
+import { t } from "@/i18n";
 import { EMPTY_CURSOR, type CursorInfo } from "@/types";
 
 let uid = 0;
@@ -93,7 +94,7 @@ function makeTab(
     dirty: false,
     encoding,
     eol,
-    language: path ? languageName(path) : "纯文本",
+    language: path ? languageName(path) : t("common.plainText"),
     pinned: false,
   };
   setState(tab, createStateForFile(path, content, editorHooks));
@@ -109,7 +110,7 @@ export function setActive(id: number) {
 
 export function newTab(): Tab {
   const count = tabsState.tabs.filter((t) => !t.path).length + 1;
-  const tab = makeTab(null, `新文件 ${count}.txt`, "", "UTF-8", "LF");
+  const tab = makeTab(null, `${t("common.newFile")} ${count}.txt`, "", "UTF-8", "LF");
   tabsState.tabs.push(tab);
   setActive(tab.id);
   return tab;
@@ -233,7 +234,7 @@ export async function saveTab(tab: Tab): Promise<boolean> {
     await writeTextFile(tab.path, docText(tab), tab.encoding, tab.eol);
     tab.dirty = false;
     pushRecent(tab.path);
-    notify("已保存", false);
+    notify(t("common.saved"), false);
     return true;
   } catch (e) {
     notify(typeof e === "string" ? e : String(e));
@@ -245,7 +246,7 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
   // 保存对话框不传 filters：macOS 会把 filters 的首个扩展名自动追加到文件名末尾，
   // 传 ["*"] 会把「新文件 1.sql」保存成「新文件 1.sql.*」。
   const path = await saveDialog({
-    title: "保存文件",
+    title: t("dialog.saveFile"),
     defaultPath: tab.name,
   });
   if (!path) return false;
@@ -263,7 +264,7 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
     }
     tab.dirty = false;
     pushRecent(finalPath);
-    notify("已保存", false);
+    notify(t("common.saved"), false);
     return true;
   } catch (e) {
     notify(typeof e === "string" ? e : String(e));

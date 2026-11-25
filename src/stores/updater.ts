@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { getVersion } from "@tauri-apps/api/app";
 import { settings } from "./settings";
+import { t } from "@/i18n";
 import {
   downloadAsset,
   fetchReleases,
@@ -75,7 +76,7 @@ async function ensureDownloaded() {
   if (!hasUpdate.value || !r || downloading.value || downloadedPath.value) return;
   const asset = pickAsset(r);
   if (!asset) {
-    downloadError.value = "该版本没有找到匹配的安装包";
+    downloadError.value = t("uc.noAsset");
     return;
   }
   downloading.value = true;
@@ -96,7 +97,7 @@ async function checkForUpdates() {
   loadError.value = "";
   try {
     const data = await fetchReleases(source.value);
-    if (!Array.isArray(data)) throw new Error("发布信息格式错误");
+    if (!Array.isArray(data)) throw new Error(t("uc.badData"));
     releases.value = data.map((r) => ({
       tag: r.tag ?? "",
       name: r.name ?? "",

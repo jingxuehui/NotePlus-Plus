@@ -19,6 +19,19 @@ ASSETS="$ROOT/scripts/dmg-assets"
 VERSION=$(sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' "$CONF" | head -1)
 DMG_OUT="$DMG_DIR/NotePlus+_${VERSION}_aarch64.dmg"
 
+echo "==> 0/3 声明应用支持的本地化语言（原生菜单/对话框跟随应用内语言设置）"
+PLIST="$APP/Contents/Info.plist"
+if [ -x /usr/libexec/PlistBuddy ] && [ -f "$PLIST" ]; then
+  PB=/usr/libexec/PlistBuddy
+  "$PB" -c "Delete :CFBundleLocalizations" "$PLIST" 2>/dev/null || true
+  "$PB" -c "Add :CFBundleLocalizations array" "$PLIST" || true
+  "$PB" -c "Add :CFBundleLocalizations:0 string zh-CN" "$PLIST" || true
+  "$PB" -c "Add :CFBundleLocalizations:1 string zh-TW" "$PLIST" || true
+  "$PB" -c "Add :CFBundleLocalizations:2 string en" "$PLIST" || true
+else
+  echo "    跳过：未找到 PlistBuddy 或 Info.plist"
+fi
+
 echo "==> 1/3 对 NotePlus+.app 做完整 ad-hoc 签名"
 xattr -cr "$APP"
 codesign --force --deep --sign - "$APP"

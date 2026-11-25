@@ -9,6 +9,7 @@ import {
 } from "@/stores/tabs";
 import { settings } from "@/stores/settings";
 import { revealInFinder } from "@/commands";
+import { t } from "@/i18n";
 import FileTypeIcon from "./FileTypeIcon.vue";
 
 const emit = defineEmits<{
@@ -158,14 +159,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
       <span
         class="pin-btn"
         :class="{ on: tab.pinned }"
-        :title="tab.pinned ? '取消置顶' : '置顶标签页'"
+        :title="tab.pinned ? t('tab.unpinTip') : t('tab.pinTip')"
         @click.stop="togglePinned(tab.id)"
       >
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
           <path d="M6 2h4M8 2v4M5 6h6l-1 4H6L5 6zM8 10v4" />
         </svg>
       </span>
-      <span class="close-btn" title="关闭 (⌘W)" @click.stop="emit('close', tab.id)">
+      <span class="close-btn" :title="t('tab.closeTip')" @click.stop="emit('close', tab.id)">
         <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4">
           <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
         </svg>
@@ -180,19 +181,19 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11.2 2.4l2.4 2.4-8 8-3.2.8.8-3.2 8-8z" /><path d="M9.8 3.8l2.4 2.4" />
         </svg>
-        <span>重命名标签页</span>
+        <span>{{ t("tab.rename") }}</span>
       </button>
       <button class="tab-menu-item" v-if="settings.tabMenu.pin" :style="{ order: menuOrder('pin') }" @click="menuPin">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
           <path d="M6 2h4M8 2v4M5 6h6l-1 4H6L5 6zM8 10v4" />
         </svg>
-        <span>{{ menuTab?.pinned ? "取消固定标签页" : "固定标签页" }}</span>
+        <span>{{ menuTab?.pinned ? t("tab.unpin") : t("tab.pin") }}</span>
       </button>
       <button class="tab-menu-item" v-if="settings.tabMenu.reveal && menuTab?.path" :style="{ order: menuOrder('reveal') }" @click="menuReveal">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2.5 4.5a1.5 1.5 0 0 1 1.5-1.5h2l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5z" />
         </svg>
-        <span>在 Finder 中显示</span>
+        <span>{{ t("tab.reveal") }}</span>
       </button>
       <div
         class="tab-menu-sep"
@@ -203,19 +204,19 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
         <svg width="12" height="12" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.3">
           <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" /><line x1="8.5" y1="1.5" x2="1.5" y2="8.5" />
         </svg>
-        <span>关闭标签页</span>
+        <span>{{ t("tab.close") }}</span>
       </button>
       <button class="tab-menu-item" :style="{ order: menuOrder('closeOthers') }" @click="menuCloseOthers" v-if="settings.tabMenu.closeOthers && tabsState.tabs.length > 1">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
           <rect x="2" y="3" width="12" height="10" rx="2" /><path d="M2 6.5h12M5 4.7h.01M8 4.7h.01" />
         </svg>
-        <span>关闭其他标签页</span>
+        <span>{{ t("tab.closeOthers") }}</span>
       </button>
       <button class="tab-menu-item" v-if="settings.tabMenu.closeAll" :style="{ order: menuOrder('closeAll') }" @click="menuCloseAll">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
           <rect x="2" y="3" width="12" height="10" rx="2" /><path d="M5.5 6.5l5 3M10.5 6.5l-5 3" />
         </svg>
-        <span>关闭全部标签页</span>
+        <span>{{ t("tab.closeAll") }}</span>
       </button>
     </div>
   </Teleport>

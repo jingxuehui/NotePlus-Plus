@@ -1,5 +1,6 @@
 import { viewRef } from "@/editor/view";
 import { notify } from "@/stores/toast";
+import { t } from "@/i18n";
 
 /**
  * 格式化当前文档中的 JSON：
@@ -12,7 +13,7 @@ export function formatJsonDocument() {
 
   const text = view.state.doc.toString();
   if (!text.trim()) {
-    notify("当前文档为空", true);
+    notify(t("fmt.empty"), true);
     return;
   }
 
@@ -22,14 +23,14 @@ export function formatJsonDocument() {
   try {
     parsed = JSON.parse(body);
   } catch (e) {
-    notify(`JSON 格式错误：${(e as Error).message}`, true);
+    notify(t("fmt.error", { msg: (e as Error).message }), true);
     return;
   }
 
   const trailing = text.endsWith("\n") ? "\n" : "";
   const formatted = bom + JSON.stringify(parsed, null, 2) + trailing;
   if (formatted === text) {
-    notify("JSON 已是格式化状态", false);
+    notify(t("fmt.already"), false);
     return;
   }
 
@@ -42,5 +43,5 @@ export function formatJsonDocument() {
     },
   });
   view.focus();
-  notify("已格式化 JSON", false);
+  notify(t("fmt.done"), false);
 }

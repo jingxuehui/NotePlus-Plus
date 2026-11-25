@@ -14,6 +14,7 @@ import {
 } from "@/stores/settings";
 import { toggleSettings, toggleUpdateCenter } from "@/stores/ui";
 import { notify } from "@/stores/toast";
+import { t } from "@/i18n";
 import HintTip from "@/components/HintTip.vue";
 import ThemeIcon from "@/components/ThemeIcon.vue";
 
@@ -21,9 +22,9 @@ const emit = defineEmits<{ close: [] }>();
 
 type SectionKey = "appearance" | "updates" | "about";
 const navItems: { key: SectionKey; label: string }[] = [
-  { key: "appearance", label: "外观" },
-  { key: "updates", label: "更新管理" },
-  { key: "about", label: "关于我们" },
+  { key: "appearance", label: "set.navAppearance" },
+  { key: "updates", label: "set.navUpdates" },
+  { key: "about", label: "set.navAbout" },
 ];
 
 const section = ref<SectionKey>("appearance");
@@ -31,13 +32,13 @@ const search = ref("");
 
 // 配色主题：与 DBX 一致的 13 套主题（原生 select 的 option 无法渲染彩色圆点）
 const ACCENT_LABELS: Record<AccentName, string> = {
-  pearl: "珍珠",
-  mist: "薄雾",
-  graphite: "石墨",
-  cobalt: "钴蓝",
-  sage: "鼠尾草",
-  amber: "琥珀",
-  blush: "粉色",
+  pearl: "accent.pearl",
+  mist: "accent.mist",
+  graphite: "accent.graphite",
+  cobalt: "accent.cobalt",
+  sage: "accent.sage",
+  amber: "accent.amber",
+  blush: "accent.blush",
   vscode: "VS Code",
   idea: "IntelliJ IDEA",
   xcode: "Xcode",
@@ -64,7 +65,7 @@ const ACCENT_PREVIEW: Record<AccentName, string> = {
 const accentOptions = computed(() =>
   (Object.keys(ACCENT_LABELS) as AccentName[]).map((key) => ({
     key,
-    label: ACCENT_LABELS[key],
+    label: t(ACCENT_LABELS[key]),
     color: ACCENT_PREVIEW[key] ?? (draft.theme === "light" ? ACCENTS[key].light : ACCENTS[key].dark),
   }))
 );
@@ -88,12 +89,12 @@ const LANGUAGE_OPTIONS = [
 ];
 const ZOOM_OPTIONS = [75, 90, 95, 100, 105, 110, 115, 120, 125, 150, 175];
 const UI_FONT_OPTIONS = [
-  { value: "system", label: "系统默认" },
-  { value: "mono", label: "等宽字体" },
-  { value: '"PingFang SC", "Helvetica Neue", sans-serif', label: "苹方 / PingFang SC" },
-  { value: '"Microsoft YaHei", sans-serif', label: "微软雅黑" },
+  { value: "system", label: "font.system" },
+  { value: "mono", label: "font.mono" },
+  { value: '"PingFang SC", "Helvetica Neue", sans-serif', label: "font.pingFang" },
+  { value: '"Microsoft YaHei", sans-serif', label: "font.yahei" },
   { value: '"Helvetica Neue", Arial, sans-serif', label: "Helvetica Neue" },
-  { value: '"Noto Sans CJK SC", sans-serif', label: "思源黑体" },
+  { value: '"Noto Sans CJK SC", sans-serif', label: "font.noto" },
   { value: "Menlo, Consolas, monospace", label: "Menlo" },
   { value: "Arial, sans-serif", label: "Arial" },
 ];
@@ -131,37 +132,37 @@ function orderItems<T extends { key: string }>(items: T[], order: string[]): T[]
 
 const toolbarGroupDefs: { title: string; items: ToolbarItem[] }[] = [
   {
-    title: "主操作栏",
+    title: "tb.groupMain",
     items: [
-      { key: "sidebar", label: "侧边栏" },
-      { key: "newFile", label: "新建文件" },
-      { key: "openFile", label: "打开文件" },
-      { key: "openFolder", label: "打开文件夹" },
-      { key: "save", label: "保存文件" },
-      { key: "saveAs", label: "另存为" },
-      { key: "saveAll", label: "全部保存" },
-      { key: "find", label: "查找替换" },
-      { key: "format", label: "格式化 JSON" },
+      { key: "sidebar", label: "tb.sidebar" },
+      { key: "newFile", label: "tb.newFile" },
+      { key: "openFile", label: "tb.openFile" },
+      { key: "openFolder", label: "tb.openFolder" },
+      { key: "save", label: "tb.save" },
+      { key: "saveAs", label: "tb.saveAs" },
+      { key: "saveAll", label: "tb.saveAll" },
+      { key: "find", label: "tb.find" },
+      { key: "format", label: "tb.format" },
     ],
   },
   {
-    title: "更多菜单",
-    items: [{ key: "tools", label: "工具箱" }],
+    title: "tb.groupMore",
+    items: [{ key: "tools", label: "more.tools" }],
   },
   {
-    title: "右侧工具栏",
+    title: "tb.groupRight",
     items: [
-      { key: "updateButton", label: "更新按钮" },
-      { key: "github", label: "GitHub 入口" },
-      { key: "gitee", label: "Gitee 入口" },
-      { key: "shortcutHint", label: "快捷键提示" },
-      { key: "statusBar", label: "状态栏" },
-      { key: "themeToggle", label: "主题切换按钮" },
+      { key: "updateButton", label: "tb.updateButton" },
+      { key: "github", label: "tb.github" },
+      { key: "gitee", label: "tb.gitee" },
+      { key: "shortcutHint", label: "tb.shortcutHint" },
+      { key: "statusBar", label: "tb.statusBar" },
+      { key: "themeToggle", label: "tb.themeToggle" },
     ],
   },
   {
-    title: "系统入口",
-    items: [{ key: "systemSettings", label: "设置" }],
+    title: "tb.groupSystem",
+    items: [{ key: "systemSettings", label: "tb.settings" }],
   },
 ];
 const toolbarGroups = reactive(
@@ -256,19 +257,19 @@ interface TabMenuItem {
 }
 const tabMenuGroupDefs: { title: string; items: TabMenuItem[] }[] = [
   {
-    title: "标签页操作",
+    title: "tm.groupTabs",
     items: [
-      { key: "rename", label: "重命名标签页" },
-      { key: "pin", label: "固定 / 取消固定标签页" },
-      { key: "reveal", label: "在 Finder 中显示" },
+      { key: "rename", label: "tab.rename" },
+      { key: "pin", label: "tm.pinToggle" },
+      { key: "reveal", label: "tab.reveal" },
     ],
   },
   {
-    title: "关闭操作",
+    title: "tm.groupClose",
     items: [
-      { key: "close", label: "关闭标签页" },
-      { key: "closeOthers", label: "关闭其他标签页" },
-      { key: "closeAll", label: "关闭全部标签页" },
+      { key: "close", label: "tab.close" },
+      { key: "closeOthers", label: "tab.closeOthers" },
+      { key: "closeAll", label: "tab.closeAll" },
     ],
   },
 ];
@@ -300,7 +301,7 @@ function commitDraft() {
 
 function apply() {
   commitDraft();
-  notify("设置已应用", false);
+  notify(t("set.appliedToast"), false);
 }
 
 function applyAndClose() {
@@ -311,7 +312,7 @@ function applyAndClose() {
 function restoreDefaults() {
   Object.assign(settings, structuredClone(toRaw(DEFAULT_SETTINGS)));
   Object.assign(draft, structuredClone(toRaw(DEFAULT_SETTINGS)));
-  notify("已恢复默认设置", false);
+  notify(t("set.resetToast"), false);
 }
 
 function close() {
@@ -352,8 +353,8 @@ onBeforeUnmount(() => {
           <circle cx="8" cy="8" r="2.1" />
           <path d="M8 1.8l.55 1.7a4.6 4.6 0 0 1 1.6.66l1.72-.5 1.06 1.83-1.17 1.3a4.7 4.7 0 0 1 0 1.86l1.17 1.3-1.06 1.83-1.72-.5a4.6 4.6 0 0 1-1.6.66L8 14.2l-.55-1.7a4.6 4.6 0 0 1-1.6-.66l-1.72.5-1.06-1.83 1.17-1.3a4.7 4.7 0 0 1 0-1.86L3.07 5.5 4.13 3.67l1.72.5a4.6 4.6 0 0 1 1.6-.66z" stroke-linejoin="round" />
         </svg>
-        <span class="win-title">设置</span>
-        <span class="win-close" title="关闭 (Esc)" @click="close">
+        <span class="win-title">{{ t("set.title") }}</span>
+        <span class="win-close" :title="t('set.closeTip')" @click="close">
           <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5">
             <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
           </svg>
@@ -370,7 +371,7 @@ onBeforeUnmount(() => {
             :class="{ active: section === item.key }"
             @click="section = item.key"
           >
-            {{ item.label }}
+            {{ t(item.label) }}
           </button>
         </aside>
 
@@ -382,15 +383,15 @@ onBeforeUnmount(() => {
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                 <circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="14" y2="14" />
               </svg>
-              <input v-model="search" placeholder="搜索设置" />
+              <input v-model="search" :placeholder="t('set.searchPlaceholder')" />
             </div>
 
             <div class="content-scroll">
               <!-- 通用 -->
-              <div class="group-title" v-show="matches('通用') || !search.trim()">通用</div>
+              <div class="group-title" v-show="matches('通用') || !search.trim()">{{ t("set.grpGeneral") }}</div>
               <div class="grid">
                 <div class="field" v-show="matches('语言', 'Language')">
-                  <label class="field-label">语言 / Language </label>
+                  <label class="field-label">{{ t("set.language") }}</label>
                   <div class="select-wrap">
                     <select v-model="draft.language">
                       <option v-for="l in LANGUAGE_OPTIONS" :key="l.value" :value="l.value">{{ l.flag }} {{ l.label }}</option>
@@ -398,11 +399,11 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="field" v-show="matches('配色', '主题')">
-                  <label class="field-label">配色主题</label>
+                  <label class="field-label">{{ t("set.accent") }}</label>
                   <div class="select-wrap accent-select" ref="accentWrap">
                     <button type="button" class="accent-trigger" @click="accentOpen = !accentOpen">
                       <span class="accent-dot" :style="{ background: accentOptions.find((o) => o.key === draft.accent)?.color }"></span>
-                      <span>{{ ACCENT_LABELS[draft.accent] }}</span>
+                      <span>{{ t(ACCENT_LABELS[draft.accent]) }}</span>
                     </button>
                     <div class="accent-menu" v-if="accentOpen">
                       <button
@@ -420,7 +421,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="field" v-show="matches('界面缩放', '缩放')">
-                  <label class="field-label">界面缩放 <HintTip text="调整应用整体界面大小，不影响编辑器内的文字大小。" /></label>
+                  <label class="field-label">{{ t("set.zoom") }} <HintTip :text="t('tip.zoom')" /></label>
                   <div class="select-wrap">
                     <select v-model.number="draft.zoom">
                       <option v-for="z in ZOOM_OPTIONS" :key="z" :value="z">{{ z }}%</option>
@@ -428,22 +429,22 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div class="field field-inline" v-show="matches('字体平滑')">
-                  <label class="field-label">字体平滑 <HintTip text="关闭后界面文字不使用抗锯齿，部分屏幕下显示更锐利。" /></label>
+                  <label class="field-label">{{ t("set.fontSmoothing") }} <HintTip :text="t('tip.fontSmoothing')" /></label>
                   <button class="switch" :class="{ on: draft.fontSmoothing }" role="switch"
                     :aria-checked="draft.fontSmoothing" @click="draft.fontSmoothing = !draft.fontSmoothing">
                     <span class="knob"></span>
                   </button>
                 </div>
                 <div class="field" v-show="matches('界面字体', '字体')">
-                  <label class="field-label">界面字体 <HintTip text="切换界面使用系统默认字体或等宽字体，不影响编辑器字体。" /></label>
+                  <label class="field-label">{{ t("set.uiFont") }} <HintTip :text="t('tip.uiFont')" /></label>
                   <div class="select-wrap">
                     <select v-model="draft.uiFont">
-                      <option v-for="f in UI_FONT_OPTIONS" :key="f.value" :value="f.value">{{ f.label }}</option>
+                      <option v-for="f in UI_FONT_OPTIONS" :key="f.value" :value="f.value">{{ t(f.label) }}</option>
                     </select>
                   </div>
                 </div>
                 <div class="field" v-show="matches('编辑器字号', '字号')">
-                  <label class="field-label">编辑器字号</label>
+                  <label class="field-label">{{ t("set.editorFontSize") }}</label>
                   <div class="stepper">
                     <button class="step-btn" @click="draft.fontSize = Math.max(9, draft.fontSize - 1)">−</button>
                     <span class="step-value">{{ draft.fontSize }}px</span>
@@ -455,25 +456,25 @@ onBeforeUnmount(() => {
               <!-- 主题 + 圆角（一行） -->
               <div class="pair-row" v-show="matches('主题', '亮色', '暗色', '跟随系统', '圆角')">
                 <div v-show="matches('主题', '亮色', '暗色', '跟随系统')">
-                  <label class="field-label mt">主题</label>
+                  <label class="field-label mt">{{ t("set.theme") }}</label>
                   <div class="segmented">
                     <button :class="{ on: draft.themeChoice === 'light' }" @click="setThemeChoice('light')">
-                      <ThemeIcon mode="light" :size="15" /> 亮色
+                      <ThemeIcon mode="light" :size="15" /> {{ t("set.themeLight") }}
                     </button>
                     <button :class="{ on: draft.themeChoice === 'dark' }" @click="setThemeChoice('dark')">
-                      <ThemeIcon mode="dark" :size="15" /> 暗色
+                      <ThemeIcon mode="dark" :size="15" /> {{ t("set.themeDark") }}
                     </button>
                     <button :class="{ on: draft.themeChoice === 'system' }" @click="setThemeChoice('system')">
-                      <ThemeIcon mode="system" :size="15" /> 跟随系统
+                      <ThemeIcon mode="system" :size="15" /> {{ t("set.themeSystem") }}
                     </button>
                   </div>
                 </div>
                 <div v-show="matches('圆角')">
-                  <label class="field-label mt">圆角样式</label>
+                  <label class="field-label mt">{{ t("set.radius") }}</label>
                   <div class="segmented">
-                    <button :class="{ on: draft.radius === 'none' }" @click="draft.radius = 'none'">无圆角</button>
-                    <button :class="{ on: draft.radius === 'small' }" @click="draft.radius = 'small'">小圆角</button>
-                    <button :class="{ on: draft.radius === 'large' }" @click="draft.radius = 'large'">大圆角</button>
+                    <button :class="{ on: draft.radius === 'none' }" @click="draft.radius = 'none'">{{ t("set.radiusNone") }}</button>
+                    <button :class="{ on: draft.radius === 'small' }" @click="draft.radius = 'small'">{{ t("set.radiusSmall") }}</button>
+                    <button :class="{ on: draft.radius === 'large' }" @click="draft.radius = 'large'">{{ t("set.radiusLarge") }}</button>
                   </div>
                 </div>
               </div>
@@ -481,30 +482,30 @@ onBeforeUnmount(() => {
               <!-- 界面布局 -->
               <div class="section-divider" v-show="matches('界面布局', '布局')"></div>
               <div v-show="matches('界面布局', '布局')">
-                <label class="field-label mt">界面布局</label>
+                <label class="field-label mt">{{ t("set.layout") }}</label>
                 <div class="choice-row">
                   <button class="choice-card" :class="{ on: draft.layout === 'modern' }" @click="draft.layout = 'modern'">
-                    <span class="choice-title">现代分窗</span>
-                    <span class="choice-desc">面板分窗更清晰，标签页为块状样式。</span>
+                    <span class="choice-title">{{ t("set.layoutModern") }}</span>
+                    <span class="choice-desc">{{ t("set.layoutModernDesc") }}</span>
                   </button>
                   <button class="choice-card" :class="{ on: draft.layout === 'classic' }" @click="draft.layout = 'classic'">
-                    <span class="choice-title">经典紧凑</span>
-                    <span class="choice-desc">使用连续标签栏和更紧凑的面板标题。</span>
+                    <span class="choice-title">{{ t("set.layoutClassic") }}</span>
+                    <span class="choice-desc">{{ t("set.layoutClassicDesc") }}</span>
                   </button>
                 </div>
               </div>
 
               <!-- 标签栏溢出 -->
               <div v-show="matches('标签栏溢出', '标签')">
-                <label class="field-label mt">标签栏溢出</label>
+                <label class="field-label mt">{{ t("set.tabOverflow") }}</label>
                 <div class="choice-row">
                   <button class="choice-card" :class="{ on: draft.tabOverflow === 'scroll' }" @click="draft.tabOverflow = 'scroll'">
-                    <span class="choice-title">单行滚动</span>
-                    <span class="choice-desc">标签页超出一行时水平滚动显示。</span>
+                    <span class="choice-title">{{ t("set.tabScroll") }}</span>
+                    <span class="choice-desc">{{ t("set.tabScrollDesc") }}</span>
                   </button>
                   <button class="choice-card" :class="{ on: draft.tabOverflow === 'wrap' }" @click="draft.tabOverflow = 'wrap'">
-                    <span class="choice-title">多行平铺</span>
-                    <span class="choice-desc">标签页超出一行时自动换行，平铺显示所有标签。</span>
+                    <span class="choice-title">{{ t("set.tabWrap") }}</span>
+                    <span class="choice-desc">{{ t("set.tabWrapDesc") }}</span>
                   </button>
                 </div>
               </div>
@@ -512,8 +513,8 @@ onBeforeUnmount(() => {
               <!-- 关闭主窗口行为 -->
               <div class="pref-row boxed-pref" v-show="matches('关闭窗口', '退出程序', 'Dock')">
                 <div>
-                  <div class="pref-title">关闭窗口时退出程序</div>
-                  <div class="pref-desc">开启后，点击窗口关闭按钮将彻底退出 NotePlus+，而不是隐藏到 Dock。</div>
+                  <div class="pref-title">{{ t("set.exitOnClose") }}</div>
+                  <div class="pref-desc">{{ t("set.exitOnCloseDesc") }}</div>
                 </div>
                 <button class="switch" :class="{ on: draft.exitOnClose }" role="switch" :aria-checked="draft.exitOnClose"
                   @click="draft.exitOnClose = !draft.exitOnClose"><span class="knob"></span></button>
@@ -521,7 +522,7 @@ onBeforeUnmount(() => {
 
               <!-- 图标与 Logo 样式 -->
               <div v-show="matches('图标', 'Logo', '黑色')">
-                <label class="field-label mt">图标与 Logo 样式</label>
+                <label class="field-label mt">{{ t("set.iconStyle") }}</label>
                 <div class="choice-row">
                   <button class="choice-card icon-choice" :class="{ on: draft.iconStyle === 'default' }" @click="draft.iconStyle = 'default'">
                     <span class="logo-preview default">
@@ -531,8 +532,8 @@ onBeforeUnmount(() => {
                         <line x1="12" y1="22" x2="18" y2="22" />
                       </svg>
                     </span>
-                    <span class="choice-title">默认</span>
-                    <span class="choice-desc">使用彩色 NotePlus+ 应用图标。</span>
+                    <span class="choice-title">{{ t("set.iconDefault") }}</span>
+                    <span class="choice-desc">{{ t("set.iconDefaultDesc") }}</span>
                   </button>
                   <button class="choice-card icon-choice" :class="{ on: draft.iconStyle === 'black' }" @click="draft.iconStyle = 'black'">
                     <span class="logo-preview black">
@@ -542,25 +543,25 @@ onBeforeUnmount(() => {
                         <line x1="12" y1="22" x2="18" y2="22" />
                       </svg>
                     </span>
-                    <span class="choice-title">黑色</span>
-                    <span class="choice-desc">应用内使用黑色标识，Dock 使用黑色底板图标。</span>
+                    <span class="choice-title">{{ t("set.iconBlack") }}</span>
+                    <span class="choice-desc">{{ t("set.iconBlackDesc") }}</span>
                   </button>
                 </div>
               </div>
 
 
               <!-- 编辑器行为 -->
-              <div class="group-title" v-show="matches('编辑器') || !search.trim()">编辑器</div>
+              <div class="group-title" v-show="matches('编辑器') || !search.trim()">{{ t("set.grpEditor") }}</div>
               <div class="grid">
                 <div class="field" v-show="matches('自动换行', '换行')">
-                  <label class="field-label">自动换行</label>
+                  <label class="field-label">{{ t("set.wordWrap") }}</label>
                   <div class="field-switch">
                     <button class="switch" :class="{ on: draft.wordWrap }" role="switch" :aria-checked="draft.wordWrap"
                       @click="draft.wordWrap = !draft.wordWrap"><span class="knob"></span></button>
                   </div>
                 </div>
                 <div class="field" v-show="matches('显示侧边栏', '侧边栏')">
-                  <label class="field-label">显示侧边栏</label>
+                  <label class="field-label">{{ t("set.showSidebar") }}</label>
                   <div class="field-switch">
                     <button class="switch" :class="{ on: draft.sidebarVisible }" role="switch" :aria-checked="draft.sidebarVisible"
                       @click="draft.sidebarVisible = !draft.sidebarVisible"><span class="knob"></span></button>
@@ -571,23 +572,23 @@ onBeforeUnmount(() => {
               <!-- 工具栏显示项 -->
               <div class="section-divider" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')"></div>
               <div class="toolbar-settings" v-show="matches('工具栏', '主操作栏', '更多菜单', '右侧工具栏', '系统入口')">
-                <div class="toolbar-desc">用 ↑↓ 或拖拽手柄调整同一区域的顺序，关闭开关可隐藏对应入口。</div>
+                <div class="toolbar-desc">{{ t("set.toolbarDesc") }}</div>
                 <div class="toolbar-grid">
                   <div class="toolbar-group" v-for="(group, gi) in toolbarGroups" :key="group.title">
                     <div class="toolbar-group-title">
-                      <span>{{ group.title }}</span>
+                      <span>{{ t(group.title) }}</span>
                       <button
-                        v-if="group.title === '更多菜单'"
+                        v-if="group.title === 'tb.groupMore'"
                         class="switch group-switch"
                         :class="{ on: draft.toolbar.moreMenu }"
                         role="switch"
-                        title="在顶部工具栏显示「更多」入口"
+                        :title="t('tb.moreSwitchTip')"
                         :aria-checked="draft.toolbar.moreMenu"
                         @click="draft.toolbar.moreMenu = !draft.toolbar.moreMenu"
                       ><span class="knob"></span></button>
                     </div>
-                    <div class="toolbar-empty" v-if="!group.items.length && group.title !== '更多菜单'">暂无项目</div>
-                    <div class="toolbar-hint" v-if="group.title === '更多菜单'">标题旁开关控制顶部「更多」入口；下方开关控制更多菜单里的工具箱</div>
+                    <div class="toolbar-empty" v-if="!group.items.length && group.title !== 'tb.groupMore'">{{ t("tb.noItems") }}</div>
+                    <div class="toolbar-hint" v-if="group.title === 'tb.groupMore'">{{ t("tb.moreHint") }}</div>
                     <div
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
@@ -608,12 +609,12 @@ onBeforeUnmount(() => {
                         :aria-checked="draft.toolbar[item.key]"
                         @click="draft.toolbar[item.key] = !draft.toolbar[item.key]"
                       ><span class="knob"></span></button>
-                      <span class="toolbar-row-label">{{ item.label }}</span>
+                      <span class="toolbar-row-label">{{ t(item.label) }}</span>
                       <span class="move-btns">
-                        <button class="move-btn" title="上移" :disabled="ii === 0" @click="moveItem('toolbar', gi, ii, -1)">↑</button>
-                        <button class="move-btn" title="下移" :disabled="ii === group.items.length - 1" @click="moveItem('toolbar', gi, ii, 1)">↓</button>
+                        <button class="move-btn" :title="t('tb.moveUp')" :disabled="ii === 0" @click="moveItem('toolbar', gi, ii, -1)">↑</button>
+                        <button class="move-btn" :title="t('tb.moveDown')" :disabled="ii === group.items.length - 1" @click="moveItem('toolbar', gi, ii, 1)">↓</button>
                       </span>
-                      <span class="drag-handle" title="按住拖拽排序" @pointerdown="startSort('toolbar', gi, ii, $event)" @pointermove="onSortMove" @pointerup="endSort" @pointercancel="endSort">⠿</span>
+                      <span class="drag-handle" :title="t('tb.dragSort')" @pointerdown="startSort('toolbar', gi, ii, $event)" @pointermove="onSortMove" @pointerup="endSort" @pointercancel="endSort">⠿</span>
                     </div>
                   </div>
                 </div>
@@ -622,10 +623,10 @@ onBeforeUnmount(() => {
               <!-- 标签页右键菜单显示项 -->
               <div class="section-divider" v-show="matches('右键', '标签页', '菜单')"></div>
               <div class="toolbar-settings" v-show="matches('右键', '标签页', '菜单')">
-                <div class="toolbar-desc">控制标签页鼠标右键菜单中显示的操作，用 ↑↓ 或拖拽手柄调整顺序。</div>
+                <div class="toolbar-desc">{{ t("tm.desc") }}</div>
                 <div class="toolbar-grid">
                   <div class="toolbar-group" v-for="(group, gi) in tabMenuGroups" :key="group.title">
-                    <div class="toolbar-group-title">{{ group.title }}</div>
+                    <div class="toolbar-group-title">{{ t(group.title) }}</div>
                     <div
                       class="toolbar-row"
                       v-for="(item, ii) in group.items"
@@ -646,12 +647,12 @@ onBeforeUnmount(() => {
                         :aria-checked="draft.tabMenu[item.key]"
                         @click="draft.tabMenu[item.key] = !draft.tabMenu[item.key]"
                       ><span class="knob"></span></button>
-                      <span class="toolbar-row-label">{{ item.label }}</span>
+                      <span class="toolbar-row-label">{{ t(item.label) }}</span>
                       <span class="move-btns">
-                        <button class="move-btn" title="上移" :disabled="ii === 0" @click="moveItem('tabMenu', gi, ii, -1)">↑</button>
-                        <button class="move-btn" title="下移" :disabled="ii === group.items.length - 1" @click="moveItem('tabMenu', gi, ii, 1)">↓</button>
+                        <button class="move-btn" :title="t('tb.moveUp')" :disabled="ii === 0" @click="moveItem('tabMenu', gi, ii, -1)">↑</button>
+                        <button class="move-btn" :title="t('tb.moveDown')" :disabled="ii === group.items.length - 1" @click="moveItem('tabMenu', gi, ii, 1)">↓</button>
                       </span>
-                      <span class="drag-handle" title="按住拖拽排序" @pointerdown="startSort('tabMenu', gi, ii, $event)" @pointermove="onSortMove" @pointerup="endSort" @pointercancel="endSort">⠿</span>
+                      <span class="drag-handle" :title="t('tb.dragSort')" @pointerdown="startSort('tabMenu', gi, ii, $event)" @pointermove="onSortMove" @pointerup="endSort" @pointercancel="endSort">⠿</span>
                     </div>
                   </div>
                 </div>
@@ -670,38 +671,38 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="update-info">
                   <div class="update-title">NotePlus+ <span class="ver-chip">v{{ appVersion }}</span></div>
-                  <div class="update-sub">当前为 {{ draft.updateChannel === "preview" ? "预览版" : "稳定版" }}最新构建</div>
+                  <div class="update-sub">{{ t("set.channelNow", { channel: draft.updateChannel === "preview" ? t("set.channelPreview") : t("set.channelStable") }) }}</div>
                 </div>
-                <button class="btn" @click="toggleUpdateCenter(true)">检查更新</button>
+                <button class="btn" @click="toggleUpdateCenter(true)">{{ t("titlebar.checkUpdate") }}</button>
               </div>
 
-              <div class="group-title">更新偏好</div>
+              <div class="group-title">{{ t("set.grpUpdatePref") }}</div>
               <div class="pref-row">
                 <div>
-                  <div class="pref-title">自动检查更新</div>
-                  <div class="pref-desc">启动应用时自动检查是否有新版本</div>
+                  <div class="pref-title">{{ t("set.autoUpdate") }}</div>
+                  <div class="pref-desc">{{ t("set.autoUpdateDesc") }}</div>
                 </div>
                 <button class="switch" :class="{ on: draft.autoUpdate }" role="switch" :aria-checked="draft.autoUpdate"
                   @click="draft.autoUpdate = !draft.autoUpdate"><span class="knob"></span></button>
               </div>
               <div class="pref-row">
                 <div>
-                  <div class="pref-title">更新渠道</div>
-                  <div class="pref-desc">预览版包含最新功能，但可能不够稳定</div>
+                  <div class="pref-title">{{ t("set.updateChannel") }}</div>
+                  <div class="pref-desc">{{ t("set.channelDesc") }}</div>
                 </div>
                 <div class="select-wrap narrow">
                   <select v-model="draft.updateChannel">
-                    <option value="stable">稳定版</option>
-                    <option value="preview">预览版</option>
+                    <option value="stable">{{ t("set.channelStable") }}</option>
+                    <option value="preview">{{ t("set.channelPreview") }}</option>
                   </select>
                 </div>
               </div>
               <div class="pref-row">
                 <div>
-                  <div class="pref-title">发布说明</div>
-                  <div class="pref-desc">查看每个版本的变更记录</div>
+                  <div class="pref-title">{{ t("set.releaseNotes") }}</div>
+                  <div class="pref-desc">{{ t("set.releaseNotesDesc") }}</div>
                 </div>
-                <button class="btn" @click="toggleUpdateCenter(true)">查看</button>
+                <button class="btn" @click="toggleUpdateCenter(true)">{{ t("set.view") }}</button>
               </div>
             </div>
           </template>
@@ -719,8 +720,8 @@ onBeforeUnmount(() => {
               </div>
               <div class="about-name">NotePlus+</div>
               <div class="about-ver">v{{ appVersion }} · macOS</div>
-              <div class="about-desc">macOS 上的轻量级代码编辑器，为高效编辑而生。</div>
-              <div class="group-title">技术栈</div>
+              <div class="about-desc">{{ t("about.desc") }}</div>
+              <div class="group-title">{{ t("about.techStack") }}</div>
               <div class="stack-list">
                 <span class="stack-chip">Tauri 2</span>
                 <span class="stack-chip">Rust</span>
@@ -729,13 +730,13 @@ onBeforeUnmount(() => {
                 <span class="stack-chip">CodeMirror 6</span>
                 <span class="stack-chip">Tailwind CSS</span>
               </div>
-              <div class="group-title">版本信息</div>
+              <div class="group-title">{{ t("about.versionInfo") }}</div>
               <div class="info-table">
-                <div><span>应用版本</span><span>{{ appVersion }} ({{ copyrightYear }})</span></div>
-                <div><span>构建目标</span><span>macOS · Apple Silicon</span></div>
-                <div><span>许可协议</span><span>MIT License</span></div>
+                <div><span>{{ t("about.appVersion") }}</span><span>{{ appVersion }} ({{ copyrightYear }})</span></div>
+                <div><span>{{ t("about.buildTarget") }}</span><span>macOS · Apple Silicon</span></div>
+                <div><span>{{ t("about.license") }}</span><span>MIT License</span></div>
               </div>
-              <div class="about-copy">© 2026 NotePlus+ · 使用 dbx 同源技术栈构建</div>
+              <div class="about-copy">© {{ copyrightYear }} NotePlus+ · {{ t("about.builtWith") }}</div>
             </div>
           </template>
         </main>
@@ -743,12 +744,12 @@ onBeforeUnmount(() => {
 
       <!-- 底部按钮栏 -->
       <footer class="win-footer">
-        <button class="btn ghost" @click="restoreDefaults">恢复默认</button>
-        <span class="dirty-hint" v-if="dirty">● 有未应用的更改</span>
+        <button class="btn ghost" @click="restoreDefaults">{{ t("set.restoreDefaults") }}</button>
+        <span class="dirty-hint" v-if="dirty">{{ t("set.dirtyHint") }}</span>
         <span class="spacer"></span>
-        <button class="btn" @click="close">关闭</button>
-        <button class="btn" :class="{ primary: dirty }" :disabled="!dirty" @click="apply">应用</button>
-        <button class="btn primary" @click="applyAndClose">应用并关闭</button>
+        <button class="btn" @click="close">{{ t("common.close") }}</button>
+        <button class="btn" :class="{ primary: dirty }" :disabled="!dirty" @click="apply">{{ t("set.apply") }}</button>
+        <button class="btn primary" @click="applyAndClose">{{ t("set.applyAndClose") }}</button>
       </footer>
     </div>
   </div>
