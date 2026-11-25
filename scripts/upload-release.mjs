@@ -88,7 +88,8 @@ async function pushGitHub(version, artifacts, token) {
     });
   }
   const uploadUrl = release.upload_url.split("{")[0];
-  for (const file of artifacts) {
+  const dmgRe = /^NotePlus\+_\d+\.\d+\.\d+_aarch64\.dmg$/;
+  for (const file of artifacts.filter((f) => dmgRe.test(f.split("/").pop()))) {
     const name = file.split("/").pop();
     const existing = (release.assets ?? []).find((a) => a.name === name);
     if (existing) {

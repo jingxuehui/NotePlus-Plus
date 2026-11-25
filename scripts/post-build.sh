@@ -67,3 +67,6 @@ fi
 
 ls -lh "$DMG_OUT"
 echo "完成: $DMG_OUT"
+
+rm -f "$DMG_DIR"/rw.*.dmg 2>/dev/null || true
+echo "    清理 hdiutil 残留临时文件"

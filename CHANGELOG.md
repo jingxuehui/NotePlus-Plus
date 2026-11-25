@@ -3,11 +3,37 @@
 NotePlus+ 所有正式版本的变更记录。本文件由 `scripts/changelog.mjs` 从 Git 提交记录自动生成，
 执行 `pnpm release` 时会自动更新，发布到 GitHub / Gitee 的 Release 正文也取自这里。
 
-## [未发布] - 2026-11-24
+## [0.1.5] - 2026-11-24
+
+### 新增
+
+- 新增启动 Splash 动画——品牌 Logo/名称/标语定格展示后整体淡出（约 2.2s），副标题按平台显示 macOS/Windows，i18n 新增 splash 词条
+- Windows 平台适配——tauri.windows.conf.json（NSIS/MSI 打包、窗口配置）、图标 ICO、Windows 关窗即退出、explorer 定位文件、快捷键符号按平台转换（Ctrl/Shift/Alt）、i18n 平台分流
+- 新增轻量 i18n 框架（zh-CN/zh-TW/en-US 完整覆盖，其余语言分流回退），全局 UI 文案接入；新增编辑器右键菜单（替代系统原生菜单）；原生菜单/对话框语言跟随应用设置（AppleLanguages + CFBundleLocalizations）；接入剪贴板插件
+- 「工具箱」入口纳入工具栏显示项配置（可从更多菜单开关），设置应用/恢复默认改用深拷贝避免嵌套引用污染
+- 新增工具箱弹窗（JSON 对比 / 加密哈希，标题栏「更多」菜单入口），「更多」入口可在设置中开关显示
+- 新增 CHANGELOG 自动生成——从 Git 提交记录按版本分组生成更新日志，release 时自动更新并作为 Release 正文；修正更新中心下载页链接方向；更新中心挂载改为异步加载避免阻塞首屏
 
 ### 修复
 
 - 更新中心打开下载页链接反了（Gitee 源应打开 Gitee releases）；默认更新源改为 Gitee
+
+### 性能
+
+- 启动性能优化——语言包改为名称同步/语法包按需动态加载，弹窗组件 defineAsyncComponent 拆包，查找窗口跳过编辑器依赖图，系统外观读取移至后台线程，更新检查延后 8s 避开启动高峰
+
+### 样式
+
+- 优化仓库 banner——深色基底叠加紫/蓝/青三层径向渐变光晕、135° 线性渐变背景与网格纹理，文件体积 792KB→466KB
+- 标题栏右侧图标组加大间距（8px），不影响左侧工具栏与红绿灯占位
+
+### 文档
+
+- 重写 README——品牌口号更新为 macOS & Windows 双平台，精简截图与快捷键表格，补充三语言与内更新说明，版本信息刷新
+
+### 其他
+
+- 新增 GitHub Actions Windows 构建流程——v* tag 推送时在 windows runner 打包 NSIS/MSI 并自动补传 GitHub/Gitee Release；新增 upload-gitee-assets 补传脚本
 
 ## [0.1.4] - 2026-11-24
 
