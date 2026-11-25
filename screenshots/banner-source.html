@@ -6,136 +6,246 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
+    position: relative;
     width: 1200px;
     height: 630px;
     overflow: hidden;
-    background: radial-gradient(circle at 78% 12%, #182a44 0%, #101b2d 42%, #0b1220 100%);
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap {
+    padding: 48px 56px;
     display: flex;
-    width: 100%;
-    height: 100%;
-    padding: 52px 54px;
     gap: 40px;
+    color: #f5f5f7;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    /* 紫蓝主渐变 + 紫/蓝/青三层光晕 */
+    background:
+      radial-gradient(620px 460px at 84% -6%, rgba(124, 77, 255, 0.28), transparent 68%),
+      radial-gradient(660px 520px at -8% 106%, rgba(59, 130, 246, 0.22), transparent 70%),
+      radial-gradient(520px 400px at 58% 118%, rgba(0, 209, 178, 0.12), transparent 72%),
+      linear-gradient(135deg, #0f0c29 0%, #302b63 45%, #24243e 100%);
   }
-  .left { width: 430px; flex-shrink: 0; }
-  .brand { display: flex; align-items: center; gap: 20px; }
-  .brand img {
-    width: 92px; height: 92px; border-radius: 22px;
-    box-shadow: 0 8px 26px rgba(0,0,0,.45);
+  /* 编辑器网格纹理：低透明度格线，向边缘淡出 */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(180, 190, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180, 190, 255, 0.07) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(circle at 58% 42%, #000 24%, transparent 78%);
+    mask-image: radial-gradient(circle at 58% 42%, #000 24%, transparent 78%);
+    pointer-events: none;
+  }
+
+  .left-panel {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 34px;
+  }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand-icon {
+    width: 84px;
+    height: 84px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(167, 139, 250, 0.35);
   }
   h1 {
-    margin: 0; font-size: 54px; font-weight: 800;
-    letter-spacing: -1.5px; color: #f6f9ff; line-height: 1;
+    margin: 0;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    /* 渐变标题：白 → 浅紫 → 天蓝 */
+    background: linear-gradient(100deg, #f6f9ff 16%, #d4c2ff 58%, #78c8ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
-  .tagline { margin-top: 18px; font-size: 20px; color: #96a9c1; letter-spacing: .6px; }
-  .features { margin-top: 42px; display: flex; flex-direction: column; gap: 19px; }
-  .feat { display: flex; align-items: center; gap: 14px; }
-  .feat-ico {
-    width: 42px; height: 42px; flex-shrink: 0;
-    border-radius: 12px; background: #1b283c;
-    border: 1px solid #2a3b57; color: #cfe0ff;
-    display: flex; align-items: center; justify-content: center;
+  .subtitle {
+    margin-top: 8px;
+    font-size: 15px;
+    color: rgba(245, 245, 247, 0.65);
+    letter-spacing: 0.2px;
   }
-  .feat-ico svg { width: 22px; height: 22px; }
-  .feat h3 { margin: 0; font-size: 15.5px; font-weight: 600; color: #eaf1fc; }
-  .feat p { margin: 3px 0 0; font-size: 12px; color: #8498b1; }
+  .subtitle strong { color: #a78bfa; font-weight: 600; }
 
-  .grid {
-    flex: 1; display: grid;
+  /* 毛玻璃特性卡片（2×2） */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 14px;
+    backdrop-filter: blur(8px);
+  }
+  .feature-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  .feature-icon svg { width: 20px; height: 20px; }
+  .feature-icon.size { background: linear-gradient(135deg, #10b981, #059669); }
+  .feature-icon.theme { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+  .feature-icon.split { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .feature-icon.lang { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .feature-text { display: flex; flex-direction: column; min-width: 0; }
+  .feature-text .label { font-size: 13.5px; font-weight: 600; color: #f0f2ff; }
+  .feature-text .desc { margin-top: 3px; font-size: 11px; color: rgba(245, 245, 247, 0.55); }
+
+  .right-panel {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 18px;
+  }
+  .lang-grid {
+    display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: 78px;
-    gap: 9px; align-content: center;
+    grid-auto-rows: 70px;
+    gap: 9px;
+    width: 100%;
+    max-width: 510px;
   }
   .cell {
-    background: #172336; border: 1px solid #253551; border-radius: 10px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 7px;
+    backdrop-filter: blur(6px);
   }
   .logo {
-    width: 36px; height: 36px; border-radius: 9px;
-    background: var(--c); color: var(--fg, #fff);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12.5px; font-weight: 800; letter-spacing: -.4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.28);
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    /* 渐变语言色块：原色 → 提亮版 */
+    background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 68%, #ffffff));
+    color: var(--fg, #fff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--c) 35%, rgba(0, 0, 0, 0.35));
   }
-  .logo.dots { font-size: 20px; letter-spacing: 1px; padding-bottom: 8px; }
-  .logo.small { font-size: 10px; letter-spacing: 0; }
-  .cell span { font-size: 11.5px; color: #b0bfd2; }
+  .logo.dots { font-size: 19px; letter-spacing: 1px; padding-bottom: 7px; }
+  .logo.small { font-size: 9.5px; letter-spacing: 0; }
+  .cell span { font-size: 11px; color: rgba(245, 245, 247, 0.72); }
+
+  .tagline {
+    margin-top: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(245, 245, 247, 0.55);
+    text-align: right;
+    letter-spacing: 0.3px;
+  }
+  .tagline strong { color: #c4b5fd; font-weight: 600; font-style: normal; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="left">
+  <div class="left-panel">
     <div class="brand">
-      <img src="../src-tauri/icons/128x128@2x.png" alt="NotePlus+ icon" />
-      <h1>NotePlus+</h1>
+      <img class="brand-icon" src="../src-tauri/icons/128x128@2x.png" alt="NotePlus+ icon" />
+      <div>
+        <h1>NotePlus+</h1>
+        <div class="subtitle">基于 Tauri 构建 · 仅 <strong>~5MB</strong> 的轻量级代码编辑器</div>
+      </div>
     </div>
-    <div class="tagline">轻量高效的 macOS 代码编辑器</div>
+
     <div class="features">
-      <div class="feat">
-        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg></div>
-        <div><h3>现代分窗 · 经典紧凑</h3><p>两套布局，随时切换</p></div>
+      <div class="feature-item">
+        <div class="feature-icon size"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg></div>
+        <div class="feature-text"><span class="label">~5MB 零臃肿</span><span class="desc">不嵌入浏览器引擎，装完即用</span></div>
       </div>
-      <div class="feat">
-        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
-        <div><h3>跟随系统主题</h3><p>原生级深浅色实时同步</p></div>
+      <div class="feature-item">
+        <div class="feature-icon theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
+        <div class="feature-text"><span class="label">原生级主题</span><span class="desc">明暗模式实时跟随系统</span></div>
       </div>
-      <div class="feat">
-        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><line x1="15" y1="15" x2="21" y2="21"/></svg></div>
-        <div><h3>独立查找窗口</h3><p>查找替换与编辑器双向同步</p></div>
+      <div class="feature-item">
+        <div class="feature-icon split"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg></div>
+        <div class="feature-text"><span class="label">双布局自由切换</span><span class="desc">现代分窗 · 经典紧凑</span></div>
       </div>
-      <div class="feat">
-        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></div>
-        <div><h3>约 5 MB · 启动即用</h3><p>不含 Chromium，零运行时负担</p></div>
+      <div class="feature-item">
+        <div class="feature-icon lang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></div>
+        <div class="feature-text"><span class="label">20+ 语言支持</span><span class="desc">语法高亮与智能补全</span></div>
       </div>
-      <div class="feat">
-        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></div>
-        <div><h3>20+ 语言支持</h3><p>主流编程语言语法高亮</p></div>
+      <div class="feature-item">
+        <div class="feature-icon split"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><line x1="15" y1="15" x2="21" y2="21"/></svg></div>
+        <div class="feature-text"><span class="label">独立查找窗口</span><span class="desc">查找替换双向同步</span></div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon size"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M8 12h8"/></svg></div>
+        <div class="feature-text"><span class="label">双平台可用</span><span class="desc">macOS 与 Windows 原生体验</span></div>
       </div>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="cell"><div class="logo" style="--c:#f7df1e;--fg:#111">JS</div><span>JavaScript</span></div>
-    <div class="cell"><div class="logo" style="--c:#3178c6">TS</div><span>TypeScript</span></div>
-    <div class="cell"><div class="logo" style="--c:#42b883">V</div><span>Vue</span></div>
-    <div class="cell"><div class="logo" style="--c:#e34f26">&lt;/&gt;</div><span>HTML</span></div>
-    <div class="cell"><div class="logo" style="--c:#1572b6">#</div><span>CSS</span></div>
+  <div class="right-panel">
+    <div class="lang-grid">
+      <div class="cell"><div class="logo" style="--c:#f7df1e;--fg:#111">JS</div><span>JavaScript</span></div>
+      <div class="cell"><div class="logo" style="--c:#3178c6">TS</div><span>TypeScript</span></div>
+      <div class="cell"><div class="logo" style="--c:#42b883">V</div><span>Vue</span></div>
+      <div class="cell"><div class="logo" style="--c:#e34f26">&lt;/&gt;</div><span>HTML</span></div>
+      <div class="cell"><div class="logo" style="--c:#1572b6">#</div><span>CSS</span></div>
 
-    <div class="cell"><div class="logo" style="--c:#3776ab">Py</div><span>Python</span></div>
-    <div class="cell"><div class="logo" style="--c:#ce422b">R</div><span>Rust</span></div>
-    <div class="cell"><div class="logo" style="--c:#00add8">Go</div><span>Go</span></div>
-    <div class="cell"><div class="logo" style="--c:#f89820;--fg:#111">J</div><span>Java</span></div>
-    <div class="cell"><div class="logo" style="--c:#00599c">C++</div><span>C++</span></div>
+      <div class="cell"><div class="logo" style="--c:#3776ab">Py</div><span>Python</span></div>
+      <div class="cell"><div class="logo" style="--c:#ce422b">R</div><span>Rust</span></div>
+      <div class="cell"><div class="logo" style="--c:#00add8">Go</div><span>Go</span></div>
+      <div class="cell"><div class="logo" style="--c:#f89820;--fg:#111">J</div><span>Java</span></div>
+      <div class="cell"><div class="logo" style="--c:#00599c">C++</div><span>C++</span></div>
 
-    <div class="cell"><div class="logo" style="--c:#e38c00">DB</div><span>SQL</span></div>
-    <div class="cell"><div class="logo small" style="--c:#5a6b82">JSON</div><span>JSON</span></div>
-    <div class="cell"><div class="logo" style="--c:#4b6cb3">M↓</div><span>Markdown</span></div>
-    <div class="cell"><div class="logo" style="--c:#cb171e">Y</div><span>YAML</span></div>
-    <div class="cell"><div class="logo" style="--c:#8a2be2">&lt;?&gt;</div><span>XML</span></div>
+      <div class="cell"><div class="logo" style="--c:#e38c00">DB</div><span>SQL</span></div>
+      <div class="cell"><div class="logo small" style="--c:#5a6b82">JSON</div><span>JSON</span></div>
+      <div class="cell"><div class="logo" style="--c:#4b6cb3">M↓</div><span>Markdown</span></div>
+      <div class="cell"><div class="logo" style="--c:#cb171e">Y</div><span>YAML</span></div>
+      <div class="cell"><div class="logo" style="--c:#8a2be2">&lt;?&gt;</div><span>XML</span></div>
 
-    <div class="cell"><div class="logo" style="--c:#777bb4">PHP</div><span>PHP</span></div>
-    <div class="cell"><div class="logo" style="--c:#5c8dbc">C</div><span>C</span></div>
-    <div class="cell"><div class="logo" style="--c:#4eaa25">$_</div><span>Shell</span></div>
-    <div class="cell"><div class="logo" style="--c:#9c4221">T</div><span>TOML</span></div>
-    <div class="cell"><div class="logo" style="--c:#41b883">±</div><span>Diff</span></div>
+      <div class="cell"><div class="logo" style="--c:#777bb4">PHP</div><span>PHP</span></div>
+      <div class="cell"><div class="logo" style="--c:#5c8dbc">C</div><span>C</span></div>
+      <div class="cell"><div class="logo" style="--c:#4eaa25">$_</div><span>Shell</span></div>
+      <div class="cell"><div class="logo" style="--c:#9c4221">T</div><span>TOML</span></div>
+      <div class="cell"><div class="logo" style="--c:#41b883">±</div><span>Diff</span></div>
 
-    <div class="cell"><div class="logo" style="--c:#61dafb;--fg:#111">JSX</div><span>JSX</span></div>
-    <div class="cell"><div class="logo" style="--c:#2f74c0">TSX</div><span>TSX</span></div>
-    <div class="cell"><div class="logo" style="--c:#cd6799">S</div><span>SCSS</span></div>
-    <div class="cell"><div class="logo" style="--c:#2b4162">L</div><span>LESS</span></div>
-    <div class="cell"><div class="logo" style="--c:#6b7a90">TXT</div><span>纯文本</span></div>
+      <div class="cell"><div class="logo" style="--c:#61dafb;--fg:#111">JSX</div><span>JSX</span></div>
+      <div class="cell"><div class="logo" style="--c:#2f74c0">TSX</div><span>TSX</span></div>
+      <div class="cell"><div class="logo" style="--c:#cd6799">S</div><span>SCSS</span></div>
+      <div class="cell"><div class="logo" style="--c:#2b4162">L</div><span>LESS</span></div>
+      <div class="cell"><div class="logo" style="--c:#6b7a90">TXT</div><span>纯文本</span></div>
 
-    <div class="cell"><div class="logo" style="--c:#ff7a45">RE</div><span>正则</span></div>
-    <div class="cell"><div class="logo" style="--c:#8f77b5">#!</div><span>补丁</span></div>
-    <div class="cell"><div class="logo" style="--c:#2f9e7d">CFG</div><span>配置</span></div>
-    <div class="cell"><div class="logo" style="--c:#6f86ab">LOG</div><span>日志</span></div>
-    <div class="cell"><div class="logo dots" style="--c:#34435c">•••</div><span>更多…</span></div>
+      <div class="cell"><div class="logo" style="--c:#ff7a45">RE</div><span>正则</span></div>
+      <div class="cell"><div class="logo" style="--c:#8f77b5">#!</div><span>补丁</span></div>
+      <div class="cell"><div class="logo" style="--c:#2f9e7d">CFG</div><span>配置</span></div>
+      <div class="cell"><div class="logo" style="--c:#6f86ab">LOG</div><span>日志</span></div>
+      <div class="cell"><div class="logo dots" style="--c:#4b4a7a">•••</div><span>更多…</span></div>
+    </div>
+
+    <div class="tagline">轻如羽，快如风 — 你的下一个 <strong>macOS / Windows</strong> 编辑器</div>
   </div>
-</div>
 </body>
 </html>
