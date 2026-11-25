@@ -259,7 +259,7 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
     tab.language = languageName(finalPath);
     // 另存为其它类型后立即切换语法高亮
     if (viewRef.current && tabsState.activeId === tab.id) {
-      updateLanguageForPath(viewRef.current, finalPath);
+      void updateLanguageForPath(viewRef.current, finalPath);
     }
     tab.dirty = false;
     pushRecent(finalPath);

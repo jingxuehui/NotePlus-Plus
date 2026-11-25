@@ -681,8 +681,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            #[cfg(target_os = "macos")]
-            SYSTEM_DARK.store(read_system_dark(), Ordering::Relaxed);
+            // 系统外观读取放到后台线程，避免同步 defaults 子进程阻塞窗口创建
             spawn_system_theme_watcher(app.handle().clone());
             Ok(())
         })

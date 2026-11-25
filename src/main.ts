@@ -1,6 +1,5 @@
 import { createApp } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import App from "./App.vue";
 import FindDialog from "./components/FindDialog.vue";
 import "./style.css";
 
@@ -18,5 +17,6 @@ if (label === "find") {
   document.body.classList.add("find-window");
   createApp(FindDialog).mount("#app");
 } else {
-  createApp(App).mount("#app");
+  // 查找窗口无需求值整个编辑器依赖图，主界面按需引入
+  import("./App.vue").then(({ default: App }) => createApp(App).mount("#app"));
 }

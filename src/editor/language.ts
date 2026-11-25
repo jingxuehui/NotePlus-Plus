@@ -1,81 +1,97 @@
-import { LanguageSupport, StreamLanguage } from "@codemirror/language";
-import { javascript } from "@codemirror/lang-javascript";
-import { python } from "@codemirror/lang-python";
-import { html } from "@codemirror/lang-html";
-import { css } from "@codemirror/lang-css";
-import { json } from "@codemirror/lang-json";
-import { markdown } from "@codemirror/lang-markdown";
-import { cpp } from "@codemirror/lang-cpp";
-import { java } from "@codemirror/lang-java";
-import { rust } from "@codemirror/lang-rust";
-import { sql } from "@codemirror/lang-sql";
-import { xml } from "@codemirror/lang-xml";
-import { yaml } from "@codemirror/lang-yaml";
-import { go } from "@codemirror/lang-go";
-import { php } from "@codemirror/lang-php";
-import { vue } from "@codemirror/lang-vue";
-import { shell } from "@codemirror/legacy-modes/mode/shell";
-import { ruby } from "@codemirror/legacy-modes/mode/ruby";
-import { lua } from "@codemirror/legacy-modes/mode/lua";
-import { toml } from "@codemirror/legacy-modes/mode/toml";
-import { properties } from "@codemirror/legacy-modes/mode/properties";
-import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
+import type { Extension } from "@codemirror/state";
+import { LanguageSupport, StreamLanguage, type StreamParser } from "@codemirror/language";
 
-export interface LanguageDef {
-  name: string;
-  factory: () => LanguageSupport;
-}
+// 语言包名与加载器分开：名称用于状态栏显示（同步、零依赖），
+// 语法包本身按需 import，避免启动时把 20+ 套 Lezer 语法全部求值。
+const NAMES: Record<string, string> = {
+  js: "JavaScript", mjs: "JavaScript", cjs: "JavaScript",
+  jsx: "JSX",
+  ts: "TypeScript", mts: "TypeScript", tsx: "TypeScript JSX",
+  vue: "Vue",
+  html: "HTML", htm: "HTML",
+  xml: "XML", svg: "XML",
+  css: "CSS", scss: "CSS", less: "CSS",
+  json: "JSON", jsonc: "JSON",
+  md: "Markdown", markdown: "Markdown",
+  py: "Python", pyw: "Python",
+  rs: "Rust",
+  java: "Java",
+  c: "C", h: "C",
+  cpp: "C++", cc: "C++", cxx: "C++", hpp: "C++",
+  go: "Go",
+  sql: "SQL",
+  php: "PHP",
+  yaml: "YAML", yml: "YAML",
+  sh: "Shell", bash: "Shell", zsh: "Shell",
+  rb: "Ruby",
+  lua: "Lua",
+  toml: "TOML",
+  ini: "INI", conf: "INI", properties: "INI", cfg: "INI", env: "INI",
+  dockerfile: "Dockerfile",
+};
 
-const extensions: Record<string, LanguageDef> = {
-  js: { name: "JavaScript", factory: () => javascript() },
-  mjs: { name: "JavaScript", factory: () => javascript() },
-  cjs: { name: "JavaScript", factory: () => javascript() },
-  jsx: { name: "JSX", factory: () => javascript({ jsx: true }) },
-  ts: { name: "TypeScript", factory: () => javascript({ typescript: true }) },
-  mts: { name: "TypeScript", factory: () => javascript({ typescript: true }) },
-  tsx: {
-    name: "TypeScript JSX",
-    factory: () => javascript({ typescript: true, jsx: true }),
-  },
-  vue: { name: "Vue", factory: () => vue() },
-  html: { name: "HTML", factory: () => html() },
-  htm: { name: "HTML", factory: () => html() },
-  xml: { name: "XML", factory: () => xml() },
-  svg: { name: "XML", factory: () => xml() },
-  css: { name: "CSS", factory: () => css() },
-  scss: { name: "CSS", factory: () => css() },
-  less: { name: "CSS", factory: () => css() },
-  json: { name: "JSON", factory: () => json() },
-  jsonc: { name: "JSON", factory: () => json() },
-  md: { name: "Markdown", factory: () => markdown() },
-  markdown: { name: "Markdown", factory: () => markdown() },
-  py: { name: "Python", factory: () => python() },
-  pyw: { name: "Python", factory: () => python() },
-  rs: { name: "Rust", factory: () => rust() },
-  java: { name: "Java", factory: () => java() },
-  c: { name: "C", factory: () => cpp() },
-  h: { name: "C", factory: () => cpp() },
-  cpp: { name: "C++", factory: () => cpp() },
-  cc: { name: "C++", factory: () => cpp() },
-  cxx: { name: "C++", factory: () => cpp() },
-  hpp: { name: "C++", factory: () => cpp() },
-  go: { name: "Go", factory: () => go() },
-  sql: { name: "SQL", factory: () => sql() },
-  php: { name: "PHP", factory: () => php() },
-  yaml: { name: "YAML", factory: () => yaml() },
-  yml: { name: "YAML", factory: () => yaml() },
-  sh: { name: "Shell", factory: () => new LanguageSupport(StreamLanguage.define(shell)) },
-  bash: { name: "Shell", factory: () => new LanguageSupport(StreamLanguage.define(shell)) },
-  zsh: { name: "Shell", factory: () => new LanguageSupport(StreamLanguage.define(shell)) },
-  rb: { name: "Ruby", factory: () => new LanguageSupport(StreamLanguage.define(ruby)) },
-  lua: { name: "Lua", factory: () => new LanguageSupport(StreamLanguage.define(lua)) },
-  toml: { name: "TOML", factory: () => new LanguageSupport(StreamLanguage.define(toml)) },
-  ini: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
-  conf: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
-  properties: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
-  cfg: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
-  env: { name: "INI", factory: () => new LanguageSupport(StreamLanguage.define(properties)) },
-  dockerfile: { name: "Dockerfile", factory: () => new LanguageSupport(StreamLanguage.define(dockerFile)) },
+type LangLoader = () => Promise<LanguageSupport>;
+const JS = () => import("@codemirror/lang-javascript");
+const HTML = () => import("@codemirror/lang-html");
+const CSS = () => import("@codemirror/lang-css");
+const JSON_LANG = () => import("@codemirror/lang-json");
+const MD = () => import("@codemirror/lang-markdown");
+const PY = () => import("@codemirror/lang-python");
+const CPP = () => import("@codemirror/lang-cpp");
+const XML = () => import("@codemirror/lang-xml");
+const YAML = () => import("@codemirror/lang-yaml");
+const PROPERTIES = () => import("@codemirror/legacy-modes/mode/properties");
+
+const stream = (mod: Promise<unknown>, key: string): Promise<LanguageSupport> =>
+  mod.then((m) => new LanguageSupport(StreamLanguage.define((m as Record<string, StreamParser<unknown>>)[key])));
+
+const LOADERS: Record<string, LangLoader> = {
+  js: () => JS().then((m) => m.javascript()),
+  mjs: () => JS().then((m) => m.javascript()),
+  cjs: () => JS().then((m) => m.javascript()),
+  jsx: () => JS().then((m) => m.javascript({ jsx: true })),
+  ts: () => JS().then((m) => m.javascript({ typescript: true })),
+  mts: () => JS().then((m) => m.javascript({ typescript: true })),
+  tsx: () => JS().then((m) => m.javascript({ typescript: true, jsx: true })),
+  vue: () => import("@codemirror/lang-vue").then((m) => m.vue()),
+  html: () => HTML().then((m) => m.html()),
+  htm: () => HTML().then((m) => m.html()),
+  xml: () => XML().then((m) => m.xml()),
+  svg: () => XML().then((m) => m.xml()),
+  css: () => CSS().then((m) => m.css()),
+  scss: () => CSS().then((m) => m.css()),
+  less: () => CSS().then((m) => m.css()),
+  json: () => JSON_LANG().then((m) => m.json()),
+  jsonc: () => JSON_LANG().then((m) => m.json()),
+  md: () => MD().then((m) => m.markdown()),
+  markdown: () => MD().then((m) => m.markdown()),
+  py: () => PY().then((m) => m.python()),
+  pyw: () => PY().then((m) => m.python()),
+  rs: () => import("@codemirror/lang-rust").then((m) => m.rust()),
+  java: () => import("@codemirror/lang-java").then((m) => m.java()),
+  c: () => CPP().then((m) => m.cpp()),
+  h: () => CPP().then((m) => m.cpp()),
+  cpp: () => CPP().then((m) => m.cpp()),
+  cc: () => CPP().then((m) => m.cpp()),
+  cxx: () => CPP().then((m) => m.cpp()),
+  hpp: () => CPP().then((m) => m.cpp()),
+  go: () => import("@codemirror/lang-go").then((m) => m.go()),
+  sql: () => import("@codemirror/lang-sql").then((m) => m.sql()),
+  php: () => import("@codemirror/lang-php").then((m) => m.php()),
+  yaml: () => YAML().then((m) => m.yaml()),
+  yml: () => YAML().then((m) => m.yaml()),
+  sh: () => stream(import("@codemirror/legacy-modes/mode/shell"), "shell"),
+  bash: () => stream(import("@codemirror/legacy-modes/mode/shell"), "shell"),
+  zsh: () => stream(import("@codemirror/legacy-modes/mode/shell"), "shell"),
+  rb: () => stream(import("@codemirror/legacy-modes/mode/ruby"), "ruby"),
+  lua: () => stream(import("@codemirror/legacy-modes/mode/lua"), "lua"),
+  toml: () => stream(import("@codemirror/legacy-modes/mode/toml"), "toml"),
+  ini: () => stream(PROPERTIES(), "properties"),
+  conf: () => stream(PROPERTIES(), "properties"),
+  properties: () => stream(PROPERTIES(), "properties"),
+  cfg: () => stream(PROPERTIES(), "properties"),
+  env: () => stream(PROPERTIES(), "properties"),
+  dockerfile: () => stream(import("@codemirror/legacy-modes/mode/dockerfile"), "dockerFile"),
 };
 
 export function fileExtension(path: string): string {
@@ -88,12 +104,18 @@ export function fileExtension(path: string): string {
   return idx > 0 ? name.slice(idx + 1).toLowerCase() : "";
 }
 
-export function languageFor(path: string): LanguageSupport | null {
-  const def = extensions[fileExtension(path)];
-  return def ? def.factory() : null;
+/** 异步加载语法包：只有真正打开对应类型文件时才会请求该 chunk */
+export async function loadLanguageFor(path: string): Promise<Extension | null> {
+  const loader = LOADERS[fileExtension(path)];
+  if (!loader) return null;
+  try {
+    return await loader();
+  } catch (e) {
+    console.warn("加载语法高亮失败", path, e);
+    return null;
+  }
 }
 
 export function languageName(path: string): string {
-  const def = extensions[fileExtension(path)];
-  return def ? def.name : "纯文本";
+  return NAMES[fileExtension(path)] ?? "纯文本";
 }

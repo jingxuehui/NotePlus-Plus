@@ -25,7 +25,7 @@ onMounted(() => {
     },
   });
   viewRef.current = view;
-  updateLanguageForPath(view, activeTab.value?.path ?? null);
+  void updateLanguageForPath(view, activeTab.value?.path ?? null);
   view.focus();
 });
 
@@ -38,7 +38,7 @@ onBeforeUnmount(() => {
 watch(activeTab, (tab) => {
   if (!view) return;
   view.setState(tab ? (getState(tab) ?? emptyState) : emptyState);
-  updateLanguageForPath(view, tab?.path ?? null);
+  void updateLanguageForPath(view, tab?.path ?? null);
   view.focus();
 });
 

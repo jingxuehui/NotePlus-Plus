@@ -36,7 +36,7 @@ import type { CursorInfo } from "@/types";
 import { darkTheme, lightTheme } from "./themes";
 import { matchHighlight } from "./matchHighlight";
 import type { ThemeMode } from "@/stores/settings";
-import { languageFor } from "./language";
+import { loadLanguageFor } from "./language";
 
 export interface EditorHooks {
   getTheme: () => ThemeMode;
@@ -50,10 +50,10 @@ const wrapComp = new Compartment();
 const appearanceComp = new Compartment();
 const languageComp = new Compartment();
 
-export function buildExtensions(hooks: EditorHooks, lang: Extension = []): Extension[] {
+export function buildExtensions(hooks: EditorHooks): Extension[] {
   return [
-    // 语言由 compartment 管理：另存为其它类型后可即时切换高亮
-    languageComp.of(lang),
+    // 语言由 compartment 管理：语法包异步加载完成后再注入
+    languageComp.of([]),
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
@@ -119,16 +119,25 @@ export function reconfigureAppearance(view: EditorView, hooks: EditorHooks) {
   });
 }
 
-/** 为某个标签页创建 EditorState */
-export function createStateForFile(path: string | null, content: string, hooks: EditorHooks): EditorState {
-  const lang = path ? languageFor(path) : null;
+/** 为某个标签页创建 EditorState（语法包随后由 updateLanguageForPath 异步注入） */
+export function createStateForFile(_path: string | null, content: string, hooks: EditorHooks): EditorState {
   return EditorState.create({
     doc: content,
-    extensions: buildExtensions(hooks, lang ?? []),
+    extensions: buildExtensions(hooks),
   });
 }
 
-/** 按文件路径切换语法高亮（另存为、标签切换时使用） */
-export function updateLanguageForPath(view: EditorView, path: string | null) {
-  view.dispatch({ effects: languageComp.reconfigure(path ? languageFor(path) ?? [] : []) });
+const languageSeq = new WeakMap<EditorView, number>();
+
+/** 按文件路径异步切换语法高亮；同一视图上仅最后一次请求生效，避免快速切换标签时乱序 */
+export async function updateLanguageForPath(view: EditorView, path: string | null): Promise<void> {
+  const seq = (languageSeq.get(view) ?? 0) + 1;
+  languageSeq.set(view, seq);
+  const lang = path ? await loadLanguageFor(path) : null;
+  if (languageSeq.get(view) !== seq) return;
+  try {
+    view.dispatch({ effects: languageComp.reconfigure(lang ?? []) });
+  } catch {
+    // 视图可能已销毁
+  }
 }

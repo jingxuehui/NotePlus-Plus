@@ -146,7 +146,8 @@ function initUpdater() {
     .then((v) => { appVersion.value = v; })
     .catch(() => { /* 使用编译期版本 */ });
   if (settings.autoUpdate && settings.toolbar.updateButton) {
-    void checkForUpdates();
+    // 延后到启动高峰之后，避免与会话恢复争抢网络与磁盘
+    window.setTimeout(() => void checkForUpdates(), 8000);
   }
 }
 

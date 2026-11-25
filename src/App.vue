@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from "vue";
+import { defineAsyncComponent, onMounted, onBeforeUnmount } from "vue";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import FileTree from "./components/FileTree.vue";
 import TitleBar from "./components/TitleBar.vue";
 import TabBar from "./components/TabBar.vue";
 import EditorPane from "./components/EditorPane.vue";
-import SettingsPanel from "./components/SettingsPanel.vue";
 import StatusBar from "./components/StatusBar.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
 import Welcome from "./components/Welcome.vue";
 import Toast from "./components/Toast.vue";
 import GlobalTooltip from "./components/GlobalTooltip.vue";
-import UpdateCenter from "./components/UpdateCenter.vue";
-import ToolsPanel from "./components/ToolsPanel.vue";
+
+// 弹窗类组件按需加载，减小首屏模块求值与主 chunk 体积
+const SettingsPanel = defineAsyncComponent(() => import("./components/SettingsPanel.vue"));
+const UpdateCenter = defineAsyncComponent(() => import("./components/UpdateCenter.vue"));
+const ToolsPanel = defineAsyncComponent(() => import("./components/ToolsPanel.vue"));
 import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { updater } from "./stores/updater";
