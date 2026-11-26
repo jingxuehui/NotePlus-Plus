@@ -72,22 +72,26 @@ const accentOptions = computed(() =>
 );
 
 // 与 DBX 一致的语言 / 缩放档位 / 界面字体选项
+// 不使用旗帜 emoji：Windows WebView2 缺少彩色旗帜字体，会退化成字母码；改用自绘 CSS 徽章
 const LANGUAGE_OPTIONS = [
-  { value: "en-US", flag: "🇺🇸", label: "English" },
-  { value: "az", flag: "🇦🇿", label: "Azərbaycan" },
-  { value: "es", flag: "🇪🇸", label: "Español" },
-  { value: "id", flag: "🇮🇩", label: "Bahasa Indonesia" },
-  { value: "it", flag: "🇮🇹", label: "Italiano" },
-  { value: "ja", flag: "🇯🇵", label: "日本語" },
-  { value: "ko", flag: "🇰🇷", label: "한국어" },
-  { value: "pt-BR", flag: "🇧🇷", label: "Português" },
-  { value: "pl", flag: "🇵🇱", label: "Polski" },
-  { value: "ru", flag: "🇷🇺", label: "Русский" },
-  { value: "th", flag: "🇹🇭", label: "ภาษาไทย" },
-  { value: "tr", flag: "🇹🇷", label: "Türkçe" },
-  { value: "zh-CN", flag: "🇨🇳", label: "简体中文" },
-  { value: "zh-TW", flag: "繁", label: "繁體中文" },
+  { value: "en-US", code: "EN", color: "#4f6bed", label: "English" },
+  { value: "az", code: "AZ", color: "#38b2ac", label: "Azərbaycan" },
+  { value: "es", code: "ES", color: "#e8a317", label: "Español" },
+  { value: "id", code: "ID", color: "#d64526", label: "Bahasa Indonesia" },
+  { value: "it", code: "IT", color: "#178643", label: "Italiano" },
+  { value: "ja", code: "JA", color: "#bc002d", label: "日本語" },
+  { value: "ko", code: "KO", color: "#cd2e3a", label: "한국어" },
+  { value: "pt-BR", code: "PT", color: "#238b45", label: "Português" },
+  { value: "pl", code: "PL", color: "#c8102e", label: "Polski" },
+  { value: "ru", code: "RU", color: "#b5202d", label: "Русский" },
+  { value: "th", code: "TH", color: "#2e4b9b", label: "ภาษาไทย" },
+  { value: "tr", code: "TR", color: "#d32b2b", label: "Türkçe" },
+  { value: "zh-CN", code: "ZH", color: "#de2910", label: "简体中文" },
+  { value: "zh-TW", code: "TW", color: "#a52a2a", label: "繁體中文" },
 ];
+function langOpt(value: string) {
+  return LANGUAGE_OPTIONS.find((l) => l.value === value) ?? LANGUAGE_OPTIONS[0];
+}
 const ZOOM_OPTIONS = [75, 90, 95, 100, 105, 110, 115, 120, 125, 150, 175];
 const UI_FONT_OPTIONS = [
   { value: "system", label: "font.system" },
@@ -101,9 +105,14 @@ const UI_FONT_OPTIONS = [
 ];
 const accentOpen = ref(false);
 const accentWrap = ref<HTMLElement | null>(null);
+const langOpen = ref(false);
+const langWrap = ref<HTMLElement | null>(null);
 function onDocClick(e: MouseEvent) {
   if (accentOpen.value && accentWrap.value && !accentWrap.value.contains(e.target as Node)) {
     accentOpen.value = false;
+  }
+  if (langOpen.value && langWrap.value && !langWrap.value.contains(e.target as Node)) {
+    langOpen.value = false;
   }
 }
 
@@ -393,10 +402,24 @@ onBeforeUnmount(() => {
               <div class="grid">
                 <div class="field" v-show="matches('语言', 'Language')">
                   <label class="field-label">{{ t("set.language") }}</label>
-                  <div class="select-wrap">
-                    <select v-model="draft.language">
-                      <option v-for="l in LANGUAGE_OPTIONS" :key="l.value" :value="l.value">{{ l.flag }} {{ l.label }}</option>
-                    </select>
+                  <div class="select-wrap lang-select" ref="langWrap">
+                    <button type="button" class="lang-trigger" @click="langOpen = !langOpen">
+                      <span class="lang-badge" :style="{ background: langOpt(draft.language).color }">{{ langOpt(draft.language).code }}</span>
+                      <span>{{ langOpt(draft.language).label }}</span>
+                    </button>
+                    <div class="lang-menu" v-if="langOpen">
+                      <button
+                        v-for="l in LANGUAGE_OPTIONS"
+                        :key="l.value"
+                        type="button"
+                        :class="{ on: draft.language === l.value }"
+                        @click="draft.language = l.value; langOpen = false"
+                      >
+                        <span class="lang-badge" :style="{ background: l.color }">{{ l.code }}</span>
+                        <span>{{ l.label }}</span>
+                        <span class="accent-check" v-if="draft.language === l.value">✓</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="field" v-show="matches('配色', '主题')">
@@ -1074,6 +1097,77 @@ select:focus { border-color: var(--accent); }
 .accent-menu > button:hover { background: var(--hover); }
 .accent-menu > button.on { color: var(--accent); font-weight: 600; }
 .accent-check { margin-left: auto; font-size: 11px; }
+
+/* 语言选择：自绘徽章下拉（不依赖旗帜 emoji，Windows WebView2 也能显示） */
+.lang-select { position: relative; }
+.lang-trigger {
+  width: 100%;
+  height: 36px;
+  padding: 0 30px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.lang-trigger::after {
+  content: "▾";
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+.lang-trigger:hover { border-color: var(--muted); }
+.lang-badge {
+  width: 26px;
+  height: 19px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius, 6px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.lang-menu > button {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.lang-menu > button:hover { background: var(--hover); }
+.lang-menu > button.on { color: var(--accent); font-weight: 600; }
 
 /* 分段控件 */
 /* 与「通用」区域一致的两列网格：左列主题、右列圆角样式 */
