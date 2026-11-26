@@ -5,6 +5,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_dialog::DialogExt;
 
 /// 真实系统外观缓存（由 Rust 侧维护，前端不依赖 WKWebView 媒体查询）
 static SYSTEM_DARK: AtomicBool = AtomicBool::new(true);
@@ -28,6 +29,93 @@ pub struct TextFileInfo {
 #[derive(Serialize)]
 pub struct WriteResult {
     pub bytes_written: usize,
+}
+
+/// 原生对话框结果转换（避免把 FilePath 直接跨 IPC 传递）
+fn dialog_path(p: Option<tauri_plugin_dialog::FilePath>) -> Option<String> {
+    p.and_then(|p| p.into_path().ok())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+fn dialog_paths(p: Option<Vec<tauri_plugin_dialog::FilePath>>) -> Option<Vec<String>> {
+    p.map(|list| {
+        list.into_iter()
+            .filter_map(|p| p.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect()
+    })
+}
+
+/**
+ * 自定义「保存文件」对话框。
+ * 不使用 plugin-dialog 的 JS save()：它在 Windows 上会把对话框 owner 绑定到当前 WebView
+ * 窗口，而对话框实际跑在独立线程，跨线程 HWND 会导致对话框卡死甚至应用闪退。
+ * 这里 Windows 不设 owner，macOS 保留父窗口；两者都走插件的非阻塞回调 API。
+ */
+#[tauri::command]
+async fn np_save_file(
+    app: AppHandle,
+    window: tauri::Window,
+    title: String,
+    default_path: Option<String>,
+) -> Result<Option<String>, String> {
+    let (tx, mut rx) = tauri::async_runtime::channel(1);
+    let mut builder = app.dialog().file().set_title(title);
+    if let Some(dp) = default_path {
+        let p = Path::new(&dp);
+        if let (Some(parent), Some(name)) = (p.parent(), p.file_name()) {
+            if parent.components().count() > 0 {
+                builder = builder.set_directory(parent);
+            }
+            builder = builder.set_file_name(name.to_string_lossy());
+        } else {
+            builder = builder.set_file_name(dp);
+        }
+    }
+    #[cfg(target_os = "macos")]
+    let builder = builder.set_parent(&window);
+    #[cfg(not(target_os = "macos"))]
+    drop(window);
+
+    builder.save_file(move |p| {
+        let _ = tx.try_send(dialog_path(p));
+    });
+    Ok(rx.recv().await.unwrap_or(None))
+}
+
+/** 自定义「打开文件 / 文件夹」对话框，Windows 不设 owner（原因同上） */
+#[tauri::command]
+async fn np_open_dialog(
+    app: AppHandle,
+    window: tauri::Window,
+    title: String,
+    multiple: bool,
+    directory: bool,
+) -> Result<Option<Vec<String>>, String> {
+    let (tx, mut rx) = tauri::async_runtime::channel(1);
+    let builder = app.dialog().file().set_title(title);
+    #[cfg(target_os = "macos")]
+    let builder = builder.set_parent(&window);
+    #[cfg(not(target_os = "macos"))]
+    drop(window);
+
+    if directory && multiple {
+        builder.pick_folders(move |p| {
+            let _ = tx.try_send(dialog_paths(p));
+        });
+    } else if directory {
+        builder.pick_folder(move |p| {
+            let _ = tx.try_send(dialog_path(p).map(|s| vec![s]));
+        });
+    } else if multiple {
+        builder.pick_files(move |p| {
+            let _ = tx.try_send(dialog_paths(p));
+        });
+    } else {
+        builder.pick_file(move |p| {
+            let _ = tx.try_send(dialog_path(p).map(|s| vec![s]));
+        });
+    }
+    Ok(rx.recv().await.unwrap_or(None))
 }
 
 /// 文件树节点
@@ -758,6 +846,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_text_file,
             write_text_file,
+            np_save_file,
+            np_open_dialog,
             read_dir_tree,
             reveal_in_finder,
             fetch_releases,

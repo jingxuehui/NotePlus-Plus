@@ -19,6 +19,20 @@ export interface FileNode {
   size?: number;
 }
 
+/** 自定义原生保存对话框（Windows 上避免插件对话框跨线程 owner 导致卡死/闪退） */
+export function nativeSaveFile(title: string, defaultPath?: string): Promise<string | null> {
+  return invoke("np_save_file", { title, defaultPath: defaultPath ?? null });
+}
+
+/** 自定义原生打开对话框：返回选中的文件 / 文件夹路径 */
+export function nativeOpenPaths(
+  title: string,
+  multiple: boolean,
+  directory: boolean
+): Promise<string[] | null> {
+  return invoke("np_open_dialog", { title, multiple, directory });
+}
+
 export function readTextFile(path: string): Promise<TextFileInfo> {
   return invoke("read_text_file", { path });
 }

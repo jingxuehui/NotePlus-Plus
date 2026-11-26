@@ -1,10 +1,9 @@
 import { reactive, computed } from "vue";
 import type { EditorState } from "@codemirror/state";
-import { save as saveDialog, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { createStateForFile, updateLanguageForPath } from "@/editor/setup";
 import { viewRef } from "@/editor/view";
 import { languageName } from "@/editor/language";
-import { readTextFile, writeTextFile } from "@/commands";
+import { nativeOpenPaths, nativeSaveFile, readTextFile, writeTextFile } from "@/commands";
 import { pushRecent } from "./recent";
 import { settings } from "./settings";
 import { notify } from "./toast";
@@ -12,6 +11,17 @@ import { t } from "@/i18n";
 import { EMPTY_CURSOR, type CursorInfo } from "@/types";
 
 let uid = 0;
+/** 文件对话框防重入：连续点击/快捷键重复触发会让原生对话框互相嵌套导致卡死 */
+let dialogBusy = false;
+async function withDialog<T>(run: () => Promise<T>): Promise<T | null> {
+  if (dialogBusy) return null;
+  dialogBusy = true;
+  try {
+    return await run();
+  } finally {
+    dialogBusy = false;
+  }
+}
 
 export interface Tab {
   id: number;
@@ -258,13 +268,17 @@ export async function openFiles(paths: string[]) {
 }
 
 export async function openWithDialog(): Promise<void> {
-  const picked = await openDialog({ multiple: true });
-  if (picked) await openFiles(picked);
+  const picked = await withDialog(() =>
+    nativeOpenPaths(t("dialog.openFile"), true, false)
+  );
+  if (picked?.length) await openFiles(picked);
 }
 
 export async function openFolderWithDialog(): Promise<string | null> {
-  const picked = await openDialog({ directory: true, multiple: false });
-  return picked ?? null;
+  const picked = await withDialog(() =>
+    nativeOpenPaths(t("dialog.openFolder"), false, true)
+  );
+  return picked?.[0] ?? null;
 }
 
 export function removeTab(id: number) {
@@ -314,10 +328,9 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
   }
   // 保存对话框不传 filters：macOS 会把 filters 的首个扩展名自动追加到文件名末尾，
   // 传 ["*"] 会把「新文件 1.sql」保存成「新文件 1.sql.*」。
-  const path = await saveDialog({
-    title: t("dialog.saveFile"),
-    defaultPath: tab.name,
-  });
+  const path = await withDialog(() =>
+    nativeSaveFile(t("dialog.saveFile"), tab.name)
+  );
   if (!path) return false;
   // 用户未输入扩展名时，沿用当前标签的扩展名，避免保存成无类型文件
   const ext = /\.[^./\\]+$/.exec(tab.name)?.[0] ?? "";
