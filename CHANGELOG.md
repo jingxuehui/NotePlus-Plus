@@ -3,6 +3,27 @@
 NotePlus+ 所有正式版本的变更记录。本文件由 `scripts/changelog.mjs` 从 Git 提交记录自动生成，
 执行 `pnpm release` 时会自动更新，发布到 GitHub / Gitee 的 Release 正文也取自这里。
 
+## [0.1.6] - 2026-11-26
+
+### 新增
+
+- Windows 对话框改用 rfd 同步 API——绕开插件多层线程链避免卡死；对话框异常统一 toast 提示不再静默；新增 panic hook 落盘日志（Windows release panic=abort 崩溃可定位）
+- 语言旗帜改为内置 SVG 图标（public/icons/flags，Windows 不依赖系统 emoji 字体）；设置加载时语言值归一化回退；强调色混合改为手动 hex 计算（WKWebView 不支持 color-mix）
+- 文件对话框改走自定义 Rust 命令（np_save_file/np_open_dialog）——Windows 不设对话框 owner 避免跨线程 HWND 卡死闪退，macOS 保留父窗口模态；打开/另存为统一接入
+- Windows 窗控按钮强制排至标题栏最右侧；欢迎页快捷键在 Windows 下显示 Ctrl/Shift/Alt 文本组合并适配键帽宽度
+
+### 修复
+
+- 查找窗口 Windows 适配——async command 避免 WebView2 同步 build 死锁，窗口按主窗口居中（物理像素兼容高 DPI），.ico 图标更新
+
+### 性能
+
+- 会话恢复改为惰性加载——快照只还原元数据，切换到标签时再从磁盘读内容（去重防并发）；Splash 等会话恢复完成后淡出；关闭文件夹只关闭文件夹内的标签
+
+### 样式
+
+- 设置面板语言选择改为自绘徽章下拉——用语言代码徽章替代旗帜 emoji（Windows WebView2 无旗帜字形也能正常显示），配色下拉交互统一
+
 ## [0.1.5] - 2026-11-24
 
 ### 新增
