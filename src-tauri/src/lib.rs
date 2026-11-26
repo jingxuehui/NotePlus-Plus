@@ -849,14 +849,16 @@ fn set_icon_style(black: bool) {
     use objc2_app_kit::{NSApplication, NSImage};
     use objc2_foundation::NSData;
 
-    let bytes: &[u8] = if black {
-        include_bytes!("../icons/icon_black_round.png")
-    } else {
-        include_bytes!("../icons/icon_round.png")
-    };
     // Tauri 的命令处理器运行在主线程，这里与 tauri 内部设置图标的方式一致
     let mtm = unsafe { MainThreadMarker::new_unchecked() };
     let app = NSApplication::sharedApplication(mtm);
+    if !black {
+        // 默认样式交还系统从 bundle 中读取的图标（多尺寸 icns），
+        // 避免用单张 512 PNG 替换后 Dock 缩放渲染产生白边
+        unsafe { app.setApplicationIconImage(None) };
+        return;
+    }
+    let bytes: &[u8] = include_bytes!("../icons/icon_black_round.png");
     let data = NSData::with_bytes(bytes);
     if let Some(icon) = NSImage::initWithData(NSImage::alloc(), &data) {
         unsafe { app.setApplicationIconImage(Some(&icon)) };
