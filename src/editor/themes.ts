@@ -42,25 +42,25 @@ export function darkTheme(): Extension {
     EditorView.theme(
       {
         "&": {
-          color: "#d4d4d4",
-          backgroundColor: "#1e1f24",
+          color: "var(--text)",
+          backgroundColor: "var(--panel)",
         },
         ".cm-content": { caretColor: "var(--accent)", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
         "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
           { backgroundColor: "var(--selection-bg, #4fc3f78c)" },
-        ".cm-activeLine": { backgroundColor: "#26272e" },
+        ".cm-activeLine": { backgroundColor: "var(--hover)" },
         ".cm-gutters": {
-          // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部
-          backgroundColor: "#1a1b20",
+          // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部（均随强调色变化）
+          backgroundColor: "var(--gutter)",
           color: "#5c6370",
           border: "none",
-          borderRight: "1px solid #2d2e35",
+          borderRight: "1px solid var(--border)",
           height: "100%",
         },
         ".cm-activeLineGutter": {
-          backgroundColor: "#26272e",
-          color: "#d4d4d4",
+          backgroundColor: "var(--hover)",
+          color: "var(--text)",
         },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
         ".np-match": {
@@ -74,10 +74,10 @@ export function darkTheme(): Extension {
           borderRadius: "2px",
           color: "#16171c",
         },
-        ".cm-panels": { backgroundColor: "#232429", color: "#d4d4d4" },
+        ".cm-panels": { backgroundColor: "var(--panel-2)", color: "var(--text)" },
         ".cm-tooltip": {
-          backgroundColor: "#2a2b32",
-          border: "1px solid #3a3b44",
+          backgroundColor: "var(--hover)",
+          border: "1px solid var(--border)",
           borderRadius: "6px",
         },
         ".cm-foldPlaceholder": { backgroundColor: "#31415f", border: "none", color: "#9aa4b8" },
@@ -127,23 +127,23 @@ export function lightTheme(): Extension {
     EditorView.theme(
       {
         "&": {
-          color: "#2d3138",
-          backgroundColor: "#ffffff",
+          color: "var(--text)",
+          backgroundColor: "var(--panel)",
         },
         ".cm-content": { caretColor: "var(--accent)", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
         "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
           { backgroundColor: "var(--selection-bg, #0b6cb54d)" },
-        ".cm-activeLine": { backgroundColor: "#f3f5f8" },
+        ".cm-activeLine": { backgroundColor: "var(--panel-2)" },
         ".cm-gutters": {
-          // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部
-          backgroundColor: "#f7f8fa",
+          // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部（均随强调色变化）
+          backgroundColor: "var(--gutter)",
           color: "#9aa2ad",
           border: "none",
-          borderRight: "1px solid #e6e9ee",
+          borderRight: "1px solid var(--border)",
           height: "100%",
         },
-        ".cm-activeLineGutter": { backgroundColor: "#f3f5f8", color: "#2d3138" },
+        ".cm-activeLineGutter": { backgroundColor: "var(--panel-2)", color: "var(--text)" },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
         ".np-match": {
           backgroundColor: "rgba(240, 165, 30, 0.52)",
@@ -156,10 +156,10 @@ export function lightTheme(): Extension {
           borderRadius: "2px",
           color: "#1a1a1a",
         },
-        ".cm-panels": { backgroundColor: "#f3f5f8", color: "#2d3138" },
+        ".cm-panels": { backgroundColor: "var(--panel-2)", color: "var(--text)" },
         ".cm-tooltip": {
-          backgroundColor: "#ffffff",
-          border: "1px solid #dde1e7",
+          backgroundColor: "var(--panel)",
+          border: "1px solid var(--border)",
           borderRadius: "6px",
         },
         ".cm-foldPlaceholder": { backgroundColor: "#cfe1f7", border: "none", color: "#5c6773" },

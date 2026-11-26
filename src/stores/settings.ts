@@ -86,6 +86,13 @@ export interface Settings {
 }
 
 const STORAGE_KEY = "noteplus.settings";
+/** 已完整实现的语言；旧配置中的其它语言值自动回退到默认语言 */
+const SUPPORTED_LANGUAGES = ["en-US", "zh-CN", "zh-TW"];
+
+function normalizeLoaded(s: Settings): Settings {
+  if (!SUPPORTED_LANGUAGES.includes(s.language)) s.language = DEFAULT_SETTINGS.language;
+  return s;
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
@@ -194,23 +201,23 @@ function load(): Settings {
       if (Array.isArray(saved.toolbarOrder)) {
         saved.toolbarOrder = saved.toolbarOrder.filter((k) => k !== "moreMenu");
       }
-      return {
+      return normalizeLoaded({
         ...DEFAULT_SETTINGS,
         ...saved,
         toolbar: { ...DEFAULT_SETTINGS.toolbar, ...(saved.toolbar ?? {}) },
         tabMenu: { ...DEFAULT_SETTINGS.tabMenu, ...(saved.tabMenu ?? {}) },
         toolbarOrder: mergeOrder(DEFAULT_SETTINGS.toolbarOrder, saved.toolbarOrder),
         tabMenuOrder: mergeOrder(DEFAULT_SETTINGS.tabMenuOrder, saved.tabMenuOrder),
-      };
+      });
     }
   } catch {
     /* ignore */
   }
-  return {
+  return normalizeLoaded({
     ...DEFAULT_SETTINGS,
     toolbarOrder: [...DEFAULT_SETTINGS.toolbarOrder],
     tabMenuOrder: [...DEFAULT_SETTINGS.tabMenuOrder],
-  };
+  });
 }
 
 export const settings = reactive<Settings>(load());
@@ -253,6 +260,26 @@ export const ACCENTS: Record<AccentName, AccentColors> = {
   claude: accentColors("#e0a37d", "#b5653d"),
 };
 
+/** 十六进制颜色混合：把强调色按 amount 比例混入基础色（WKWebView 不支持 color-mix，故手动算） */
+function mixHex(base: string, accent: string, amount: number): string {
+  const parse = (hex: string): [number, number, number] => {
+    const h = hex.replace("#", "");
+    const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+    return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)) as [number, number, number];
+  };
+  const [r1, g1, b1] = parse(base);
+  const [r2, g2, b2] = parse(accent);
+  const ch = (a: number, b: number) =>
+    Math.round(a + (b - a) * amount).toString(16).padStart(2, "0");
+  return `#${ch(r1, r2)}${ch(g1, g2)}${ch(b1, b2)}`;
+}
+
+/** 面板基础色（与 style.css 的 :root / .theme-light 保持一致） */
+const SURFACE_BASE = {
+  dark: { bg: "#17181c", panel: "#1e1f24", panel2: "#232429", hover: "#2a2b32", border: "#2e2f36", gutter: "#1a1b20" },
+  light: { bg: "#f5f6f8", panel: "#ffffff", panel2: "#f0f2f5", hover: "#e4e8ee", border: "#dde1e7", gutter: "#f7f8fa" },
+};
+
 /** 把一组设置应用到界面（支持设置弹框的实时预览） */
 export function applyVisual(s: Settings) {
   const body = document.body;
@@ -265,12 +292,22 @@ export function applyVisual(s: Settings) {
 
   const accent = ACCENTS[s.accent] ?? ACCENTS.cobalt;
   const light = s.theme === "light";
+  const accentHex = light ? accent.light : accent.dark;
+  const base = light ? SURFACE_BASE.light : SURFACE_BASE.dark;
+  // 强调色低比例混入面板/边框/编辑器底色，让整体界面随配色主题变化（非仅高亮元素）
+  const mix = (color: string, amount: number) => mixHex(color, accentHex, amount);
   const accentVars: Array<[string, string]> = [
-    ["--accent", light ? accent.light : accent.dark],
+    ["--accent", accentHex],
     ["--accent-tint", light ? accent.tintLight : accent.tintDark],
     ["--accent-edge", light ? accent.edgeLight : accent.edgeDark],
     // 文本选中底色跟随主题：深色用更实的强调色，浅色用浅淡的强调色
     ["--selection-bg", light ? `${accent.light}4d` : `${accent.dark}8c`],
+    ["--bg", mix(base.bg, light ? 0.05 : 0.06)],
+    ["--panel", mix(base.panel, light ? 0.05 : 0.07)],
+    ["--panel-2", mix(base.panel2, light ? 0.08 : 0.09)],
+    ["--hover", mix(base.hover, light ? 0.11 : 0.12)],
+    ["--border", mix(base.border, light ? 0.15 : 0.17)],
+    ["--gutter", mix(base.gutter, light ? 0.08 : 0.07)],
     ["--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px"],
   ];
   // 同时写到 html 根节点和 body：CodeMirror 等注入到页面中的样式从根节点继承

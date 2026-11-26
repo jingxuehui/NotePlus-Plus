@@ -18,6 +18,7 @@ import { t } from "@/i18n";
 import { isMac } from "@/utils/platform";
 import HintTip from "@/components/HintTip.vue";
 import ThemeIcon from "@/components/ThemeIcon.vue";
+import LocaleFlag from "@/components/LocaleFlag.vue";
 
 const emit = defineEmits<{ close: [] }>();
 
@@ -73,21 +74,12 @@ const accentOptions = computed(() =>
 
 // 与 DBX 一致的语言 / 缩放档位 / 界面字体选项
 // 不使用旗帜 emoji：Windows WebView2 缺少彩色旗帜字体，会退化成字母码；改用自绘 CSS 徽章
+// 仅保留已完整实现的三种语言；其余语言尚未翻译，暂不提供选项
 const LANGUAGE_OPTIONS = [
-  { value: "en-US", code: "EN", color: "#4f6bed", label: "English" },
-  { value: "az", code: "AZ", color: "#38b2ac", label: "Azərbaycan" },
-  { value: "es", code: "ES", color: "#e8a317", label: "Español" },
-  { value: "id", code: "ID", color: "#d64526", label: "Bahasa Indonesia" },
-  { value: "it", code: "IT", color: "#178643", label: "Italiano" },
-  { value: "ja", code: "JA", color: "#bc002d", label: "日本語" },
-  { value: "ko", code: "KO", color: "#cd2e3a", label: "한국어" },
-  { value: "pt-BR", code: "PT", color: "#238b45", label: "Português" },
-  { value: "pl", code: "PL", color: "#c8102e", label: "Polski" },
-  { value: "ru", code: "RU", color: "#b5202d", label: "Русский" },
-  { value: "th", code: "TH", color: "#2e4b9b", label: "ภาษาไทย" },
-  { value: "tr", code: "TR", color: "#d32b2b", label: "Türkçe" },
-  { value: "zh-CN", code: "ZH", color: "#de2910", label: "简体中文" },
-  { value: "zh-TW", code: "TW", color: "#a52a2a", label: "繁體中文" },
+  { value: "en-US", flag: "🇺🇸", flagIcon: "us", label: "English" },
+  { value: "zh-CN", flag: "🇨🇳", flagIcon: "cn", label: "简体中文" },
+  // dbx 对繁体同样使用「繁」字兜底（无对应旗帜 SVG）
+  { value: "zh-TW", flag: "繁", label: "繁體中文" },
 ];
 function langOpt(value: string) {
   return LANGUAGE_OPTIONS.find((l) => l.value === value) ?? LANGUAGE_OPTIONS[0];
@@ -110,9 +102,11 @@ const langWrap = ref<HTMLElement | null>(null);
 function onDocClick(e: MouseEvent) {
   if (accentOpen.value && accentWrap.value && !accentWrap.value.contains(e.target as Node)) {
     accentOpen.value = false;
+    endPreview();
   }
   if (langOpen.value && langWrap.value && !langWrap.value.contains(e.target as Node)) {
     langOpen.value = false;
+    endPreview();
   }
 }
 
@@ -292,6 +286,45 @@ watch(
   { deep: true }
 );
 
+// 语言 / 配色 / 主题 / 圆角：改动即时生效并持久化（不依赖「应用」按钮）。
+// 其余设置仍走草稿模型：改动仅预览，点「应用」才提交。
+watch(() => draft.language, (v) => { settings.language = v; });
+watch(() => draft.accent, (v) => { settings.accent = v; });
+watch(
+  () => draft.themeChoice,
+  (v) => {
+    settings.themeChoice = v;
+    settings.theme = v === "system" ? systemTheme() : (v as "dark" | "light");
+  }
+);
+watch(() => draft.radius, (v) => { settings.radius = v; });
+
+// ---------- 悬停预览：语言 / 配色 / 主题 / 圆角 ----------
+let previewBackup: Pick<Settings, "language" | "accent" | "theme" | "themeChoice" | "radius"> | null = null;
+/** 临时应用预览值；多次 hover 只备份最初的真实设置 */
+function previewSetting(patch: Partial<Settings>) {
+  if (!previewBackup) {
+    previewBackup = {
+      language: settings.language,
+      accent: settings.accent,
+      theme: settings.theme,
+      themeChoice: settings.themeChoice,
+      radius: settings.radius,
+    };
+  }
+  Object.assign(settings, patch);
+}
+/** 鼠标移出选项区时恢复真实设置 */
+function endPreview() {
+  if (!previewBackup) return;
+  Object.assign(settings, previewBackup);
+  previewBackup = null;
+}
+/** 点击确认时清除备份，避免随后的 mouseleave 把新选择撤销 */
+function commitPreview() {
+  previewBackup = null;
+}
+
 function matches(...words: string[]) {
   const q = search.value.trim().toLowerCase();
   if (!q) return true;
@@ -299,6 +332,7 @@ function matches(...words: string[]) {
 }
 
 function setThemeChoice(choice: ThemeChoice) {
+  commitPreview();
   draft.themeChoice = choice;
   draft.theme =
     choice === "system" ? systemTheme() : (choice as "dark" | "light");
@@ -326,6 +360,7 @@ function restoreDefaults() {
 }
 
 function close() {
+  endPreview();
   applyVisual(settings); // 撤销未应用的预览
   toggleSettings(false);
   emit("close");
@@ -334,7 +369,8 @@ function close() {
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") {
     e.stopPropagation();
-    close();
+    if (previewBackup) endPreview();
+    else close();
   }
 }
 
@@ -404,18 +440,19 @@ onBeforeUnmount(() => {
                   <label class="field-label">{{ t("set.language") }}</label>
                   <div class="select-wrap lang-select" ref="langWrap">
                     <button type="button" class="lang-trigger" @click="langOpen = !langOpen">
-                      <span class="lang-badge" :style="{ background: langOpt(draft.language).color }">{{ langOpt(draft.language).code }}</span>
+                      <LocaleFlag :option="langOpt(draft.language)" />
                       <span>{{ langOpt(draft.language).label }}</span>
                     </button>
-                    <div class="lang-menu" v-if="langOpen">
+                    <div class="lang-menu" v-if="langOpen" @mouseleave="endPreview">
                       <button
                         v-for="l in LANGUAGE_OPTIONS"
                         :key="l.value"
                         type="button"
                         :class="{ on: draft.language === l.value }"
-                        @click="draft.language = l.value; langOpen = false"
+                        @mouseenter="previewSetting({ language: l.value })"
+                        @click="commitPreview(); draft.language = l.value; langOpen = false"
                       >
-                        <span class="lang-badge" :style="{ background: l.color }">{{ l.code }}</span>
+                        <LocaleFlag :option="l" />
                         <span>{{ l.label }}</span>
                         <span class="accent-check" v-if="draft.language === l.value">✓</span>
                       </button>
@@ -429,13 +466,14 @@ onBeforeUnmount(() => {
                       <span class="accent-dot" :style="{ background: accentOptions.find((o) => o.key === draft.accent)?.color }"></span>
                       <span>{{ t(ACCENT_LABELS[draft.accent]) }}</span>
                     </button>
-                    <div class="accent-menu" v-if="accentOpen">
+                    <div class="accent-menu" v-if="accentOpen" @mouseleave="endPreview">
                       <button
                         v-for="o in accentOptions"
                         :key="o.key"
                         type="button"
                         :class="{ on: draft.accent === o.key }"
-                        @click="draft.accent = o.key; accentOpen = false"
+                        @mouseenter="previewSetting({ accent: o.key })"
+                        @click="commitPreview(); draft.accent = o.key; accentOpen = false"
                       >
                         <span class="accent-dot" :style="{ background: o.color }"></span>
                         <span>{{ o.label }}</span>
@@ -1122,21 +1160,6 @@ select:focus { border-color: var(--accent); }
   font-size: 11px;
 }
 .lang-trigger:hover { border-color: var(--muted); }
-.lang-badge {
-  width: 26px;
-  height: 19px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
 .lang-menu {
   position: absolute;
   top: calc(100% + 4px);
