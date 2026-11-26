@@ -23,6 +23,8 @@ export interface Tab {
   language: string;
   /** 固定标签页：始终排在标签栏最前面 */
   pinned: boolean;
+  /** 会话恢复时只还原了元数据，切换到该标签时再从磁盘加载内容 */
+  needsLoad: boolean;
 }
 
 interface TabsState {
@@ -46,6 +48,8 @@ export const activeTab = computed<Tab | null>(
  * 避免被 Vue reactive 代理破坏 CodeMirror 的内部相等性判断。
  */
 const stateStore = new Map<number, EditorState>();
+/** 正在异步加载内容的标签，避免快速切换时重复读盘 */
+const loadingTabs = new Set<number>();
 
 export function getState(tab: Tab): EditorState | undefined {
   return stateStore.get(tab.id);
@@ -85,7 +89,8 @@ function makeTab(
   name: string,
   content: string,
   encoding: string,
-  eol: string
+  eol: string,
+  deferState = false
 ): Tab {
   const tab: Tab = {
     id: ++uid,
@@ -96,8 +101,10 @@ function makeTab(
     eol,
     language: path ? languageName(path) : t("common.plainText"),
     pinned: false,
+    needsLoad: false,
   };
-  setState(tab, createStateForFile(path, content, editorHooks));
+  // 懒加载标签连 EditorState 都延后创建，减少启动时的 CPU / 内存开销
+  if (!deferState) setState(tab, createStateForFile(path, content, editorHooks));
   return tab;
 }
 
@@ -106,6 +113,51 @@ export function setActive(id: number) {
   const tab = activeTab.value;
   const s = tab ? stateStore.get(tab.id) : undefined;
   if (s) updateCursorFromState(s);
+  else Object.assign(cursorInfo, EMPTY_CURSOR);
+  if (tab?.needsLoad) void ensureTabLoaded(tab);
+}
+
+/**
+ * 按需加载会话恢复时标记为 needsLoad 的标签内容。
+ * - 只在磁盘文件、非 dirty 的标签上使用，避免覆盖未保存修改
+ * - 加载完成后同步替换当前视图状态（若仍激活）
+ */
+export async function ensureTabLoaded(tab: Tab): Promise<void> {
+  if (!tab.needsLoad || !tab.path || loadingTabs.has(tab.id)) return;
+  loadingTabs.add(tab.id);
+  try {
+    // 加载期间标签可能已被关闭，或用户已经开始编辑（此时不能覆盖）
+    if (!tabsState.tabs.includes(tab) || !tab.needsLoad || !tab.path) return;
+    if (tab.dirty) {
+      tab.needsLoad = false;
+      return;
+    }
+    const info = await readTextFile(tab.path);
+    if (!tabsState.tabs.includes(tab) || !tab.path) return;
+    if (tab.dirty) {
+      tab.needsLoad = false;
+      return;
+    }
+    tab.encoding = info.encoding;
+    tab.eol = info.eol;
+    const state = createStateForFile(tab.path, info.content, editorHooks);
+    setState(tab, state);
+    tab.needsLoad = false;
+    if (tabsState.activeId === tab.id) {
+      updateCursorFromState(state);
+      const view = viewRef.current;
+      if (view && view.state !== state) {
+        view.setState(state);
+        void updateLanguageForPath(view, tab.path);
+        view.focus();
+      }
+    }
+  } catch (e) {
+    // 读盘失败时保留元数据与 needsLoad，下次切换再试；不覆盖当前状态
+    console.warn("[Tabs] 懒加载文件失败", tab.path, e);
+  } finally {
+    loadingTabs.delete(tab.id);
+  }
 }
 
 export function newTab(): Tab {
@@ -116,7 +168,7 @@ export function newTab(): Tab {
   return tab;
 }
 
-/** 会话恢复专用：按上次快照重建标签（不切换激活、不写最近列表） */
+/** 会话恢复专用：按上次快照重建标签（不切换激活、不写最近列表）；lazy 标签不创建 EditorState */
 export function restoreTab(
   path: string | null,
   name: string,
@@ -124,11 +176,13 @@ export function restoreTab(
   encoding: string,
   eol: string,
   dirty: boolean,
-  pinned = false
+  pinned = false,
+  lazy = false
 ): Tab {
-  const tab = makeTab(path, name, content, encoding, eol);
+  const tab = makeTab(path, name, content, encoding, eol, lazy);
   tab.dirty = dirty;
   tab.pinned = pinned;
+  tab.needsLoad = lazy && !!path && !dirty;
   tabsState.tabs.push(tab);
   return tab;
 }
@@ -187,7 +241,7 @@ export async function openPath(path: string): Promise<void> {
   }
   try {
     const info = await readTextFile(path);
-    const name = path.split("/").pop() ?? path;
+    const name = path.split(/[\\/]/).pop() ?? path;
     const tab = makeTab(path, name, info.content, info.encoding, info.eol);
     tabsState.tabs.push(tab);
     setActive(tab.id);
@@ -230,6 +284,14 @@ export function docText(tab: Tab): string {
 
 export async function saveTab(tab: Tab): Promise<boolean> {
   if (!tab.path) return saveTabAs(tab);
+  // 懒加载标签必须先读到真实内容，避免把空状态写回磁盘
+  if (tab.needsLoad) {
+    await ensureTabLoaded(tab);
+    if (tab.needsLoad) {
+      notify(t("common.loadFail", { name: tab.name }), true);
+      return false;
+    }
+  }
   try {
     await writeTextFile(tab.path, docText(tab), tab.encoding, tab.eol);
     tab.dirty = false;
@@ -243,6 +305,13 @@ export async function saveTab(tab: Tab): Promise<boolean> {
 }
 
 export async function saveTabAs(tab: Tab): Promise<boolean> {
+  if (tab.needsLoad) {
+    await ensureTabLoaded(tab);
+    if (tab.needsLoad) {
+      notify(t("common.loadFail", { name: tab.name }), true);
+      return false;
+    }
+  }
   // 保存对话框不传 filters：macOS 会把 filters 的首个扩展名自动追加到文件名末尾，
   // 传 ["*"] 会把「新文件 1.sql」保存成「新文件 1.sql.*」。
   const path = await saveDialog({

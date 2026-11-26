@@ -45,20 +45,25 @@ import {
   findPrevMatch,
 } from "./find/bridge";
 import { formatJsonDocument } from "./editor/format";
-import { isMac } from "./utils/platform";
+import { isMac, isWindows } from "./utils/platform";
 
-// ---------- 启动动画（Splash）：短暂展示品牌与标语后淡出 ----------
+// ---------- 启动动画（Splash）：等会话恢复完成后再淡出 ----------
 const splashLeaving = ref(false);
 const splashGone = ref(false);
 let splashTimer1: number | undefined;
 let splashTimer2: number | undefined;
-onMounted(() => {
-  splashTimer1 = window.setTimeout(() => (splashLeaving.value = true), 1700);
-  splashTimer2 = window.setTimeout(() => (splashGone.value = true), 2200);
-});
+let restoreFallback: number | undefined;
+
+/** 会话恢复完成后启动淡出：800ms 开始淡出，1300ms 移除 */
+function startSplashExit() {
+  splashTimer1 = window.setTimeout(() => (splashLeaving.value = true), 800);
+  splashTimer2 = window.setTimeout(() => (splashGone.value = true), 1300);
+}
+
 onBeforeUnmount(() => {
   clearTimeout(splashTimer1);
   clearTimeout(splashTimer2);
+  clearTimeout(restoreFallback);
 });
 
 // 主题 / 配色 / 缩放等由 settings store 统一应用
@@ -96,18 +101,37 @@ async function openFolder() {
   }
 }
 
+/** 判断文件路径是否位于文件夹内（统一分隔符，Windows 下忽略大小写） */
+function isPathInFolder(path: string | null, folder: string): boolean {
+  if (!path) return false;
+  const norm = (v: string) => {
+    const s = v.replace(/\\/g, "/").replace(/\/+$/, "");
+    return isWindows ? s.toLowerCase() : s;
+  };
+  const root = norm(folder);
+  const target = norm(path);
+  if (!root) return target.startsWith("/");
+  return target === root || target.startsWith(`${root}/`);
+}
+
 async function closeFolder() {
   const choice = await confirmChoice(t("confirm.closeFolderTitle"), t("confirm.closeFolderMsg"), [
     t("common.confirm"),
     t("common.cancel"),
   ]);
-  if (choice === t("common.confirm")) {
-    closeAllTabs();
-    treeState.root = null;
-    treeState.rootNode = null;
-    treeState.rootName = "";
-    treeState.expanded.clear();
+  if (choice !== t("common.confirm")) return;
+
+  // 只关闭该文件夹内的标签，文件夹外打开的文件与未命名新文件保持打开
+  const root = treeState.root;
+  if (root) {
+    for (const tab of [...tabsState.tabs]) {
+      if (isPathInFolder(tab.path, root)) removeTab(tab.id);
+    }
   }
+  treeState.root = null;
+  treeState.rootNode = null;
+  treeState.rootName = "";
+  treeState.expanded.clear();
 }
 
 // ---------- 键盘快捷键（Notepad++ 风格） ----------
@@ -182,9 +206,17 @@ onMounted(async () => {
   uninstallTip = installGlobalTooltip();
   window.addEventListener("keydown", onKeydown);
   initFindBridge();
-  // 恢复上次会话（标签页 / 未保存内容 / 打开的文件夹）
+  // 恢复上次会话（只同步读激活标签，其余标签懒加载）
   initSessionAutosave();
-  restoreSession().catch(() => undefined);
+  // 等恢复完成再结束 Splash；极端情况下 5s 兜底，避免恢复异常卡住启动画面
+  await Promise.race([
+    restoreSession().catch((e) => console.error("[Session] 恢复失败:", e)),
+    new Promise<void>((resolve) => {
+      restoreFallback = window.setTimeout(resolve, 5000);
+    }),
+  ]);
+  clearTimeout(restoreFallback);
+  startSplashExit();
   try {
     unlistenDrag = await getCurrentWebview().onDragDropEvent((event) => {
       if (event.payload.type === "drop") {

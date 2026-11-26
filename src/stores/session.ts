@@ -93,8 +93,9 @@ export function initSessionAutosave(): void {
 }
 
 /**
- * 启动时恢复上次会话。
- * - 未 dirty 的磁盘文件重读磁盘（同步外部修改；文件被删则回退用快照内容）
+ * 启动时恢复上次会话（Tab 内容懒加载）。
+ * - 只同步读取当前激活标签的内容；其他标签只还原元数据，切换时再按需读盘/建 EditorState
+ * - 未 dirty 的磁盘文件重读磁盘（同步外部修改；读取失败则回退用快照内容）
  * - dirty / 未保存的新文件直接用快照内容
  */
 export async function restoreSession(): Promise<boolean> {
@@ -123,34 +124,48 @@ export async function restoreSession(): Promise<boolean> {
     }
   }
 
-  for (const st of data.tabs) {
+  // 激活标签（无有效索引时取第一个）立即读取；其余标签延迟到切换时加载
+  const targetIndex =
+    data.activeIndex >= 0 && data.activeIndex < data.tabs.length
+      ? data.activeIndex
+      : 0;
+
+  for (let i = 0; i < data.tabs.length; i++) {
+    const st = data.tabs[i];
     const path = st.path ?? null;
     const name = st.name || path?.split(/[\\/]/).pop() || t("common.untitled");
     const pinned = st.pinned === true;
-    if (!st.dirty && path) {
+    const encoding = st.encoding || "UTF-8";
+    const eol = st.eol || "LF";
+
+    if (i === targetIndex && !st.dirty && path) {
       try {
         const info = await readTextFile(path);
         restoreTab(path, name, info.content, info.encoding, info.eol, false, pinned);
         continue;
       } catch {
-        /* 落到快照内容 */
+        // 读盘失败：先用快照内容恢复，并保留标记以便下次切换重试
+        const tab = restoreTab(path, name, st.content ?? "", encoding, eol, st.dirty, pinned);
+        if (path) tab.needsLoad = true;
+        continue;
       }
     }
+
+    // 非激活标签：内容与 EditorState 都延后创建，仅保留元数据
     restoreTab(
       path,
       name,
       st.content ?? "",
-      st.encoding || "UTF-8",
-      st.eol || "LF",
+      encoding,
+      eol,
       st.dirty,
-      pinned
+      pinned,
+      !!path && !st.dirty
     );
   }
 
   if (tabsState.tabs.length) {
-    const idx = data.activeIndex >= 0 && data.activeIndex < tabsState.tabs.length
-      ? data.activeIndex
-      : tabsState.tabs.length - 1;
+    const idx = Math.min(targetIndex, tabsState.tabs.length - 1);
     setActive(tabsState.tabs[idx].id);
   }
   return tabsState.tabs.length > 0;
