@@ -336,6 +336,8 @@ const emit = defineEmits<{
   align-self: stretch;
   margin-left: 4px;
   flex-shrink: 0;
+  /* 右侧其它按钮带 order 排序，窗控必须强制排到最后（窗口最右） */
+  order: 9999;
 }
 .win-btn {
   display: flex;

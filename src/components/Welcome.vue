@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { getRecent, clearRecent } from "@/stores/recent";
 import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
 import { t } from "@/i18n";
+import { isMac } from "@/utils/platform";
 
 const emit = defineEmits<{
   open: [];
@@ -38,11 +39,13 @@ const shortcuts = SHORTCUTS;
 
       <div class="shortcut-list text-left">
         <div v-for="s in shortcuts" :key="s.k" class="row">
-          <span class="k"
-            ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
-              ><span v-if="p.sym" class="sym" :class="{ shift: p.text === '⇧' }">{{ p.text }}</span
-              ><template v-else>{{ p.text }}</template></template
-            ></span
+          <span class="k" :class="{ plain: !isMac }"
+            ><template v-if="isMac"
+              ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
+                ><span v-if="p.sym" class="sym" :class="{ shift: p.text === '⇧' }">{{ p.text }}</span
+                ><template v-else>{{ p.text }}</template></template
+              ></template
+            ><template v-else>{{ s.kw ?? s.k }}</template></span
           >
           <span>{{ t(s.label) }}</span>
         </div>
@@ -120,6 +123,12 @@ const shortcuts = SHORTCUTS;
 .k .sym.shift {
   display: inline-block;
   transform: translateY(-1.5px);
+}
+/* Windows：Ctrl+Shift+O 等组合更长，缩紧字距并加宽键帽 */
+.k.plain {
+  width: 176px;
+  letter-spacing: 0.4px;
+  font-size: 10px;
 }
 .recent-row {
   display: flex;
