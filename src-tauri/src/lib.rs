@@ -32,10 +32,12 @@ pub struct WriteResult {
 }
 
 /// 原生对话框结果转换（避免把 FilePath 直接跨 IPC 传递）
+#[allow(dead_code)]
 fn dialog_path(p: Option<tauri_plugin_dialog::FilePath>) -> Option<String> {
     p.and_then(|p| p.into_path().ok())
         .map(|p| p.to_string_lossy().into_owned())
 }
+#[allow(dead_code)]
 fn dialog_paths(p: Option<Vec<tauri_plugin_dialog::FilePath>>) -> Option<Vec<String>> {
     p.map(|list| {
         list.into_iter()
@@ -45,14 +47,62 @@ fn dialog_paths(p: Option<Vec<tauri_plugin_dialog::FilePath>>) -> Option<Vec<Str
     })
 }
 
+/// 对话框最长等待时间：用户可能长时间不操作，但绝不能让前端 invoke 永久挂起
+#[allow(dead_code)]
+const DIALOG_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(600);
+
+/// rfd 返回 PathBuf，统一转字符串
+#[allow(dead_code)]
+fn path_string(p: std::path::PathBuf) -> String {
+    p.to_string_lossy().into_owned()
+}
+
 /**
- * 自定义「保存文件」对话框。
- * 不使用 plugin-dialog 的 JS save()：它在 Windows 上会把对话框 owner 绑定到当前 WebView
- * 窗口，而对话框实际跑在独立线程，跨线程 HWND 会导致对话框卡死甚至应用闪退。
- * 这里 Windows 不设 owner，macOS 保留父窗口；两者都走插件的非阻塞回调 API。
+ * Windows「保存文件」对话框：直接调用 rfd 同步 API。
+ *
+ * tauri-plugin-dialog 的实现是 run_on_main_thread → AsyncFileDialog → 新线程 block_on
+ * 三层线程链；WebView2 主线程繁忙时回调会丢失，前端 invoke 永久挂起（点保存没反应），
+ * COM 单元不匹配时则崩溃（panic=abort 下直接闪退）。
+ *
+ * rfd 同步 save_file() 会在调用线程内自行 CoInitializeEx(STA)，
+ * 这里放到专用 std 线程执行，结果经同步 channel 回传，并有超时兜底。
  */
-#[tauri::command]
-async fn np_save_file(
+#[allow(dead_code)]
+async fn np_save_file_windows(
+    title: String,
+    default_path: Option<String>,
+) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        std::thread::Builder::new()
+            .name("np-save-dialog".into())
+            .spawn(move || {
+                let mut dialog = rfd::FileDialog::new().set_title(&title);
+                if let Some(dp) = default_path.as_deref() {
+                    let p = Path::new(dp);
+                    match (p.parent(), p.file_name()) {
+                        (Some(parent), Some(name)) if !parent.as_os_str().is_empty() => {
+                            dialog = dialog
+                                .set_directory(parent)
+                                .set_file_name(name.to_string_lossy().as_ref());
+                        }
+                        _ => dialog = dialog.set_file_name(dp),
+                    }
+                }
+                let result = dialog.save_file().map(path_string);
+                let _ = tx.send(result);
+            })
+            .map_err(|e| e.to_string())?;
+        rx.recv_timeout(DIALOG_TIMEOUT)
+            .map_err(|e| format!("保存对话框等待失败: {e}"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/** macOS「保存文件」对话框：插件回调方案已验证稳定，保持不变 */
+#[allow(dead_code)]
+async fn np_save_file_macos(
     app: AppHandle,
     window: tauri::Window,
     title: String,
@@ -71,20 +121,65 @@ async fn np_save_file(
             builder = builder.set_file_name(dp);
         }
     }
-    #[cfg(target_os = "macos")]
     let builder = builder.set_parent(&window);
-    #[cfg(not(target_os = "macos"))]
-    drop(window);
-
     builder.save_file(move |p| {
         let _ = tx.try_send(dialog_path(p));
     });
     Ok(rx.recv().await.unwrap_or(None))
 }
 
-/** 自定义「打开文件 / 文件夹」对话框，Windows 不设 owner（原因同上） */
 #[tauri::command]
-async fn np_open_dialog(
+async fn np_save_file(
+    app: AppHandle,
+    window: tauri::Window,
+    title: String,
+    default_path: Option<String>,
+) -> Result<Option<String>, String> {
+    #[cfg(target_os = "windows")]
+    return np_save_file_windows(title, default_path).await;
+    #[cfg(not(target_os = "windows"))]
+    return np_save_file_macos(app, window, title, default_path).await;
+}
+
+/** Windows「打开」对话框：同保存对话框，走 rfd 同步 API */
+#[allow(dead_code)]
+async fn np_open_dialog_windows(
+    title: String,
+    multiple: bool,
+    directory: bool,
+) -> Result<Option<Vec<String>>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        std::thread::Builder::new()
+            .name("np-open-dialog".into())
+            .spawn(move || {
+                let dialog = rfd::FileDialog::new().set_title(&title);
+                let result = if directory && multiple {
+                    dialog
+                        .pick_folders()
+                        .map(|list| list.into_iter().map(path_string).collect())
+                } else if directory {
+                    dialog.pick_folder().map(|p| vec![path_string(p)])
+                } else if multiple {
+                    dialog
+                        .pick_files()
+                        .map(|list| list.into_iter().map(path_string).collect())
+                } else {
+                    dialog.pick_file().map(|p| vec![path_string(p)])
+                };
+                let _ = tx.send(result);
+            })
+            .map_err(|e| e.to_string())?;
+        rx.recv_timeout(DIALOG_TIMEOUT)
+            .map_err(|e| format!("打开对话框等待失败: {e}"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/** macOS「打开」对话框：保持原实现 */
+#[allow(dead_code)]
+async fn np_open_dialog_macos(
     app: AppHandle,
     window: tauri::Window,
     title: String,
@@ -92,12 +187,7 @@ async fn np_open_dialog(
     directory: bool,
 ) -> Result<Option<Vec<String>>, String> {
     let (tx, mut rx) = tauri::async_runtime::channel(1);
-    let builder = app.dialog().file().set_title(title);
-    #[cfg(target_os = "macos")]
-    let builder = builder.set_parent(&window);
-    #[cfg(not(target_os = "macos"))]
-    drop(window);
-
+    let builder = app.dialog().file().set_title(title).set_parent(&window);
     if directory && multiple {
         builder.pick_folders(move |p| {
             let _ = tx.try_send(dialog_paths(p));
@@ -116,6 +206,20 @@ async fn np_open_dialog(
         });
     }
     Ok(rx.recv().await.unwrap_or(None))
+}
+
+#[tauri::command]
+async fn np_open_dialog(
+    app: AppHandle,
+    window: tauri::Window,
+    title: String,
+    multiple: bool,
+    directory: bool,
+) -> Result<Option<Vec<String>>, String> {
+    #[cfg(target_os = "windows")]
+    return np_open_dialog_windows(title, multiple, directory).await;
+    #[cfg(not(target_os = "windows"))]
+    return np_open_dialog_macos(app, window, title, multiple, directory).await;
 }
 
 /// 文件树节点
@@ -833,8 +937,31 @@ fn show_main_window(app: &AppHandle) {
     }
 }
 
+/// Windows release 为 panic=abort，任何 panic 都会静默闪退。
+/// 把 panic 信息落盘，便于定位对话框等原生调用导致的崩溃。
+fn install_panic_hook() {
+    let dir = std::env::var_os("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("APPDATA").map(std::path::PathBuf::from))
+        .unwrap_or_else(std::env::temp_dir)
+        .join("NotePlus+");
+    let _ = fs::create_dir_all(&dir);
+    let log = dir.join("panic.log");
+    std::panic::set_hook(Box::new(move |info| {
+        use std::io::Write;
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(&log) {
+            let _ = writeln!(f, "=== {secs} ===\n{info}");
+        }
+    }));
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    install_panic_hook();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())

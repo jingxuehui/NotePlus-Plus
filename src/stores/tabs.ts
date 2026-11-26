@@ -23,6 +23,16 @@ async function withDialog<T>(run: () => Promise<T>): Promise<T | null> {
   }
 }
 
+/** 原生对话框异常统一提示，避免 invoke reject 变成静默「没反应」 */
+async function dialogCall<T>(run: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    notify(typeof e === "string" ? e : String(e), true);
+    return fallback;
+  }
+}
+
 export interface Tab {
   id: number;
   path: string | null;
@@ -269,14 +279,14 @@ export async function openFiles(paths: string[]) {
 
 export async function openWithDialog(): Promise<void> {
   const picked = await withDialog(() =>
-    nativeOpenPaths(t("dialog.openFile"), true, false)
+    dialogCall(() => nativeOpenPaths(t("dialog.openFile"), true, false), null)
   );
   if (picked?.length) await openFiles(picked);
 }
 
 export async function openFolderWithDialog(): Promise<string | null> {
   const picked = await withDialog(() =>
-    nativeOpenPaths(t("dialog.openFolder"), false, true)
+    dialogCall(() => nativeOpenPaths(t("dialog.openFolder"), false, true), null)
   );
   return picked?.[0] ?? null;
 }
@@ -329,7 +339,7 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
   // 保存对话框不传 filters：macOS 会把 filters 的首个扩展名自动追加到文件名末尾，
   // 传 ["*"] 会把「新文件 1.sql」保存成「新文件 1.sql.*」。
   const path = await withDialog(() =>
-    nativeSaveFile(t("dialog.saveFile"), tab.name)
+    dialogCall(() => nativeSaveFile(t("dialog.saveFile"), tab.name), null)
   );
   if (!path) return false;
   // 用户未输入扩展名时，沿用当前标签的扩展名，避免保存成无类型文件

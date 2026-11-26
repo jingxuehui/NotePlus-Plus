@@ -16,6 +16,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+# Windows 保存/打开对话框直接走 rfd 同步 API，绕开插件的多层线程链
+# 特性与 tauri-plugin-dialog 内部依赖保持一致
+rfd = { version = "0.17", default-features = false, features = ["common-controls-v6"] }
 tauri-plugin-clipboard-manager = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
