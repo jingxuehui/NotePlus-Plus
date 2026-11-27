@@ -1,6 +1,7 @@
 import { reactive, computed } from "vue";
 import type { EditorState } from "@codemirror/state";
-import { createStateForFile, updateLanguageForPath } from "@/editor/setup";
+import type { EditorView } from "@codemirror/view";
+import { createStateForFile, updateLanguageForPath, updateLanguageOverride } from "@/editor/setup";
 import { viewRef } from "@/editor/view";
 import { fileExtension, languageName } from "@/editor/language";
 import {
@@ -49,6 +50,8 @@ export interface Tab {
   encoding: string;
   eol: string;
   language: string;
+  /** 状态栏手动选择的语言 key；null 表示按文件扩展名推断 */
+  languageOverride: string | null;
   /** 固定标签页：始终排在标签栏最前面 */
   pinned: boolean;
   /** 会话恢复时只还原了元数据，切换到该标签时再从磁盘加载内容 */
@@ -121,6 +124,13 @@ function updateCursorFromState(state: EditorState) {
   cursorInfo.chars = state.doc.length;
 }
 
+/** 按标签的语言覆盖（状态栏手动选择）或文件路径切换编辑器语法 */
+export function applyTabLanguage(view: EditorView, tab: Tab | null) {
+  if (!tab) return;
+  if (tab.languageOverride) void updateLanguageOverride(view, tab.languageOverride);
+  else void updateLanguageForPath(view, tab.path);
+}
+
 function makeTab(
   path: string | null,
   name: string,
@@ -137,6 +147,7 @@ function makeTab(
     encoding,
     eol,
     language: path ? languageName(path) : t("common.plainText"),
+    languageOverride: null,
     pinned: false,
     needsLoad: false,
     kind: "text",
@@ -161,6 +172,7 @@ async function makeImageTab(path: string, name: string): Promise<Tab> {
     encoding: "",
     eol: "",
     language: fileExtension(path).toUpperCase(),
+    languageOverride: null,
     pinned: false,
     needsLoad: false,
     kind: "image",
@@ -217,7 +229,7 @@ export async function ensureTabLoaded(tab: Tab): Promise<void> {
       const view = viewRef.current;
       if (view && view.state !== state) {
         view.setState(state);
-        void updateLanguageForPath(view, tab.path);
+        applyTabLanguage(view, tab);
         view.focus();
       }
     }
@@ -413,10 +425,11 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
     await writeTextFile(finalPath, docText(tab), tab.encoding, tab.eol);
     tab.path = finalPath;
     tab.name = baseName(finalPath);
+    tab.languageOverride = null; // 另存为后语言跟随新文件类型，清除手动覆盖
     tab.language = languageName(finalPath);
     // 另存为其它类型后立即切换语法高亮
     if (viewRef.current && tabsState.activeId === tab.id) {
-      void updateLanguageForPath(viewRef.current, finalPath);
+      applyTabLanguage(viewRef.current, tab);
     }
     tab.dirty = false;
     pushRecent(finalPath);

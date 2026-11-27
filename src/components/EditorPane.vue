@@ -2,10 +2,10 @@
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
-import { activeTab, getState, setState, editorHooks } from "@/stores/tabs";
+import { activeTab, getState, setState, editorHooks, applyTabLanguage } from "@/stores/tabs";
 import { settings } from "@/stores/settings";
 import { viewRef } from "@/editor/view";
-import { reconfigureAppearance, updateLanguageForPath } from "@/editor/setup";
+import { reconfigureAppearance } from "@/editor/setup";
 import EditorContextMenu from "./EditorContextMenu.vue";
 import EditorSearchPanel from "./EditorSearchPanel.vue";
 
@@ -106,7 +106,7 @@ onMounted(() => {
     },
   });
   viewRef.current = view;
-  void updateLanguageForPath(view, activeTab.value?.path ?? null);
+  applyTabLanguage(view, activeTab.value);
   view.focus();
 });
 
@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 watch(activeTab, (tab) => {
   if (!view) return;
   view.setState(tab ? (getState(tab) ?? emptyState) : emptyState);
-  void updateLanguageForPath(view, tab?.path ?? null);
+  applyTabLanguage(view, tab);
   view.focus();
 });
 

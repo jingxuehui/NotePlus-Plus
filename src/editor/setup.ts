@@ -43,7 +43,7 @@ import type { CursorInfo } from "@/types";
 import { darkTheme, lightTheme } from "./themes";
 import { matchHighlight } from "./matchHighlight";
 import type { ThemeMode } from "@/stores/settings";
-import { loadLanguageFor } from "./language";
+import { loadLanguageFor, loadLanguageByKey } from "./language";
 
 export interface EditorHooks {
   getTheme: () => ThemeMode;
@@ -154,6 +154,19 @@ export async function updateLanguageForPath(view: EditorView, path: string | nul
   const seq = (languageSeq.get(view) ?? 0) + 1;
   languageSeq.set(view, seq);
   const lang = path ? await loadLanguageFor(path) : null;
+  if (languageSeq.get(view) !== seq) return;
+  try {
+    view.dispatch({ effects: languageComp.reconfigure(lang ?? []) });
+  } catch {
+    // 视图可能已销毁
+  }
+}
+
+/** 按语言 key 异步切换语法高亮（状态栏手动选择的语言，优先于路径推断） */
+export async function updateLanguageOverride(view: EditorView, key: string | null): Promise<void> {
+  const seq = (languageSeq.get(view) ?? 0) + 1;
+  languageSeq.set(view, seq);
+  const lang = key ? await loadLanguageByKey(key) : null;
   if (languageSeq.get(view) !== seq) return;
   try {
     view.dispatch({ effects: languageComp.reconfigure(lang ?? []) });

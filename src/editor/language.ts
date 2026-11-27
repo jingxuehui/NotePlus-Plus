@@ -118,6 +118,52 @@ export async function loadLanguageFor(path: string): Promise<Extension | null> {
   }
 }
 
+/** 状态栏语言切换的可选项：key 与 LOADERS 的键一致（同键不同扩展名已合并） */
+export const LANGUAGE_OPTIONS: { key: string; name: string }[] = [
+  { key: "js", name: "JavaScript" },
+  { key: "jsx", name: "JSX" },
+  { key: "ts", name: "TypeScript" },
+  { key: "tsx", name: "TypeScript JSX" },
+  { key: "vue", name: "Vue" },
+  { key: "html", name: "HTML" },
+  { key: "xml", name: "XML" },
+  { key: "css", name: "CSS" },
+  { key: "json", name: "JSON" },
+  { key: "md", name: "Markdown" },
+  { key: "py", name: "Python" },
+  { key: "rs", name: "Rust" },
+  { key: "java", name: "Java" },
+  { key: "c", name: "C" },
+  { key: "cpp", name: "C++" },
+  { key: "go", name: "Go" },
+  { key: "sql", name: "SQL" },
+  { key: "php", name: "PHP" },
+  { key: "yaml", name: "YAML" },
+  { key: "sh", name: "Shell" },
+  { key: "rb", name: "Ruby" },
+  { key: "lua", name: "Lua" },
+  { key: "toml", name: "TOML" },
+  { key: "ini", name: "INI" },
+  { key: "dockerfile", name: "Dockerfile" },
+];
+
+/** 按语言 key 异步加载语法包（状态栏手动选择语言用） */
+export async function loadLanguageByKey(key: string): Promise<Extension | null> {
+  const loader = LOADERS[key];
+  if (!loader) return null;
+  try {
+    return await loader();
+  } catch (e) {
+    console.warn("加载语法高亮失败", key, e);
+    return null;
+  }
+}
+
+/** 手动选中的语言 key → 显示名 */
+export function languageNameByKey(key: string): string {
+  return LANGUAGE_OPTIONS.find((o) => o.key === key)?.name ?? t("common.plainText");
+}
+
 export function languageName(path: string): string {
   return NAMES[fileExtension(path)] ?? t("common.plainText");
 }
