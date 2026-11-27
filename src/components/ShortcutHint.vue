@@ -45,8 +45,9 @@ onBeforeUnmount(() => {
     <div v-if="open" class="hint-pop">
       <div class="hint-title">{{ t("sc.title") }}</div>
       <div v-for="s in SHORTCUTS" :key="s.k" class="hint-row">
-        <span class="hint-key" :class="{ plain: !isMac }"
-          ><template v-if="isMac"
+        <span class="hint-key" :class="{ plain: !isMac || s.keyLabel }"
+          ><template v-if="s.keyLabel">{{ t(s.keyLabel) }}</template
+          ><template v-else-if="isMac"
             ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
               ><span v-if="p.sym" class="sym">{{ p.text }}</span
               ><template v-else>{{ p.text }}</template></template

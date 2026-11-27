@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { getRecent, clearRecent } from "@/stores/recent";
 import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
 import { t } from "@/i18n";
+import { baseName } from "@/utils/path";
 import { isMac } from "@/utils/platform";
 
 const emit = defineEmits<{
@@ -39,8 +40,9 @@ const shortcuts = SHORTCUTS;
 
       <div class="shortcut-list text-left">
         <div v-for="s in shortcuts" :key="s.k" class="row">
-          <span class="k" :class="{ plain: !isMac }"
-            ><template v-if="isMac"
+          <span class="k" :class="{ plain: !isMac || s.keyLabel }"
+            ><template v-if="s.keyLabel">{{ t(s.keyLabel) }}</template
+            ><template v-else-if="isMac"
               ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
                 ><span v-if="p.sym" class="sym" :class="{ shift: p.text === '⇧' }">{{ p.text }}</span
                 ><template v-else>{{ p.text }}</template></template
@@ -63,7 +65,7 @@ const shortcuts = SHORTCUTS;
           :title="p"
           @click="emit('open-path', p)"
         >
-          {{ p.split("/").pop() }}
+          {{ baseName(p) }}
           <span class="path text-xs opacity-60">{{ p }}</span>
         </div>
       </div>
@@ -113,6 +115,11 @@ const shortcuts = SHORTCUTS;
   text-align: center;
   /* 键帽内字符（⌘ 与 N 等）之间留 3px 间距 */
   letter-spacing: 3px;
+}
+/* Windows 组合键为普通文本（Ctrl+= / Ctrl+- / Ctrl+0 较长），取消逐字符间距并加宽 */
+.k.plain {
+  width: 176px;
+  letter-spacing: 0.3px;
 }
 /* 修饰符符号（⌘⇧⌥⌃）在等宽字体里字形偏小，放大后与字母视觉等大 */
 .k .sym {

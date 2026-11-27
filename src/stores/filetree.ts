@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 import { readDirTree, type FileNode } from "@/commands";
+import { baseName } from "@/utils/path";
 
 interface TreeState {
   root: string | null;
@@ -24,7 +25,7 @@ export async function loadRoot(path: string): Promise<void> {
   try {
     const node = await readDirTree(path, 2, treeState.showHidden);
     treeState.root = path;
-    treeState.rootName = path.split("/").pop() ?? path;
+    treeState.rootName = baseName(path);
     treeState.rootNode = node;
     treeState.expanded = new Set([path]);
     // 默认展开一级子目录

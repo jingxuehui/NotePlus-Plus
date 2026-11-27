@@ -13,6 +13,19 @@ static SYSTEM_DARK: AtomicBool = AtomicBool::new(true);
 /// 「关闭窗口时退出程序」：由前端设置同步过来，默认关闭（即默认隐藏驻留 Dock）
 static EXIT_ON_CLOSE: AtomicBool = AtomicBool::new(false);
 
+/// 创建子进程命令；Windows 上 GUI 程序启动 curl / cmd 等控制台程序会闪出黑框，需加 CREATE_NO_WINDOW
+fn hidden_command(program: &str) -> Command {
+    #[allow(unused_mut)]
+    let mut cmd = Command::new(program);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 /// 读取的文本文件信息
 #[derive(Serialize)]
 pub struct TextFileInfo {
@@ -296,9 +309,26 @@ fn read_text_file(path: String) -> Result<TextFileInfo, String> {
     if size > 20 * 1024 * 1024 {
         return Err(format!("文件过大（{} MB），NotePlus+ 暂不支持编辑超过 20MB 的文件", size / 1024 / 1024));
     }
+    // 无 BOM 且开头含 NUL 字节视为二进制文件，按文本解码只会得到乱码，保存还会破坏原文件
+    if !has_bom(&bytes).0 && bytes.iter().take(8192).any(|&b| b == 0) {
+        return Err(format!("「{path}」是二进制文件，NotePlus+ 无法以文本方式打开"));
+    }
     let (content, encoding) = decode(&bytes);
     let eol = detect_eol(&content);
     Ok(TextFileInfo { content, encoding, eol, size })
+}
+
+/// 读取二进制文件原始字节（图片预览用），以 ArrayBuffer 返回给前端
+#[tauri::command]
+fn read_binary_file(path: String) -> Result<tauri::ipc::Response, String> {
+    let size = fs::metadata(&path)
+        .map_err(|e| format!("无法读取文件 {path}: {e}"))?
+        .len();
+    if size > 50 * 1024 * 1024 {
+        return Err(format!("文件过大（{} MB），暂不支持预览超过 50MB 的文件", size / 1024 / 1024));
+    }
+    let bytes = fs::read(&path).map_err(|e| format!("无法读取文件 {path}: {e}"))?;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 /// 保存文本文件：按指定编码写入，并把换行符归一化为指定类型
@@ -443,11 +473,16 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
         .spawn()
         .map_err(|e| e.to_string())?;
 
+    // explorer 不认 Rust 默认对含空格参数整体加引号的写法（"/select,C:\a b"），
+    // 只能手动拼成 /select,"C:\a b"
     #[cfg(target_os = "windows")]
-    Command::new("explorer")
-        .arg(format!("/select,{}", path))
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    {
+        use std::os::windows::process::CommandExt;
+        Command::new("explorer")
+            .raw_arg(format!("/select,\"{}\"", path))
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
@@ -491,7 +526,7 @@ fn fetch_releases(source: String) -> Result<Vec<ReleaseInfo>, String> {
         "gitee" => "https://gitee.com/api/v5/repos/jingxuehui/NotePlus-Plus/releases",
         _ => return Err("未知的更新源".into()),
     };
-    let output = Command::new("curl")
+    let output = hidden_command("curl")
         .args(["-sS", "-L", "-m", "15", "-H", "Accept: application/json", url])
         .output()
         .map_err(|e| format!("请求发布信息失败: {e}"))?;
@@ -610,7 +645,7 @@ fn download_asset(app: AppHandle, url: String, name: String) -> Result<Downloade
         }
     }
     let path_str = path.to_string_lossy().to_string();
-    let output = Command::new("curl")
+    let output = hidden_command("curl")
         .args([
             "-fL", "-sS", "--retry", "2", "-m", "300", "-o", &path_str, &url,
         ])
@@ -644,7 +679,7 @@ fn restart_and_update(app: AppHandle, path: String) -> Result<(), String> {
         .spawn()
         .map_err(|e| format!("打开安装包失败: {e}"))?;
     #[cfg(target_os = "windows")]
-    Command::new("cmd")
+    hidden_command("cmd")
         .args(["/C", "start", "", &path])
         .spawn()
         .map_err(|e| format!("打开安装包失败: {e}"))?;
@@ -669,7 +704,7 @@ fn open_external(url: String) -> Result<(), String> {
         .spawn()
         .map_err(|e| e.to_string())?;
     #[cfg(target_os = "windows")]
-    Command::new("cmd")
+    hidden_command("cmd")
         .args(["/C", "start", "", &url])
         .spawn()
         .map_err(|e| e.to_string())?;
@@ -930,6 +965,7 @@ fn set_find_theme(app: tauri::AppHandle, dark: bool) {
 }
 
 /// 重新显示主窗口（点击 Dock 图标 / 关闭后再次唤起时使用）
+#[cfg(target_os = "macos")]
 fn show_main_window(app: &AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
         // set_focus 会同时激活应用（activateIgnoringOtherApps），无需额外 unhide
@@ -974,6 +1010,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             read_text_file,
+            read_binary_file,
             write_text_file,
             np_save_file,
             np_open_dialog,
@@ -1026,10 +1063,10 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|app_handle, event| match event {
+    app.run(|_app_handle, event| match event {
         // 点击 Dock 图标（或应用被重新激活）时恢复主窗口
         #[cfg(target_os = "macos")]
-        tauri::RunEvent::Reopen { .. } => show_main_window(app_handle),
+        tauri::RunEvent::Reopen { .. } => show_main_window(_app_handle),
         // 「关闭窗口时退出程序」关闭时，所有窗口都被销毁也不退出
         // （仅 Cmd+Q / 主动 exit 才真正退出）
         tauri::RunEvent::ExitRequested { code, api, .. } => {

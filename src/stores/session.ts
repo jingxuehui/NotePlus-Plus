@@ -4,8 +4,10 @@ import {
   tabsState,
   docText,
   restoreTab,
+  restoreImageTab,
   setActive,
 } from "./tabs";
+import { isImagePath } from "@/utils/image";
 import { loadRoot, treeState } from "./filetree";
 import { settings } from "./settings";
 import { t } from "@/i18n";
@@ -45,7 +47,7 @@ function serialize(): SessionData {
   const tabs: SessionTab[] = tabsState.tabs.map((t) => {
     // 未修改的磁盘文件重读磁盘即可，不必把整份内容写进会话；
     // 只有未保存 / 新文件的内容才需要进入快照
-    const text = !t.dirty && t.path ? "" : docText(t);
+    const text = (!t.dirty && t.path) || t.kind === "image" ? "" : docText(t);
     return {
       path: t.path,
       name: t.name,
@@ -138,6 +140,11 @@ export async function restoreSession(): Promise<boolean> {
     const encoding = st.encoding || "UTF-8";
     const eol = st.eol || "LF";
 
+    if (path && isImagePath(path)) {
+      // 图片已被删除 / 移走时直接丢弃该标签
+      await restoreImageTab(path, name, pinned).catch(() => undefined);
+      continue;
+    }
     if (i === targetIndex && !st.dirty && path) {
       try {
         const info = await readTextFile(path);

@@ -5,6 +5,7 @@ import FileTree from "./components/FileTree.vue";
 import TitleBar from "./components/TitleBar.vue";
 import TabBar from "./components/TabBar.vue";
 import EditorPane from "./components/EditorPane.vue";
+import ImagePreview from "./components/ImagePreview.vue";
 import StatusBar from "./components/StatusBar.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
 import Welcome from "./components/Welcome.vue";
@@ -34,6 +35,7 @@ import {
   removeTab,
   closeAllTabs,
   closeOtherTabs,
+  type Tab,
 } from "./stores/tabs";
 import { loadRoot, treeState } from "./stores/filetree";
 import { initSessionAutosave, restoreSession } from "./stores/session";
@@ -89,6 +91,36 @@ async function requestClose(tabId: number) {
   }
 }
 
+/** 批量关闭前确认未保存的更改；返回 false 表示用户取消或保存失败 */
+async function confirmDiscard(tabs: Tab[]): Promise<boolean> {
+  const dirty = tabs.filter((tab) => tab.dirty);
+  if (!dirty.length) return true;
+  const choice = await confirmChoice(
+    t("confirm.unsavedTitle"),
+    dirty.length === 1
+      ? t("confirm.unsavedMsg", { name: dirty[0].name })
+      : t("confirm.unsavedManyMsg", { count: dirty.length }),
+    [t("common.save"), t("common.dontSave"), t("common.cancel")]
+  );
+  if (choice === t("common.save")) {
+    for (const tab of dirty) {
+      if (!(await saveTab(tab))) return false;
+    }
+    return true;
+  }
+  return choice === t("common.dontSave");
+}
+
+async function requestCloseAll() {
+  if (await confirmDiscard(tabsState.tabs)) closeAllTabs();
+}
+
+async function requestCloseOthers(keepId: number) {
+  if (await confirmDiscard(tabsState.tabs.filter((tab) => tab.id !== keepId))) {
+    closeOtherTabs(keepId);
+  }
+}
+
 async function openFolder() {
   const dir = await openFolderWithDialog();
   if (dir) {
@@ -124,9 +156,9 @@ async function closeFolder() {
   // 只关闭该文件夹内的标签，文件夹外打开的文件与未命名新文件保持打开
   const root = treeState.root;
   if (root) {
-    for (const tab of [...tabsState.tabs]) {
-      if (isPathInFolder(tab.path, root)) removeTab(tab.id);
-    }
+    const inFolder = tabsState.tabs.filter((tab) => isPathInFolder(tab.path, root));
+    if (!(await confirmDiscard(inFolder))) return;
+    for (const tab of inFolder) removeTab(tab.id);
   }
   treeState.root = null;
   treeState.rootNode = null;
@@ -162,7 +194,7 @@ function onKeydown(e: KeyboardEvent) {
     if (tabsState.activeId !== null) requestClose(tabsState.activeId);
   } else if (mod && e.shiftKey && !e.altKey && key === "w") {
     e.preventDefault();
-    closeAllTabs();
+    requestCloseAll();
   } else if (mod && key === "f") {
     e.preventDefault();
     openFindWindow();
@@ -251,11 +283,12 @@ onBeforeUnmount(() => {
       <div class="flex-1 flex flex-col min-w-0 min-h-0 right-col">
         <TabBar
           @close="requestClose"
-          @close-others="closeOtherTabs"
-          @close-all="closeAllTabs"
+          @close-others="requestCloseOthers"
+          @close-all="requestCloseAll"
         />
         <div class="flex-1 min-h-0 relative">
-          <EditorPane v-if="tabsState.tabs.length" />
+          <ImagePreview v-if="activeTab?.kind === 'image'" :tab="activeTab" />
+          <EditorPane v-else-if="tabsState.tabs.length" />
           <Welcome v-else @open="openWithDialog" @open-folder="openFolder" @open-path="openPath" />
         </div>
       </div>

@@ -2,6 +2,8 @@ export interface Shortcut {
   k: string;
   /** Windows 下显示的组合键（缺省时复用 k，但 mac 符号会原样显示，故 mac 组合键都应提供 kw） */
   kw?: string;
+  /** 非组合键（如「拖拽」）的按键列文字，为 i18n 键；提供时优先于 k / kw 显示 */
+  keyLabel?: string;
   label: string;
 }
 
@@ -47,5 +49,5 @@ export const SHORTCUTS: Shortcut[] = [
   { k: "⇧⌥F", kw: "Shift+Alt+F", label: "sc.format" },
   { k: "⌘+ / ⌘- / ⌘0", kw: "Ctrl+= / Ctrl+- / Ctrl+0", label: "sc.zoom" },
   { k: "⌘,", kw: "Ctrl+,", label: "sc.settings" },
-  { k: "拖拽", label: "sc.drag" },
+  { k: "drag", keyLabel: "sc.dragKey", label: "sc.drag" },
 ];

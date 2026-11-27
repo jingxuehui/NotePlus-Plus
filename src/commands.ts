@@ -37,6 +37,11 @@ export function readTextFile(path: string): Promise<TextFileInfo> {
   return invoke("read_text_file", { path });
 }
 
+/** 读取文件原始字节（图片预览用） */
+export function readBinaryFile(path: string): Promise<ArrayBuffer> {
+  return invoke("read_binary_file", { path });
+}
+
 export function writeTextFile(
   path: string,
   content: string,

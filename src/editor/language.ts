@@ -1,6 +1,7 @@
 import type { Extension } from "@codemirror/state";
 import { LanguageSupport, StreamLanguage, type StreamParser } from "@codemirror/language";
 import { t } from "@/i18n";
+import { baseName } from "@/utils/path";
 
 // 语言包名与加载器分开：名称用于状态栏显示（同步、零依赖），
 // 语法包本身按需 import，避免启动时把 20+ 套 Lezer 语法全部求值。
@@ -96,7 +97,7 @@ const LOADERS: Record<string, LangLoader> = {
 };
 
 export function fileExtension(path: string): string {
-  const name = path.split("/").pop() ?? path;
+  const name = baseName(path);
   const lower = name.toLowerCase();
   if (lower === "dockerfile") return "dockerfile";
   // .gitignore / .env 这类点文件：整段后缀当作扩展名

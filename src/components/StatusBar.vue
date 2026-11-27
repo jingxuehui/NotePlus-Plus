@@ -2,6 +2,7 @@
 import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { activeTab, cursorInfo } from "@/stores/tabs";
 import { t } from "@/i18n";
+import { formatBytes } from "@/utils/image";
 
 const emit = defineEmits<{ "close-tab": [id: number] }>();
 
@@ -83,7 +84,12 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
     <span class="truncate flex-1" :title="activeTab?.path ?? ''">
       {{ activeTab ? (activeTab.path ?? activeTab.name) : t("common.ready") }}
     </span>
-    <template v-if="activeTab">
+    <template v-if="activeTab?.kind === 'image'">
+      <span v-if="activeTab.imageWidth">{{ activeTab.imageWidth }} × {{ activeTab.imageHeight }}</span>
+      <span>{{ formatBytes(activeTab.imageBytes) }}</span>
+      <span>{{ langLabel }}</span>
+    </template>
+    <template v-else-if="activeTab">
       <span>{{ t("status.lineCol", { line: cursorInfo.line, col: cursorInfo.col }) }}</span>
       <span v-if="cursorInfo.selected > 0">{{ t("status.selected", { n: cursorInfo.selected }) }}</span>
       <span>{{ t("status.lines", { n: cursorInfo.lines }) }}</span>

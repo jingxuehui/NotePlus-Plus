@@ -87,6 +87,15 @@ const FILE_TYPES: Record<string, FileTypeDef> = {
   dockerfile: { label: "DK", color: "#2a7fc1" },
   makefile: { label: "MK", color: "#8a7f5f" },
   lock: { label: "LOCK", color: "#6e7681" },
+  // 图片
+  png: { label: "IMG", color: "#a35bb8" },
+  jpg: { label: "IMG", color: "#a35bb8" },
+  jpeg: { label: "IMG", color: "#a35bb8" },
+  gif: { label: "IMG", color: "#a35bb8" },
+  webp: { label: "IMG", color: "#a35bb8" },
+  bmp: { label: "IMG", color: "#a35bb8" },
+  ico: { label: "IMG", color: "#a35bb8" },
+  avif: { label: "IMG", color: "#a35bb8" },
   zip: { label: "ZIP", color: "#a08236" },
   pdf: { label: "PDF", color: "#b8453f" },
 };

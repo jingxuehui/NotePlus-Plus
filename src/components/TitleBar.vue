@@ -23,10 +23,10 @@ function openRepo(url: string) {
 }
 
 // ---------- Windows 自定义窗控（macOS 由系统红绿灯负责） ----------
-const winWindow = isMac ? null : getCurrentWindow();
-function winMinimize() { void winWindow?.minimize(); }
-function winMaxToggle() { void winWindow?.toggleMaximize(); }
-function winClose() { void winWindow?.close(); }
+// 点击时再取窗口：浏览器调试（pnpm dev）没有 Tauri 运行时，setup 阶段调用会抛错导致整页白屏
+function winMinimize() { void getCurrentWindow().minimize(); }
+function winMaxToggle() { void getCurrentWindow().toggleMaximize(); }
+function winClose() { void getCurrentWindow().close(); }
 
 /** 按设置中的拖拽顺序排列标题栏按钮 */
 function orderOf(key: string): number {
@@ -334,7 +334,7 @@ const emit = defineEmits<{
 .win-controls {
   display: flex;
   align-self: stretch;
-  margin-left: 4px;
+  margin-right: -10px;
   flex-shrink: 0;
   /* 右侧其它按钮带 order 排序，窗控必须强制排到最后（窗口最右） */
   order: 9999;

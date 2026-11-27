@@ -2,13 +2,21 @@ import { reactive, computed } from "vue";
 import type { EditorState } from "@codemirror/state";
 import { createStateForFile, updateLanguageForPath } from "@/editor/setup";
 import { viewRef } from "@/editor/view";
-import { languageName } from "@/editor/language";
-import { nativeOpenPaths, nativeSaveFile, readTextFile, writeTextFile } from "@/commands";
+import { fileExtension, languageName } from "@/editor/language";
+import {
+  nativeOpenPaths,
+  nativeSaveFile,
+  readBinaryFile,
+  readTextFile,
+  writeTextFile,
+} from "@/commands";
+import { imageMime, isImagePath } from "@/utils/image";
 import { pushRecent } from "./recent";
 import { settings } from "./settings";
 import { notify } from "./toast";
 import { t } from "@/i18n";
 import { EMPTY_CURSOR, type CursorInfo } from "@/types";
+import { baseName } from "@/utils/path";
 
 let uid = 0;
 /** 文件对话框防重入：连续点击/快捷键重复触发会让原生对话框互相嵌套导致卡死 */
@@ -45,6 +53,15 @@ export interface Tab {
   pinned: boolean;
   /** 会话恢复时只还原了元数据，切换到该标签时再从磁盘加载内容 */
   needsLoad: boolean;
+  /** text：CodeMirror 编辑；image：只读图片预览 */
+  kind: "text" | "image";
+  /** 图片标签的 object URL，关闭标签时释放 */
+  imageUrl: string | null;
+  /** 图片文件大小（字节） */
+  imageBytes: number;
+  /** 图片像素尺寸，预览加载完成后回填 */
+  imageWidth: number;
+  imageHeight: number;
 }
 
 interface TabsState {
@@ -122,10 +139,42 @@ function makeTab(
     language: path ? languageName(path) : t("common.plainText"),
     pinned: false,
     needsLoad: false,
+    kind: "text",
+    imageUrl: null,
+    imageBytes: 0,
+    imageWidth: 0,
+    imageHeight: 0,
   };
   // 懒加载标签连 EditorState 都延后创建，减少启动时的 CPU / 内存开销
   if (!deferState) setState(tab, createStateForFile(path, content, editorHooks));
   return tab;
+}
+
+async function makeImageTab(path: string, name: string): Promise<Tab> {
+  const buf = await readBinaryFile(path);
+  const blob = new Blob([buf], { type: imageMime(path) ?? "" });
+  return {
+    id: ++uid,
+    path,
+    name,
+    dirty: false,
+    encoding: "",
+    eol: "",
+    language: fileExtension(path).toUpperCase(),
+    pinned: false,
+    needsLoad: false,
+    kind: "image",
+    imageUrl: URL.createObjectURL(blob),
+    imageBytes: buf.byteLength,
+    imageWidth: 0,
+    imageHeight: 0,
+  };
+}
+
+/** 释放标签占用的编辑器状态与图片 object URL */
+function disposeTab(tab: Tab) {
+  stateStore.delete(tab.id);
+  if (tab.imageUrl) URL.revokeObjectURL(tab.imageUrl);
 }
 
 export function setActive(id: number) {
@@ -207,6 +256,14 @@ export function restoreTab(
   return tab;
 }
 
+/** 会话恢复专用：重新读取图片并重建预览标签 */
+export async function restoreImageTab(path: string, name: string, pinned = false): Promise<Tab> {
+  const tab = await makeImageTab(path, name);
+  tab.pinned = pinned;
+  tabsState.tabs.push(tab);
+  return tab;
+}
+
 /**
  * 固定 / 取消固定标签页。
  * 固定标签统一排列在最前面（按固定顺序追加），取消固定后回到非固定区开头，
@@ -260,9 +317,13 @@ export async function openPath(path: string): Promise<void> {
     return;
   }
   try {
-    const info = await readTextFile(path);
-    const name = path.split(/[\\/]/).pop() ?? path;
-    const tab = makeTab(path, name, info.content, info.encoding, info.eol);
+    let tab: Tab;
+    if (isImagePath(path)) {
+      tab = await makeImageTab(path, baseName(path));
+    } else {
+      const info = await readTextFile(path);
+      tab = makeTab(path, baseName(path), info.content, info.encoding, info.eol);
+    }
     tabsState.tabs.push(tab);
     setActive(tab.id);
     pushRecent(path);
@@ -294,8 +355,8 @@ export async function openFolderWithDialog(): Promise<string | null> {
 export function removeTab(id: number) {
   const idx = tabsState.tabs.findIndex((t) => t.id === id);
   if (idx < 0) return;
-  tabsState.tabs.splice(idx, 1);
-  stateStore.delete(id);
+  const [tab] = tabsState.tabs.splice(idx, 1);
+  disposeTab(tab);
   if (tabsState.activeId === id) {
     const next = tabsState.tabs[Math.min(idx, tabsState.tabs.length - 1)];
     tabsState.activeId = next ? next.id : null;
@@ -307,6 +368,8 @@ export function docText(tab: Tab): string {
 }
 
 export async function saveTab(tab: Tab): Promise<boolean> {
+  // 图片标签只读：按文本写回会把图片覆盖成空文件
+  if (tab.kind === "image") return true;
   if (!tab.path) return saveTabAs(tab);
   // 懒加载标签必须先读到真实内容，避免把空状态写回磁盘
   if (tab.needsLoad) {
@@ -329,6 +392,7 @@ export async function saveTab(tab: Tab): Promise<boolean> {
 }
 
 export async function saveTabAs(tab: Tab): Promise<boolean> {
+  if (tab.kind === "image") return false;
   if (tab.needsLoad) {
     await ensureTabLoaded(tab);
     if (tab.needsLoad) {
@@ -348,7 +412,7 @@ export async function saveTabAs(tab: Tab): Promise<boolean> {
   try {
     await writeTextFile(finalPath, docText(tab), tab.encoding, tab.eol);
     tab.path = finalPath;
-    tab.name = finalPath.split(/[\\/]/).pop() ?? finalPath;
+    tab.name = baseName(finalPath);
     tab.language = languageName(finalPath);
     // 另存为其它类型后立即切换语法高亮
     if (viewRef.current && tabsState.activeId === tab.id) {
@@ -371,7 +435,7 @@ export async function saveAll(): Promise<void> {
 }
 
 export function closeAllTabs() {
-  tabsState.tabs.forEach((t) => stateStore.delete(t.id));
+  tabsState.tabs.forEach(disposeTab);
   tabsState.tabs = [];
   tabsState.activeId = null;
 }
@@ -383,7 +447,7 @@ export function closeOtherTabs(id: number): void {
   for (let i = tabsState.tabs.length - 1; i >= 0; i--) {
     const t = tabsState.tabs[i];
     if (t.id === id) continue;
-    stateStore.delete(t.id);
+    disposeTab(t);
     tabsState.tabs.splice(i, 1);
   }
   tabsState.activeId = id;

@@ -2,6 +2,7 @@ import { reactive, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { setAppLanguage, setExitOnClose, setIconStyle } from "@/commands";
+import { isMac } from "@/utils/platform";
 
 export type ThemeMode = "dark" | "light";
 export type ThemeChoice = "dark" | "light" | "system";
@@ -360,21 +361,25 @@ export function initVisualSettings() {
   setExitOnClose(settings.exitOnClose).catch(() => undefined);
   setIconStyle(settings.iconStyle === "black").catch(() => undefined);
   setAppLanguage(settings.language).catch(() => undefined);
+  // Rust 侧只在 macOS 上检测系统外观；Windows 的 WebView2 媒体查询可靠，直接使用
+  if (!isMac) {
+    watchMediaTheme();
+    return;
+  }
   // 启动时读取真实系统外观
   invoke<boolean>("get_system_dark")
     .then(onSystemThemeChanged)
-    .catch(() => {
-      // 非 Tauri 环境（浏览器调试）用媒体查询兜底
-      const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? true;
-      onSystemThemeChanged(dark);
-      window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) =>
-        onSystemThemeChanged(e.matches)
-      );
-    });
+    .catch(watchMediaTheme); // 非 Tauri 环境（浏览器调试）用媒体查询兜底
   // 系统外观变化时由 Rust 广播
   listen<boolean>("system:theme-changed", (e) => onSystemThemeChanged(e.payload)).catch(
     () => undefined
   );
+}
+
+function watchMediaTheme() {
+  const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+  onSystemThemeChanged(mq?.matches ?? true);
+  mq?.addEventListener("change", (e) => onSystemThemeChanged(e.matches));
 }
 
 watch(settings, (s) => {
