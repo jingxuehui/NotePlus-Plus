@@ -12,7 +12,15 @@ export const ui = reactive({
   showSettings: false,
   showUpdateCenter: false,
   showTools: false,
+  showPalette: false,
+  paletteMode: "command" as "command" | "file",
 });
+
+/** 打开 / 关闭命令面板（mode: command=命令面板, file=快速打开文件） */
+export function togglePalette(mode?: "command" | "file", force?: boolean) {
+  if (mode) ui.paletteMode = mode;
+  ui.showPalette = force ?? !ui.showPalette;
+}
 
 /** 打开 / 关闭设置弹框 */
 export function toggleSettings(force?: boolean) {

@@ -16,10 +16,12 @@ import GlobalTooltip from "./components/GlobalTooltip.vue";
 const SettingsPanel = defineAsyncComponent(() => import("./components/SettingsPanel.vue"));
 const UpdateCenter = defineAsyncComponent(() => import("./components/UpdateCenter.vue"));
 const ToolsPanel = defineAsyncComponent(() => import("./components/ToolsPanel.vue"));
+const CommandPalette = defineAsyncComponent(() => import("./components/CommandPalette.vue"));
 import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { updater } from "./stores/updater";
-import { confirmChoice, toggleSettings, ui } from "./stores/ui";
+import { confirmChoice, toggleSettings, toggleUpdateCenter, toggleTools, togglePalette, ui } from "./stores/ui";
+import { registerCommands, type PaletteCommand } from "./stores/commands";
 import { t } from "./i18n";
 import {
   tabsState,
@@ -166,10 +168,49 @@ async function closeFolder() {
   treeState.expanded.clear();
 }
 
+// ---------- 命令面板：注册可用操作 ----------
+registerCommands([
+  { id: "file.new", title: t("palette.cmd.newFile"), group: t("palette.groupFile"), shortcut: "⌘/Ctrl+N", keywords: "new untitled", run: () => newTab() },
+  { id: "file.open", title: t("palette.cmd.openFile"), group: t("palette.groupFile"), shortcut: "⌘/Ctrl+O", keywords: "open file", run: () => openWithDialog() },
+  { id: "file.openFolder", title: t("palette.cmd.openFolder"), group: t("palette.groupFile"), shortcut: "⇧⌘/Ctrl+O", keywords: "folder workspace", run: () => openFolder() },
+  { id: "file.save", title: t("palette.cmd.save"), group: t("palette.groupFile"), shortcut: "⌘/Ctrl+S", keywords: "save", run: () => { if (activeTab.value) saveTab(activeTab.value); } },
+  { id: "file.saveAs", title: t("palette.cmd.saveAs"), group: t("palette.groupFile"), shortcut: "⇧⌘/Ctrl+S", keywords: "save as", run: () => { if (activeTab.value) saveTabAs(activeTab.value); } },
+  { id: "file.saveAll", title: t("palette.cmd.saveAll"), group: t("palette.groupFile"), shortcut: "⌥⌘/Ctrl+S", keywords: "save all", run: () => saveAll() },
+  { id: "file.close", title: t("palette.cmd.closeTab"), group: t("palette.groupFile"), shortcut: "⌘/Ctrl+W", keywords: "close tab", run: () => { if (tabsState.activeId !== null) requestClose(tabsState.activeId); } },
+  { id: "file.closeAll", title: t("palette.cmd.closeAllTabs"), group: t("palette.groupFile"), shortcut: "⇧⌘/Ctrl+W", keywords: "close all", run: () => requestCloseAll() },
+  { id: "file.quickOpen", title: t("palette.cmd.quickOpen"), group: t("palette.groupFile"), shortcut: "⌘/Ctrl+P", keywords: "quick open file", run: () => togglePalette("file", true) },
+  { id: "edit.find", title: t("palette.cmd.find"), group: t("palette.groupEdit"), shortcut: "⌘/Ctrl+F", keywords: "find search replace", run: () => openFindWindow() },
+  { id: "edit.findNext", title: t("palette.cmd.findNext"), group: t("palette.groupEdit"), shortcut: "⌘/Ctrl+G", keywords: "next match", run: () => findNextMatch() },
+  { id: "edit.findPrev", title: t("palette.cmd.findPrev"), group: t("palette.groupEdit"), shortcut: "⇧⌘/Ctrl+G", keywords: "previous match", run: () => findPrevMatch() },
+  { id: "edit.formatJson", title: t("palette.cmd.formatJson"), group: t("palette.groupEdit"), shortcut: "⇧⌥F", keywords: "format json pretty", run: () => formatJsonDocument() },
+  { id: "view.sidebar", title: t("palette.cmd.toggleSidebar"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+B", keywords: "sidebar file tree", run: () => { settings.sidebarVisible = !settings.sidebarVisible; } },
+  { id: "view.zoomIn", title: t("palette.cmd.zoomIn"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+=", keywords: "zoom in bigger font", run: () => zoomIn() },
+  { id: "view.zoomOut", title: t("palette.cmd.zoomOut"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+-", keywords: "zoom out smaller font", run: () => zoomOut() },
+  { id: "view.zoomReset", title: t("palette.cmd.zoomReset"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+0", keywords: "reset zoom font", run: () => zoomReset() },
+  { id: "view.settings", title: t("palette.cmd.settings"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+,", keywords: "settings preferences", run: () => toggleSettings() },
+  { id: "view.tools", title: t("palette.cmd.tools"), group: t("palette.groupView"), keywords: "tools", run: () => toggleTools(true) },
+  { id: "view.updates", title: t("palette.cmd.updates"), group: t("palette.groupView"), keywords: "update check version", run: () => toggleUpdateCenter(true) },
+  { id: "palette.commands", title: t("palette.cmd.commandPalette"), group: t("palette.groupView"), shortcut: "⇧⌘/Ctrl+P", keywords: "command palette", run: () => togglePalette("command", true) },
+] as PaletteCommand[]);
+
 // ---------- 键盘快捷键（Notepad++ 风格） ----------
 function onKeydown(e: KeyboardEvent) {
+  // 命令面板打开时只由面板自身处理键盘（Esc 在其捕获阶段已 stopPropagation）
+  if (ui.showPalette) return;
+
   const mod = e.metaKey || e.ctrlKey;
   const key = e.key.toLowerCase();
+
+  // 命令面板 / 快速打开（面板自身在捕获阶段处理 Esc/导航，这里只管打开）
+  if (mod && e.shiftKey && !e.altKey && key === "p") {
+    e.preventDefault();
+    togglePalette("command", true);
+    return;
+  } else if (mod && !e.shiftKey && !e.altKey && key === "p") {
+    e.preventDefault();
+    togglePalette("file", true);
+    return;
+  }
 
   if (mod && !e.shiftKey && !e.altKey && key === "s") {
     e.preventDefault();
@@ -300,6 +341,7 @@ onBeforeUnmount(() => {
     <SettingsPanel v-if="ui.showSettings" />
     <UpdateCenter v-if="ui.showUpdateCenter" />
     <ToolsPanel v-if="ui.showTools" />
+    <CommandPalette v-if="ui.showPalette" />
 
     <!-- 启动动画：遮住首屏加载，品牌定格后整体淡出 -->
     <Teleport to="body">
