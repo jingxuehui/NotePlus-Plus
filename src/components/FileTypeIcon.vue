@@ -114,10 +114,11 @@ const badgeStyle = computed(() => {
   return {
     width: `${props.size}px`,
     height: `${props.size}px`,
-    fontSize: `${Math.round(props.size * 0.52 * 10) / 10}px`,
-    color: c,
-    background: `${c}26`,
-    borderColor: `${c}59`,
+    fontSize: `${Math.round(props.size * 0.44 * 10) / 10}px`,
+    color: "#fff",
+    background: c,
+    // 实色底上加一圈微弱白色内描边，增加质感并在浅色背景下更立体
+    boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 15%)",
   };
 });
 </script>
@@ -136,7 +137,7 @@ const badgeStyle = computed(() => {
     viewBox="0 0 16 16"
     fill="none"
     stroke="currentColor"
-    stroke-width="1.3"
+    stroke-width="1.5"
   >
     <path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 13V6L9 1.5z" />
     <path d="M9 1.5V6h4.5" />
@@ -157,8 +158,8 @@ const badgeStyle = computed(() => {
   flex-shrink: 0;
   user-select: none;
 }
-/* 未保存：外圈用强调色提示 */
+/* 未保存：外圈用强调色提示（保留实色底的内描边） */
 .file-type-icon.badge.dirty {
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 15%), 0 0 0 1px var(--accent);
 }
 </style>
