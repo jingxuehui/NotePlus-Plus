@@ -47,9 +47,12 @@ export function darkTheme(): Extension {
         },
         ".cm-content": { caretColor: "var(--accent)", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
-        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-          { backgroundColor: "var(--selection-bg, #4fc3f78c)" },
-        ".cm-activeLine": { backgroundColor: "var(--hover)" },
+        // drawSelection() 会把原生 ::selection 设为 transparent !important，
+        // 且 CodeMirror 内置主题的 .cm-selectionBackground 规则特异性更高，
+        // 故这里必须加 !important，选区高亮才能生效（深色用更实的强调色）
+        "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-selectionBackground":
+          { backgroundColor: "var(--selection-bg, #4fc3f78c) !important" },
+        ".cm-activeLine": { backgroundColor: "var(--active-line)" },
         ".cm-gutters": {
           // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部（均随强调色变化）
           backgroundColor: "var(--gutter)",
@@ -132,9 +135,10 @@ export function lightTheme(): Extension {
         },
         ".cm-content": { caretColor: "var(--accent)", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
-        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-          { backgroundColor: "var(--selection-bg, #0b6cb54d)" },
-        ".cm-activeLine": { backgroundColor: "var(--panel-2)" },
+        // 同深色主题：覆盖 CodeMirror 内置的高特异性选区规则
+        "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-selectionBackground":
+          { backgroundColor: "var(--selection-bg, #0b6cb54d) !important" },
+        ".cm-activeLine": { backgroundColor: "var(--active-line)" },
         ".cm-gutters": {
           // 行号区比编辑区略深，右侧一条浅分隔线贯穿到底部（均随强调色变化）
           backgroundColor: "var(--gutter)",

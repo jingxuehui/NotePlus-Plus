@@ -10,6 +10,8 @@
   --muted: #8a9099;
   --accent: #4fc3f7;
   --selection-bg: #4fc3f78c;
+  /* 当前行高亮用低透明度强调色，避免盖住绘制在下方的选区 */
+  --active-line: #4fc3f722;
   --danger: #f07178;
   --tip-bg: #171b24;
   --tip-border: #333947;
@@ -26,6 +28,7 @@ body.theme-light {
   --muted: #6b7280;
   --accent: #0b6cb5;
   --selection-bg: #0b6cb54d;
+  --active-line: #0b6cb51f;
   --danger: #bf1c2e;
   /* 亮色主题下的提示仍用深色气泡，与深色界面保持一致的视觉语言 */
   --tip-bg: #1f2430;

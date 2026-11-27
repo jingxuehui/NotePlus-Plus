@@ -303,6 +303,9 @@ export function applyVisual(s: Settings) {
     ["--accent-edge", light ? accent.edgeLight : accent.edgeDark],
     // 文本选中底色跟随主题：深色用更实的强调色，浅色用浅淡的强调色
     ["--selection-bg", light ? `${accent.light}4d` : `${accent.dark}8c`],
+    // 当前行高亮必须是低透明度：CodeMirror 选区层绘制在内容层下方，
+    // 不透明的行背景会把当前行的选区颜色完全盖住
+    ["--active-line", light ? `${accent.light}1f` : `${accent.dark}22`],
     ["--bg", mix(base.bg, light ? 0.05 : 0.06)],
     ["--panel", mix(base.panel, light ? 0.05 : 0.07)],
     ["--panel-2", mix(base.panel2, light ? 0.08 : 0.09)],
