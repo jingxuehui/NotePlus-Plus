@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { getRecent, clearRecent } from "@/stores/recent";
-import { SHORTCUTS, shortcutParts } from "@/data/shortcuts";
+import { SHORTCUTS } from "@/data/shortcuts";
+import type { Shortcut } from "@/data/shortcuts";
 import { t } from "@/i18n";
 import { baseName } from "@/utils/path";
-import { isMac } from "@/utils/platform";
+import { isMac, shortcutKeys } from "@/utils/platform";
 
 const emit = defineEmits<{
   open: [];
@@ -22,7 +23,17 @@ function clearAll() {
 // 快捷键列表与标题栏的快捷键提示共用同一份数据
 const shortcuts = SHORTCUTS;
 
+function isSymKey(key: string): boolean {
+  return /^[⌘⌃⌥⇧]$/.test(key);
+}
 
+/** 把当前平台的快捷键拆成键帽序列：外层为 " / " 分隔的多组，内层为每组的每个键 */
+function keysFor(s: Shortcut): string[][] {
+  const raw = isMac ? s.k : (s.kw ?? s.k);
+  return isMac
+    ? shortcutKeys(raw)
+    : raw.split(" / ").map((part) => part.split("+"));
+}
 </script>
 
 <template>
@@ -40,16 +51,21 @@ const shortcuts = SHORTCUTS;
 
       <div class="shortcut-list text-left">
         <div v-for="s in shortcuts" :key="s.k" class="row">
-          <span class="k" :class="{ plain: !isMac || s.keyLabel }"
-            ><template v-if="s.keyLabel">{{ t(s.keyLabel) }}</template
-            ><template v-else-if="isMac"
-              ><template v-for="(p, i) in shortcutParts(s.k)" :key="i"
-                ><span v-if="p.sym" class="sym" :class="{ shift: p.text === '⇧' }">{{ p.text }}</span
-                ><template v-else>{{ p.text }}</template></template
-              ></template
-            ><template v-else>{{ s.kw ?? s.k }}</template></span
-          >
-          <span>{{ t(s.label) }}</span>
+          <span class="k" :title="s.keyLabel ? t(s.keyLabel) : (isMac ? s.k : (s.kw ?? s.k))">
+            <template v-if="s.keyLabel">
+              <kbd class="sc-key wide">{{ t(s.keyLabel) }}</kbd>
+            </template>
+            <template v-else>
+              <template v-for="(group, gi) in keysFor(s)" :key="gi">
+                <span v-if="gi > 0" class="sc-group-sep">/</span>
+                <template v-for="(key, ki) in group" :key="ki">
+                  <span v-if="ki > 0" class="sc-sep">+</span>
+                  <kbd class="sc-key" :class="{ sym: isSymKey(key), shift: key === '⇧' }">{{ key }}</kbd>
+                </template>
+              </template>
+            </template>
+          </span>
+          <span class="desc">{{ t(s.label) }}</span>
         </div>
       </div>
 
@@ -74,67 +90,64 @@ const shortcuts = SHORTCUTS;
 </template>
 
 <style scoped>
-/* 宽度由键帽列 + 说明列决定，inline-flex 配合父级 text-align:center 真正水平居中 */
+/* 网格布局：键帽列宽度由最长组合决定，说明列自动对齐，整体水平居中 */
 .shortcut-list {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: stretch;
+  display: inline-grid;
+  grid-template-columns: max-content max-content;
+  column-gap: 14px;
+  row-gap: 6px;
+  align-items: center;
   margin: 0 auto;
 }
+/* 让每行的两个 span 直接参与网格布局 */
 .row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 26px;
-  font-size: 12px;
-  color: var(--muted);
+  display: contents;
 }
-/* 说明列按文字实际宽度，最宽的一行决定列表宽度，整体才能对称居中 */
-.row > span:last-child {
-  flex: none;
-  text-align: left;
-  white-space: nowrap;
-}
-/* 键帽统一尺寸，长短组合键也不再忽宽忽窄 */
 .k {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 126px;
+  justify-self: end;
+  gap: 3px;
   height: 20px;
-  flex-shrink: 0;
-  box-sizing: border-box;
+  white-space: nowrap;
   font-family: "SF Mono", Menlo, monospace;
+}
+.desc {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* 与命令面板一致的独立键帽：[⌘] + [N] */
+.sc-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: calc(var(--ui-radius, 6px) - 1px);
-  padding: 0 6px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
+  font-family: "SF Mono", Menlo, monospace;
   font-size: 11px;
-  color: var(--text);
-  white-space: nowrap;
-  text-align: center;
-  /* 键帽内字符（⌘ 与 N 等）之间留 3px 间距 */
-  letter-spacing: 3px;
-}
-/* Windows 组合键为普通文本（Ctrl+= / Ctrl+- / Ctrl+0 较长），取消逐字符间距并加宽 */
-.k.plain {
-  width: 176px;
-  letter-spacing: 0.3px;
-}
-/* 修饰符符号（⌘⇧⌥⌃）在等宽字体里字形偏小，放大后与字母视觉等大 */
-.k .sym {
-  font-size: 14px;
   line-height: 1;
+  color: var(--text);
 }
-/* ⇧ 字形基线偏低，单独上移与其他字符对齐 */
-.k .sym.shift {
-  display: inline-block;
-  transform: translateY(-1.5px);
+.sc-key.wide {
+  padding: 0 8px;
 }
-/* Windows：Ctrl+Shift+O 等组合更长，缩紧字距并加宽键帽 */
-.k.plain {
-  width: 176px;
-  letter-spacing: 0.4px;
+/* 修饰符符号在等宽字体里偏小，放大后与字母视觉等大 */
+.sc-key.sym {
+  font-size: 14px;
+}
+/* ⇧ 字形基线偏低，单独上移 */
+.sc-key.sym.shift {
+  transform: translateY(-1px);
+}
+.sc-sep,
+.sc-group-sep {
+  color: var(--muted);
   font-size: 10px;
 }
 .recent-row {

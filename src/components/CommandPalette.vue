@@ -3,12 +3,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue"
 import { t } from "@/i18n";
 import { ui, togglePalette } from "@/stores/ui";
 import { paletteCommands, type PaletteCommand } from "@/stores/commands";
-import { treeState } from "@/stores/filetree";
-import { tabsState } from "@/stores/tabs";
-import { openPath } from "@/stores/tabs";
-import { getRecent } from "@/stores/recent";
 import { convertShortcut, shortcutKeys } from "@/utils/platform";
-import type { FileNode } from "@/commands";
 
 function isSymKey(key: string): boolean {
   return /^[⌘⌃⌥⇧]$/.test(key);
@@ -18,34 +13,6 @@ const query = ref("");
 const activeIndex = ref(0);
 const inputRef = ref<HTMLInputElement | null>(null);
 const listRef = ref<HTMLDivElement | null>(null);
-
-interface FileEntry {
-  path: string;
-  name: string;
-  /** 来源：已打开 / 最近 / 文件树 */
-  source: "open" | "recent" | "tree";
-}
-
-const allFiles = computed<FileEntry[]>(() => {
-  const seen = new Set<string>();
-  const out: FileEntry[] = [];
-  const add = (path: string, source: FileEntry["source"]) => {
-    if (!path || seen.has(path)) return;
-    seen.add(path);
-    out.push({ path, name: path.split(/[\\/]/).pop() ?? path, source });
-  };
-  tabsState.tabs.forEach((tab) => {
-    if (tab.path) add(tab.path, "open");
-  });
-  getRecent().forEach((p) => add(p, "recent"));
-  const walk = (node: FileNode | null) => {
-    if (!node) return;
-    if (!node.is_dir) add(node.path, "tree");
-    else node.children?.forEach(walk);
-  };
-  walk(treeState.rootNode);
-  return out;
-});
 
 /** 子序列模糊匹配：返回分数（越大越匹配），-1 表示不匹配 */
 function fuzzyScore(text: string, term: string): number {
@@ -94,46 +61,19 @@ const commandResults = computed<PaletteCommand[]>(() =>
   )
 );
 
-const fileResults = computed<FileEntry[]>(() => {
-  const term = query.value.trim();
-  return rank(
-    allFiles.value,
-    (f) => f.name,
-    (f) => f.path,
-    term
-  ).slice(0, 100);
-});
-
-const resultCount = computed(() =>
-  ui.paletteMode === "command" ? commandResults.value.length : fileResults.value.length
-);
+const resultCount = computed(() => commandResults.value.length);
 
 watch(query, () => (activeIndex.value = 0));
-watch(
-  () => ui.paletteMode,
-  () => {
-    activeIndex.value = 0;
-    query.value = "";
-    nextTick(() => inputRef.value?.focus());
-  }
-);
 
 function close() {
-  togglePalette(undefined, false);
+  togglePalette(false);
 }
 
 async function activate(index: number) {
-  if (ui.paletteMode === "command") {
-    const cmd = commandResults.value[index];
-    if (!cmd) return;
-    close();
-    await cmd.run();
-  } else {
-    const file = fileResults.value[index];
-    if (!file) return;
-    close();
-    await openPath(file.path);
-  }
+  const cmd = commandResults.value[index];
+  if (!cmd) return;
+  close();
+  await cmd.run();
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -152,9 +92,6 @@ function onKeydown(e: KeyboardEvent) {
   } else if (e.key === "Enter") {
     e.preventDefault();
     void activate(activeIndex.value);
-  } else if (e.key === "Tab" && !e.shiftKey) {
-    e.preventDefault();
-    togglePalette(ui.paletteMode === "command" ? "file" : "command", true);
   }
 }
 
@@ -180,45 +117,33 @@ onBeforeUnmount(() => {
     <div class="palette-overlay" @click.self="close">
       <div class="palette-window">
         <div class="palette-input-row">
-          <span class="palette-mode-tag">{{ ui.paletteMode === "command" ? t("palette.modeCommand") : t("palette.modeFile") }}</span>
+          <span class="palette-mode-tag">{{ t("palette.modeCommand") }}</span>
           <input
             ref="inputRef"
             v-model="query"
             type="text"
             spellcheck="false"
             autocomplete="off"
-            :placeholder="ui.paletteMode === 'command' ? t('palette.placeholderCommand') : t('palette.placeholderFile')"
+            :placeholder="t('palette.placeholderCommand')"
           />
-          <span class="palette-hint">{{ t("palette.hint") }}</span>
         </div>
 
         <div ref="listRef" class="palette-list">
-          <template v-if="ui.paletteMode === 'command'">
-            <div v-for="(cmd, idx) in commandResults" :key="cmd.id" class="palette-item" :class="{ active: idx === activeIndex }" @mouseenter="activeIndex = idx" @click="activate(idx)">
-              <div class="palette-item-main">
-                <span class="palette-item-title">{{ cmd.title }}</span>
-                <span class="palette-item-group">{{ cmd.group }}</span>
-              </div>
-              <span v-if="cmd.shortcut" class="palette-item-shortcut" :title="convertShortcut(cmd.shortcut)">
-                <template v-for="(group, gi) in shortcutKeys(cmd.shortcut)" :key="gi">
-                  <span v-if="gi > 0" class="sc-group-sep">/</span>
-                  <template v-for="(key, ki) in group" :key="ki">
-                    <span v-if="ki > 0" class="sc-sep">+</span>
-                    <kbd class="sc-key" :class="{ sym: isSymKey(key), shift: key === '⇧' }">{{ key }}</kbd>
-                  </template>
+          <div v-for="(cmd, idx) in commandResults" :key="cmd.id" class="palette-item" :class="{ active: idx === activeIndex }" @mouseenter="activeIndex = idx" @click="activate(idx)">
+            <div class="palette-item-main">
+              <span class="palette-item-title">{{ cmd.title }}</span>
+              <span class="palette-item-group">{{ cmd.group }}</span>
+            </div>
+            <span v-if="cmd.shortcut" class="palette-item-shortcut" :title="convertShortcut(cmd.shortcut)">
+              <template v-for="(group, gi) in shortcutKeys(cmd.shortcut)" :key="gi">
+                <span v-if="gi > 0" class="sc-group-sep">/</span>
+                <template v-for="(key, ki) in group" :key="ki">
+                  <span v-if="ki > 0" class="sc-sep">+</span>
+                  <kbd class="sc-key" :class="{ sym: isSymKey(key), shift: key === '⇧' }">{{ key }}</kbd>
                 </template>
-              </span>
-            </div>
-          </template>
-          <template v-else>
-            <div v-for="(file, idx) in fileResults" :key="file.path" class="palette-item" :class="{ active: idx === activeIndex }" @mouseenter="activeIndex = idx" @click="activate(idx)">
-              <div class="palette-item-main">
-                <span class="palette-item-title">{{ file.name }}</span>
-                <span class="palette-item-path">{{ file.path }}</span>
-              </div>
-              <span class="palette-item-source">{{ file.source === "open" ? t("palette.sourceOpen") : file.source === "recent" ? t("palette.sourceRecent") : t("palette.sourceTree") }}</span>
-            </div>
-          </template>
+              </template>
+            </span>
+          </div>
 
           <div v-if="resultCount === 0" class="palette-empty">{{ t("palette.noResults") }}</div>
         </div>
@@ -227,7 +152,6 @@ onBeforeUnmount(() => {
           <span>↑↓ {{ t("palette.navigate") }}</span>
           <span>↵ {{ t("palette.select") }}</span>
           <span>Esc {{ t("palette.close") }}</span>
-          <span>Tab {{ t("palette.switchMode") }}</span>
         </div>
       </div>
     </div>
@@ -297,13 +221,6 @@ onBeforeUnmount(() => {
   color: var(--muted);
 }
 
-.palette-hint {
-  flex: none;
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
 .palette-list {
   flex: 1;
   min-height: 120px;
@@ -340,8 +257,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.palette-item-group,
-.palette-item-path {
+.palette-item-group {
   color: var(--muted);
   font-size: 11px;
   overflow: hidden;
@@ -349,8 +265,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.palette-item-shortcut,
-.palette-item-source {
+.palette-item-shortcut {
   flex: none;
   color: var(--muted);
   font-size: 11px;

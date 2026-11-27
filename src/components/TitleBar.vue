@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { settings, cycleTheme } from "@/stores/settings";
 import { ui, toggleSettings, toggleUpdateCenter, toggleTools } from "@/stores/ui";
 import { updater } from "@/stores/updater";
-import { openFindWindow } from "@/find/bridge";
 import { activeTab } from "@/stores/tabs";
 import { openExternal } from "@/commands";
 import { t } from "@/i18n";
@@ -157,19 +156,6 @@ const emit = defineEmits<{
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
           <path d="M10.5 1.5h-6A1.5 1.5 0 0 0 3 3v8a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 11V4l-2.5-2.5z" />
           <path d="M5 12.5v2a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V6" />
-        </svg>
-      </span>
-      <span
-        v-if="settings.toolbar.find"
-        class="icon-btn"
-        :class="{ 'sep-before': settings.toolbar.save || settings.toolbar.saveAs || settings.toolbar.saveAll }"
-        :style="{ order: orderOf('find') }"
-        :title="t('titlebar.find')"
-        @click="openFindWindow()"
-      >
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-          <circle cx="7" cy="7" r="4.5" />
-          <line x1="10.5" y1="10.5" x2="14" y2="14" />
         </svg>
       </span>
       <span

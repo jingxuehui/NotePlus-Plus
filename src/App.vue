@@ -52,9 +52,6 @@ import { formatJsonDocument } from "./editor/format";
 import {
   addCursorAbove,
   addCursorBelow,
-  selectAllOccurrences,
-  foldAllLines,
-  unfoldAllLines,
 } from "./editor/selection";
 import { isMac, isWindows } from "./utils/platform";
 
@@ -185,16 +182,10 @@ registerCommands([
   { id: "file.saveAll", title: t("palette.cmd.saveAll"), group: t("palette.groupFile"), shortcut: "⌥⌘S", keywords: "save all", run: () => saveAll() },
   { id: "file.close", title: t("palette.cmd.closeTab"), group: t("palette.groupFile"), shortcut: "⌘W", keywords: "close tab", run: () => { if (tabsState.activeId !== null) requestClose(tabsState.activeId); } },
   { id: "file.closeAll", title: t("palette.cmd.closeAllTabs"), group: t("palette.groupFile"), shortcut: "⇧⌘W", keywords: "close all", run: () => requestCloseAll() },
-  { id: "file.quickOpen", title: t("palette.cmd.quickOpen"), group: t("palette.groupFile"), shortcut: "⌘P", keywords: "quick open file", run: () => togglePalette("file", true) },
   { id: "edit.find", title: t("palette.cmd.find"), group: t("palette.groupEdit"), shortcut: "⌘F", keywords: "find search replace", run: () => openFindWindow() },
-  { id: "edit.findNext", title: t("palette.cmd.findNext"), group: t("palette.groupEdit"), shortcut: "⌘G", keywords: "next match", run: () => findNextMatch() },
-  { id: "edit.findPrev", title: t("palette.cmd.findPrev"), group: t("palette.groupEdit"), shortcut: "⇧⌘G", keywords: "previous match", run: () => findPrevMatch() },
   { id: "edit.formatJson", title: t("palette.cmd.formatJson"), group: t("palette.groupEdit"), shortcut: "⇧⌥F", keywords: "format json pretty", run: () => formatJsonDocument() },
   { id: "edit.addCursorAbove", title: t("palette.cmd.addCursorAbove"), group: t("palette.groupEdit"), shortcut: "⌥⌘↑", keywords: "multi cursor above", run: () => addCursorAbove() },
   { id: "edit.addCursorBelow", title: t("palette.cmd.addCursorBelow"), group: t("palette.groupEdit"), shortcut: "⌥⌘↓", keywords: "multi cursor below", run: () => addCursorBelow() },
-  { id: "edit.selectAllOccurrences", title: t("palette.cmd.selectAllOccurrences"), group: t("palette.groupEdit"), shortcut: "⇧⌘L", keywords: "select all same occurrences multi cursor", run: () => selectAllOccurrences() },
-  { id: "edit.foldAll", title: t("palette.cmd.foldAll"), group: t("palette.groupEdit"), shortcut: "⌥⌘[", keywords: "fold collapse all", run: () => foldAllLines() },
-  { id: "edit.unfoldAll", title: t("palette.cmd.unfoldAll"), group: t("palette.groupEdit"), shortcut: "⌥⌘]", keywords: "unfold expand all", run: () => unfoldAllLines() },
   { id: "view.sidebar", title: t("palette.cmd.toggleSidebar"), group: t("palette.groupView"), shortcut: "⌘B", keywords: "sidebar file tree", run: () => { settings.sidebarVisible = !settings.sidebarVisible; } },
   { id: "view.zoomIn", title: t("palette.cmd.zoomIn"), group: t("palette.groupView"), shortcut: "⌘=", keywords: "zoom in bigger font", run: () => zoomIn() },
   { id: "view.zoomOut", title: t("palette.cmd.zoomOut"), group: t("palette.groupView"), shortcut: "⌘-", keywords: "zoom out smaller font", run: () => zoomOut() },
@@ -202,7 +193,7 @@ registerCommands([
   { id: "view.settings", title: t("palette.cmd.settings"), group: t("palette.groupView"), shortcut: "⌘,", keywords: "settings preferences", run: () => toggleSettings() },
   { id: "view.tools", title: t("palette.cmd.tools"), group: t("palette.groupView"), keywords: "tools", run: () => toggleTools(true) },
   { id: "view.updates", title: t("palette.cmd.updates"), group: t("palette.groupView"), keywords: "update check version", run: () => toggleUpdateCenter(true) },
-  { id: "palette.commands", title: t("palette.cmd.commandPalette"), group: t("palette.groupView"), shortcut: "⇧⌘P", keywords: "command palette", run: () => togglePalette("command", true) },
+  { id: "palette.commands", title: t("palette.cmd.commandPalette"), group: t("palette.groupView"), shortcut: "⇧⌘P", keywords: "command palette", run: () => togglePalette(true) },
 ] as PaletteCommand[]);
 
 // ---------- 键盘快捷键（Notepad++ 风格） ----------
@@ -213,14 +204,10 @@ function onKeydown(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey;
   const key = e.key.toLowerCase();
 
-  // 命令面板 / 快速打开（面板自身在捕获阶段处理 Esc/导航，这里只管打开）
+  // 命令面板（面板自身在捕获阶段处理 Esc/导航，这里只管打开）
   if (mod && e.shiftKey && !e.altKey && key === "p") {
     e.preventDefault();
-    togglePalette("command", true);
-    return;
-  } else if (mod && !e.shiftKey && !e.altKey && key === "p") {
-    e.preventDefault();
-    togglePalette("file", true);
+    togglePalette(true);
     return;
   }
 
@@ -251,10 +238,6 @@ function onKeydown(e: KeyboardEvent) {
   } else if (mod && key === "f") {
     e.preventDefault();
     openFindWindow();
-  } else if (mod && key === "g") {
-    e.preventDefault();
-    if (e.shiftKey) findPrevMatch();
-    else findNextMatch();
   } else if (key === "f3") {
     e.preventDefault();
     if (e.shiftKey) findPrevMatch();

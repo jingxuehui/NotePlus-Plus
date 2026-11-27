@@ -30,7 +30,6 @@ import {
 import {
   addCursorAbove,
   addCursorBelow,
-  selectAllOccurrences,
   altClickAddCursor,
 } from "./selection";
 import {
@@ -84,11 +83,10 @@ export function buildExtensions(hooks: EditorHooks): Extension[] {
     matchHighlight,
     keymap.of([
       { key: "Mod-/", run: toggleComment },
-      // 多光标：⌘/Ctrl+Alt+↑↓ 在上下行添加光标，⌘/Ctrl+Shift+L 选中全部相同项
+      // 多光标：⌘/Ctrl+Alt+↑↓ 在上下行添加光标
       { key: "Mod-Alt-ArrowUp", run: addCursorAbove },
       { key: "Mod-Alt-ArrowDown", run: addCursorBelow },
-      { key: "Mod-Shift-l", run: selectAllOccurrences },
-      // 查找快捷键（⌘F / ⌘G / ⌘⇧G / F3）统一由 App 层处理，编辑器不注册，避免弹出内置面板
+      // 查找快捷键（⌘F / F3）统一由 App 层处理，编辑器不注册，避免弹出内置面板
       ...closeBracketsKeymap,
       ...defaultKeymap,
       ...historyKeymap,

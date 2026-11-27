@@ -1,7 +1,6 @@
 import { EditorSelection, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import {
-  foldAll,
   unfoldAll,
   toggleFold,
   foldable,
@@ -51,45 +50,6 @@ function addCursorAtLine(view: EditorView, dir: -1 | 1): boolean {
   return true;
 }
 
-/** 选中文档中所有与当前选区内容相同的出现位置 */
-export function selectAllOccurrences(): boolean {
-  const view = viewRef.current;
-  if (!view) return false;
-  const state = view.state;
-  const main = state.selection.main;
-  let text: string;
-  if (!main.empty) {
-    text = state.sliceDoc(main.from, main.to);
-  } else {
-    const line = state.doc.lineAt(main.head);
-    const before = state.sliceDoc(line.from, main.head);
-    const after = state.sliceDoc(main.head, line.to);
-    const left = before.match(/[\w$]+$/)?.[0] ?? "";
-    const right = after.match(/^[\w$]+/)?.[0] ?? "";
-    text = left + right;
-    if (!text) return false;
-  }
-  if (!text) return false;
-  const ranges = [];
-  const re = new RegExp(escapeRegExp(text), "g");
-  const content = state.doc.toString();
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(content)) !== null) {
-    ranges.push(EditorSelection.range(m.index, m.index + text.length));
-  }
-  if (!ranges.length) return false;
-  view.dispatch({
-    selection: EditorSelection.create(ranges, Math.min(1, ranges.length - 1)),
-    scrollIntoView: true,
-  });
-  view.focus();
-  return true;
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /** 切换列块选择模式（通过 dispatch 设置 rectangular 选择标记） */
 export function toggleColumnSelection(): boolean {
   const view = viewRef.current;
@@ -108,13 +68,6 @@ export function toggleColumnSelection(): boolean {
   }
   view.dispatch({ selection: EditorSelection.create(newRanges) });
   view.focus();
-  return true;
-}
-
-export function foldAllLines(): boolean {
-  const view = viewRef.current;
-  if (!view) return false;
-  foldAll(view);
   return true;
 }
 

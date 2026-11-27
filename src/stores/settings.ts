@@ -40,7 +40,6 @@ export interface ToolbarVisibility {
   save: boolean;
   saveAs: boolean;
   saveAll: boolean;
-  find: boolean;
   format: boolean;
   shortcutHint: boolean;
   statusBar: boolean;
@@ -121,7 +120,6 @@ export const DEFAULT_SETTINGS: Settings = {
     openFolder: true,
     save: true,
     saveAll: true,
-    find: true,
     format: true,
     saveAs: true,
     shortcutHint: true,
@@ -145,7 +143,7 @@ export const DEFAULT_SETTINGS: Settings = {
   toolbarOrder: [
     "sidebar", "newFile", "openFile", "openFolder",
     "save", "saveAs", "saveAll",
-    "find", "format", "moreMenu",
+    "format", "moreMenu",
     "updateButton", "github", "gitee", "themeToggle", "shortcutHint", "systemSettings",
   ],
   tabMenuOrder: ["rename", "pin", "reveal", "close", "closeOthers", "closeAll"],
@@ -197,6 +195,8 @@ function load(): Settings {
         delete legacy.closeTab;
         delete legacy.closeOthers;
         delete legacy.closeAll;
+        // 查找替换按钮已整体移除
+        delete legacy.find;
       }
       // 更多入口统一迁移到左侧主操作栏末尾（从旧顺序中移除，让 mergeOrder 按新默认位置插入）
       if (Array.isArray(saved.toolbarOrder)) {

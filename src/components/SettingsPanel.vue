@@ -78,7 +78,6 @@ const accentOptions = computed(() =>
 const LANGUAGE_OPTIONS = [
   { value: "en-US", flag: "🇺🇸", flagIcon: "us", label: "English" },
   { value: "zh-CN", flag: "🇨🇳", flagIcon: "cn", label: "简体中文" },
-  // dbx 对繁体同样使用「繁」字兜底（无对应旗帜 SVG）
   { value: "zh-TW", flag: "繁", label: "繁體中文" },
 ];
 function langOpt(value: string) {
@@ -145,7 +144,6 @@ const toolbarGroupDefs: { title: string; items: ToolbarItem[] }[] = [
       { key: "save", label: "tb.save" },
       { key: "saveAs", label: "tb.saveAs" },
       { key: "saveAll", label: "tb.saveAll" },
-      { key: "find", label: "tb.find" },
       { key: "format", label: "tb.format" },
     ],
   },
