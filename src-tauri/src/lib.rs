@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 /// 真实系统外观缓存（由 Rust 侧维护，前端不依赖 WKWebView 媒体查询）
@@ -716,99 +716,6 @@ fn open_external(url: String) -> Result<(), String> {
     Ok(())
 }
 
-/// 打开（或聚焦）「查找和替换」独立窗口（标题由前端按语言传入）。
-/// 平台差异：
-/// - Windows/WebView2：新建窗口必须在 async command 中执行，否则同步 build() 会死锁白板
-///   （Tauri issue #13963）
-/// - macOS/AppKit：窗口与 NSWindow 操作必须在主线程，保留同步 command（async 会闪退）
-fn build_find_window(app: &tauri::AppHandle, dark: bool, title: Option<String>) -> Result<(), String> {
-    let theme = if dark {
-        Some(tauri::Theme::Dark)
-    } else {
-        Some(tauri::Theme::Light)
-    };
-
-    if let Some(win) = app.get_webview_window("find") {
-        let _ = win.set_theme(theme);
-        if let Some(t) = &title {
-            let _ = win.set_title(t);
-        }
-        let _ = win.show();
-        let _ = win.unminimize();
-        let _ = win.set_focus();
-        let _ = app.emit_to("find", "find:focus", true);
-        return Ok(());
-    }
-
-    let mut builder = WebviewWindowBuilder::new(app, "find", WebviewUrl::App("index.html".into()))
-        .title(title.clone().unwrap_or_else(|| "Find & Replace".into()))
-        .inner_size(400.0, 220.0)
-        .resizable(false)
-        .maximizable(false)
-        .minimizable(false)
-        // 先按屏幕居中兜底；下面再按主窗口居中覆盖（Windows 子窗口默认会跑到左上角）
-        .center();
-
-    // 作为主窗口的子窗口：跟随主窗显示、不全局置顶
-    if let Some(main) = app.get_webview_window("main") {
-        builder = builder
-            .parent(&main)
-            .map_err(|e| format!("无法设置查找窗口父窗口: {e}"))?;
-    }
-
-    let win = builder
-        .build()
-        .map_err(|e| format!("无法创建查找窗口: {e}"))?;
-
-    // 定位到主窗口中央（用物理像素，兼容 Windows 高 DPI 缩放）
-    if let Some(main) = app.get_webview_window("main") {
-        if let (Ok(parent_pos), Ok(parent_size), Ok(win_size)) =
-            (main.inner_position(), main.inner_size(), win.inner_size())
-        {
-            let x = parent_pos.x + (parent_size.width as i32 - win_size.width as i32) / 2;
-            let y = parent_pos.y + (parent_size.height as i32 - win_size.height as i32) / 2;
-            let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
-        }
-    }
-
-    let _ = win.set_theme(theme);
-    set_follow_app(&win);
-    let _ = win.set_focus();
-    let _ = app.emit_to("find", "find:focus", true);
-    Ok(())
-}
-
-/// macOS：同步 command（主线程执行，AppKit 窗口操作安全）
-#[cfg(target_os = "macos")]
-#[tauri::command]
-fn open_find_window(app: tauri::AppHandle, dark: bool, title: Option<String>) -> Result<(), String> {
-    build_find_window(&app, dark, title)
-}
-
-/// Windows/Linux：async command（避免 WebView2 在同步 command 中 build 死锁）
-#[cfg(not(target_os = "macos"))]
-#[tauri::command]
-async fn open_find_window(app: tauri::AppHandle, dark: bool, title: Option<String>) -> Result<(), String> {
-    build_find_window(&app, dark, title)
-}
-
-/// 让查找窗口随应用一起隐藏 / 恢复（macOS 原生 hidesOnDeactivate）
-#[cfg(target_os = "macos")]
-fn set_follow_app(win: &tauri::WebviewWindow) {
-    use objc2::msg_send;
-    use objc2::runtime::AnyObject;
-
-    if let Ok(ns_window) = win.ns_window() {
-        let obj = ns_window as *mut AnyObject;
-        unsafe {
-            let _: () = msg_send![obj, setHidesOnDeactivate: true];
-        }
-    }
-}
-
-#[cfg(not(target_os = "macos"))]
-fn set_follow_app(_win: &tauri::WebviewWindow) {}
-
 /// 读取 macOS 系统是否处于深色外观（浅色模式时该键不存在）
 #[cfg(target_os = "macos")]
 fn read_system_dark() -> bool {
@@ -943,27 +850,6 @@ fn clear_session(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// 关闭查找窗口（Esc / 自定义关闭按钮使用，避免依赖前端权限）
-#[tauri::command]
-fn close_find_window(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("find") {
-        win.close().map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-/// 同步查找窗口标题栏外观（深色 / 浅色）
-#[tauri::command]
-fn set_find_theme(app: tauri::AppHandle, dark: bool) {
-    if let Some(win) = app.get_webview_window("find") {
-        let _ = win.set_theme(if dark {
-            Some(tauri::Theme::Dark)
-        } else {
-            Some(tauri::Theme::Light)
-        });
-    }
-}
-
 /// 重新显示主窗口（点击 Dock 图标 / 关闭后再次唤起时使用）
 #[cfg(target_os = "macos")]
 fn show_main_window(app: &AppHandle) {
@@ -1020,9 +906,6 @@ pub fn run() {
             download_asset,
             restart_and_update,
             open_external,
-            open_find_window,
-            close_find_window,
-            set_find_theme,
             get_system_dark,
             set_exit_on_close,
             set_icon_style,
@@ -1040,24 +923,8 @@ pub fn run() {
                     && !EXIT_ON_CLOSE.load(Ordering::Relaxed) =>
             {
                 api.prevent_close();
-                if let Some(find) = window.get_webview_window("find") {
-                    let _ = find.close();
-                }
                 let _ = window.hide();
             }
-            tauri::WindowEvent::Destroyed => match window.label() {
-                // 兜底：主窗口真被销毁时一并关闭查找窗口
-                "main" => {
-                    if let Some(find) = window.get_webview_window("find") {
-                        let _ = find.close();
-                    }
-                }
-                // 查找窗口关闭（点击红绿灯 / Esc）时通知主窗口清理高亮
-                "find" => {
-                    let _ = window.app_handle().emit_to("main", "find:closing", ());
-                }
-                _ => {}
-            },
             _ => {}
         })
         .build(tauri::generate_context!())

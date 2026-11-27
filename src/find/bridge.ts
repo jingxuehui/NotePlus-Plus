@@ -1,73 +1,60 @@
-import { watch } from "vue";
-import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
-import { EditorSelection } from "@codemirror/state";
+import { reactive } from "vue";
+import { EditorSelection, type ChangeSpec } from "@codemirror/state";
 import { SearchQuery } from "@codemirror/search";
-import type { EditorView } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import { viewRef } from "@/editor/view";
 import { setMatchHighlight } from "@/editor/matchHighlight";
-import { settings, ACCENTS } from "@/stores/settings";
-import { t } from "@/i18n";
 
-export interface FindQueryState {
-  search: string;
-  replace: string;
-  caseSensitive: boolean;
-  regexp: boolean;
-}
+/**
+ * 编辑器内嵌查找面板（对齐 dbx 的 EditorSearchPanel）。
+ * 查找、替换、计数全部在主窗口直接操作 EditorView，
+ * 不再使用独立 Tauri 窗口 / 跨窗口事件桥。
+ */
 
-export const EMPTY_QUERY: FindQueryState = {
+export const MATCH_LIMIT = 5000;
+
+export const findState = reactive({
+  visible: false,
+  showReplace: false,
   search: "",
   replace: "",
   caseSensitive: false,
   regexp: false,
-};
+  wholeWord: false,
+  matchCount: 0,
+  currentIndex: 0,
+  inSelectionScope: false,
+  selectionLimitReached: false,
+});
 
-let query: FindQueryState = { ...EMPTY_QUERY };
-let initialized = false;
-let unlisteners: UnlistenFn[] = [];
+/** 多行选区限定的查找范围 */
+let scopeFrom: number | null = null;
+let scopeTo: number | null = null;
 
-/** 当前强调色变量：查找窗口是独立 WebView，需要显式同步才能与主窗口一致 */
-function currentAccent() {
-  const a = ACCENTS[settings.accent] ?? ACCENTS.cobalt;
-  const light = settings.theme === "light";
-  return {
-    accent: light ? a.light : a.dark,
-    tint: light ? a.tintLight : a.tintDark,
-    edge: light ? a.edgeLight : a.edgeDark,
-    selection: light ? `${a.light}4d` : `${a.dark}8c`,
-  };
+export interface FindMatch {
+  from: number;
+  to: number;
 }
 
 function makeQuery(): SearchQuery {
   return new SearchQuery({
-    search: query.search,
-    replace: query.replace,
-    caseSensitive: query.caseSensitive,
-    regexp: query.regexp,
+    search: findState.search,
+    replace: findState.replace,
+    caseSensitive: findState.caseSensitive,
+    regexp: findState.regexp,
+    literal: !findState.regexp,
+    wholeWord: findState.wholeWord,
   });
 }
 
-function sendCount(count: number) {
-  emitTo("find", "find:count", { count }).catch(() => undefined);
-}
-
-function selectedText(): string {
-  const view = viewRef.current;
-  if (!view) return "";
-  const range = view.state.selection.main;
-  if (range.empty) return "";
-  return view.state.sliceDoc(range.from, range.to);
-}
-
-/** 按当前查询收集文档内所有匹配 */
-function collectMatches(view: EditorView, q: SearchQuery): { from: number; to: number }[] {
-  const out: { from: number; to: number }[] = [];
+function matchesInScope(view: EditorView, q: SearchQuery, from = 0, to = view.state.doc.length): FindMatch[] {
+  const out: FindMatch[] = [];
   try {
     const cursor = q.getCursor(view.state);
-    for (let result = cursor.next(); !result.done; result = cursor.next()) {
-      out.push({ from: result.value.from, to: result.value.to });
-      if (out.length > 99999) break;
+    for (let r = cursor.next(); !r.done; r = cursor.next()) {
+      if (r.value.from < from || r.value.to > to) continue;
+      out.push({ from: r.value.from, to: r.value.to });
+      if (out.length >= MATCH_LIMIT) break;
     }
   } catch {
     /* 非法正则 */
@@ -75,191 +62,209 @@ function collectMatches(view: EditorView, q: SearchQuery): { from: number; to: n
   return out;
 }
 
-/** 选中下一个 / 上一个匹配（循环），返回匹配总数 */
-function selectMatch(view: EditorView, q: SearchQuery, dir: 1 | -1): number {
-  const list = collectMatches(view, q);
-  if (!list.length) return 0;
-  const sel = view.state.selection.main;
-  let target: { from: number; to: number };
-  if (dir > 0) {
-    target = list.find((m) => m.from >= sel.to) ?? list[0];
-  } else {
-    const before = list.filter((m) => m.to <= sel.from);
-    target = before.length ? before[before.length - 1] : list[list.length - 1];
-  }
-  view.dispatch({ selection: { anchor: target.from, head: target.to }, scrollIntoView: true });
-  return list.length;
+function allMatches(view: EditorView): FindMatch[] {
+  if (!findState.search) return [];
+  const q = makeQuery();
+  if (!q.valid) return [];
+  return matchesInScope(view, q, scopeFrom ?? 0, scopeTo ?? view.state.doc.length);
 }
 
-/** 替换当前匹配或全部，返回替换后剩余匹配数 */
-function replaceMatches(view: EditorView, q: SearchQuery, all: boolean): number {
-  const list = collectMatches(view, q);
-  if (!list.length) return 0;
-  const insert = q.replace ?? "";
-  if (all) {
-    view.dispatch({ changes: list.map((m) => ({ from: m.from, to: m.to, insert })) });
-    return collectMatches(view, q).length;
+/** 正则替换支持 $1 / $2 / $& 捕获组 */
+function replacementFor(view: EditorView, match: FindMatch): string {
+  if (!findState.regexp) return findState.replace;
+  const text = view.state.sliceDoc(match.from, match.to);
+  try {
+    const re = new RegExp(findState.search, findState.caseSensitive ? "" : "i");
+    const m = re.exec(text);
+    if (!m) return findState.replace;
+    return findState.replace.replace(/\$(\d+|&)/g, (_, ref: string) => {
+      if (ref === "&") return m[0];
+      const idx = parseInt(ref, 10);
+      return idx < m.length ? (m[idx] ?? "") : `$${ref}`;
+    });
+  } catch {
+    return findState.replace;
   }
-  const sel = view.state.selection.main;
-  const current = list.find((m) => m.from <= sel.from && sel.to <= m.to);
-  if (!current) return selectMatch(view, q, 1);
-  view.dispatch({ changes: { from: current.from, to: current.to, insert } });
-  const after = collectMatches(view, q);
-  const next = after.find((m) => m.from >= current.from + insert.length);
-  if (next) view.dispatch({ selection: { anchor: next.from, head: next.to }, scrollIntoView: true });
-  return after.length;
 }
 
-/** 把当前查询应用到编辑器（自绘高亮），并回传匹配数量 */
-function applyQuery() {
+/** 重新计算计数与当前匹配序号，并刷新高亮 */
+function refresh(autoSelect = false) {
   const view = viewRef.current;
   if (!view) {
-    sendCount(0);
+    findState.matchCount = 0;
+    findState.currentIndex = 0;
     return;
   }
-  if (!query.search) {
+  if (!findState.search) {
     view.dispatch({ effects: setMatchHighlight.of(null) });
-    sendCount(0);
+    findState.matchCount = 0;
+    findState.currentIndex = 0;
     return;
   }
   const q = makeQuery();
-  view.dispatch({ effects: setMatchHighlight.of(q) });
-  sendCount(collectMatches(view, q).length);
+  view.dispatch({ effects: setMatchHighlight.of(q.valid ? q : null) });
+  if (autoSelect && q.valid) selectMatch(1, false);
+  const list = allMatches(view);
+  findState.matchCount = list.length;
+  const sel = view.state.selection.main;
+  let idx = 0;
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i];
+    if ((sel.empty && m.from <= sel.from && sel.from <= m.to) || (!sel.empty && m.from <= sel.from && sel.to <= m.to)) {
+      idx = i + 1;
+      break;
+    }
+  }
+  findState.currentIndex = idx || (list.length ? 1 : 0);
 }
 
-function findAll() {
+/** 选中下一个 / 上一个匹配（循环） */
+function selectMatch(dir: 1 | -1, update = true) {
   const view = viewRef.current;
-  if (!view || !query.search) return;
-  const q = makeQuery();
-  view.dispatch({ effects: setMatchHighlight.of(q) });
-  const list = collectMatches(view, q);
-  sendCount(list.length);
-  if (list.length) {
-    view.dispatch({
-      selection: EditorSelection.create(list.map((m) => EditorSelection.range(m.from, m.to))),
-      scrollIntoView: true,
-    });
+  if (!view) return;
+  const list = allMatches(view);
+  if (!list.length) return;
+  const sel = view.state.selection.main;
+  const target =
+    dir > 0
+      ? list.find((m) => m.from >= sel.to) ?? list[0]
+      : [...list].reverse().find((m) => m.to <= sel.from) ?? list[list.length - 1];
+  view.dispatch({
+    selection: EditorSelection.range(target.from, target.to),
+    effects: EditorView.scrollIntoView(target.from, { y: "center" }),
+  });
+  if (update) refresh();
+}
+
+/** 打开查找面板；多行选区自动作为限定范围 */
+export function openFindPanel(replace = false) {
+  const view = viewRef.current;
+  findState.visible = true;
+  findState.showReplace = replace || findState.showReplace;
+  if (view) {
+    const sel = view.state.selection.main;
+    const text = view.state.sliceDoc(sel.from, sel.to);
+    if (text && !sel.empty) {
+      findState.search = text;
+      if (text.includes("\n")) {
+        scopeFrom = sel.from;
+        scopeTo = sel.to;
+        findState.inSelectionScope = true;
+      } else {
+        scopeFrom = null;
+        scopeTo = null;
+        findState.inSelectionScope = false;
+      }
+    }
+    refresh(!!text);
+  }
+}
+
+/** 关闭面板，清空匹配高亮，焦点回到编辑器 */
+export function closeFindPanel() {
+  if (!findState.visible) return;
+  findState.visible = false;
+  findState.showReplace = false;
+  scopeFrom = null;
+  scopeTo = null;
+  findState.inSelectionScope = false;
+  findState.selectionLimitReached = false;
+  const view = viewRef.current;
+  if (view) {
+    view.dispatch({ effects: setMatchHighlight.of(null) });
     view.focus();
   }
 }
 
-async function handleAction(action: string) {
+export function nextMatch() {
+  if (!findState.search) openFindPanel();
+  else selectMatch(1);
+}
+
+export function prevMatch() {
+  if (!findState.search) openFindPanel();
+  else selectMatch(-1);
+}
+
+/** 查询条件变化时由面板调用 */
+export function onQueryChanged() {
+  scopeFrom = null;
+  scopeTo = null;
+  findState.inSelectionScope = false;
+  refresh(true);
+}
+
+/** 全部查找：选中所有匹配（上限 MATCH_LIMIT） */
+export function selectAllMatches() {
   const view = viewRef.current;
-  if (!view) return;
-  switch (action) {
-    case "next":
-      applyQuery();
-      if (query.search) selectMatch(view, makeQuery(), 1);
-      view.focus();
-      break;
-    case "prev":
-      applyQuery();
-      if (query.search) selectMatch(view, makeQuery(), -1);
-      view.focus();
-      break;
-    case "replace":
-      if (query.search) {
-        applyQuery();
-        sendCount(replaceMatches(view, makeQuery(), false));
-      }
-      view.focus();
-      break;
-    case "replaceAll":
-      if (query.search) {
-        applyQuery();
-        sendCount(replaceMatches(view, makeQuery(), true));
-      }
-      view.focus();
-      break;
-    case "findAll":
-      findAll();
-      break;
-    case "clearHighlights":
-      view.dispatch({ effects: setMatchHighlight.of(null) });
-      sendCount(0);
-      break;
-    default:
-      break;
+  if (!view || !findState.search) return;
+  const list = allMatches(view);
+  findState.selectionLimitReached = list.length >= MATCH_LIMIT;
+  if (!list.length) return;
+  view.dispatch({
+    selection: EditorSelection.create(list.map((m) => EditorSelection.range(m.from, m.to))),
+    scrollIntoView: true,
+  });
+  refresh();
+  view.focus();
+}
+
+/** 替换当前 / 下一个匹配 */
+export function replaceOne() {
+  const view = viewRef.current;
+  if (!view || !findState.search) return;
+  const list = allMatches(view);
+  if (!list.length) return;
+  const sel = view.state.selection.main;
+  let target = list.find((m) => m.from <= sel.from && sel.to <= m.to);
+  if (!target) target = list.find((m) => m.from >= sel.to) ?? list[0];
+  const insert = replacementFor(view, target);
+  const tr = view.state.update({
+    changes: { from: target.from, to: target.to, insert },
+    selection: EditorSelection.range(target.from, target.from + insert.length),
+    scrollIntoView: true,
+  });
+  if (scopeFrom != null) scopeFrom = tr.changes.mapPos(scopeFrom);
+  if (scopeTo != null) scopeTo = tr.changes.mapPos(scopeTo);
+  view.dispatch(tr);
+  const after = allMatches(view);
+  const next = after.find((m) => m.from >= target.from + insert.length);
+  if (next) {
+    view.dispatch({
+      selection: EditorSelection.range(next.from, next.to),
+      effects: EditorView.scrollIntoView(next.from, { y: "center" }),
+    });
   }
+  refresh();
 }
 
-/** 打开（或聚焦）查找窗口，并把当前选区预填给对话框（窗口标题跟随应用语言） */
-export async function openFindWindow() {
-  try {
-    await invoke("open_find_window", { dark: settings.theme === "dark", title: t("find.windowTitle") });
-  } catch (e) {
-    console.error(e);
-    return;
-  }
-  const text = selectedText();
-  if (text) {
-    emitTo("find", "find:selection", { text }).catch(() => undefined);
-  }
+/** 全部替换 */
+export function replaceAll() {
+  const view = viewRef.current;
+  if (!view || !findState.search) return;
+  const list = allMatches(view);
+  if (!list.length) return;
+  const changes: ChangeSpec[] = list.map((m) => ({
+    from: m.from,
+    to: m.to,
+    insert: replacementFor(view, m),
+  }));
+  const tr = view.state.update({ changes });
+  if (scopeFrom != null) scopeFrom = tr.changes.mapPos(scopeFrom);
+  if (scopeTo != null) scopeTo = tr.changes.mapPos(scopeTo);
+  view.dispatch(tr);
+  refresh();
 }
 
-export async function findNextMatch() {
-  await handleAction("next");
+/** 清除高亮但保留面板与查询 */
+export function clearHighlights() {
+  const view = viewRef.current;
+  if (view) view.dispatch({ effects: setMatchHighlight.of(null) });
 }
 
-export async function findPrevMatch() {
-  await handleAction("prev");
-}
-
-/** 主窗口初始化事件桥 */
-export async function initFindBridge() {
-  if (initialized) return;
-  initialized = true;
-
-  try {
-    unlisteners.push(
-      await listen<FindQueryState>("find:query", (event) => {
-        query = event.payload;
-        applyQuery();
-      })
-    );
-
-    unlisteners.push(
-      await listen<string>("find:action", (event) => {
-        void handleAction(event.payload);
-      })
-    );
-
-    // 对话框加载完成后握手：回传选区、主题、强调色与上次的查询
-    unlisteners.push(
-      await listen("find:init", () => {
-        emitTo("find", "find:state", {
-          selection: selectedText(),
-          theme: settings.theme,
-          accent: currentAccent(),
-          query,
-        }).catch(() => undefined);
-      })
-    );
-
-    unlisteners.push(
-      await listen("find:selection-request", () => {
-        emitTo("find", "find:selection", { text: selectedText() }).catch(() => undefined);
-      })
-    );
-
-    // 关闭查找窗口时保留匹配高亮与查询内容：高亮由编辑器内的自绘标记维持，
-    // 下次 ⌘F 会带回上次的查询
-    unlisteners.push(await listen("find:closing", () => undefined));
-  } catch (e) {
-    console.warn("查找事件桥初始化失败", e);
-  }
-
-  watch(
-    [() => settings.theme, () => settings.accent],
-    ([theme]) => {
-      emitTo("find", "find:theme", { theme, accent: currentAccent() }).catch(() => undefined);
-      invoke("set_find_theme", { dark: theme === "dark" }).catch(() => undefined);
-    }
-  );
-}
-
-export function disposeFindBridge() {
-  unlisteners.forEach((fn) => fn());
-  unlisteners = [];
-  initialized = false;
-}
+// ---- 兼容旧调用入口（App.vue / 工具栏 / 右键菜单无需改动） ----
+export const openFindWindow = () => openFindPanel(false);
+export const findNextMatch = () => nextMatch();
+export const findPrevMatch = () => prevMatch();
+export const initFindBridge = () => undefined;
+export const disposeFindBridge = () => undefined;

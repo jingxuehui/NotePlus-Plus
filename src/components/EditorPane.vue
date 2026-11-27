@@ -7,6 +7,7 @@ import { settings } from "@/stores/settings";
 import { viewRef } from "@/editor/view";
 import { reconfigureAppearance, updateLanguageForPath } from "@/editor/setup";
 import EditorContextMenu from "./EditorContextMenu.vue";
+import EditorSearchPanel from "./EditorSearchPanel.vue";
 
 const container = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
@@ -133,6 +134,7 @@ watch(
 
 <template>
   <div ref="container" class="absolute inset-0 overflow-hidden" @contextmenu.prevent="onContextMenu" @mousedown.capture="onMouseDown" @mouseup.capture="onMouseUp"></div>
+  <EditorSearchPanel />
   <EditorContextMenu
     v-if="ctxMenuPos"
     :x="ctxMenuPos.x"
