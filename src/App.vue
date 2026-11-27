@@ -49,6 +49,13 @@ import {
   findPrevMatch,
 } from "./find/bridge";
 import { formatJsonDocument } from "./editor/format";
+import {
+  addCursorAbove,
+  addCursorBelow,
+  selectAllOccurrences,
+  foldAllLines,
+  unfoldAllLines,
+} from "./editor/selection";
 import { isMac, isWindows } from "./utils/platform";
 
 // ---------- 启动动画（Splash）：等会话恢复完成后再淡出 ----------
@@ -183,6 +190,11 @@ registerCommands([
   { id: "edit.findNext", title: t("palette.cmd.findNext"), group: t("palette.groupEdit"), shortcut: "⌘/Ctrl+G", keywords: "next match", run: () => findNextMatch() },
   { id: "edit.findPrev", title: t("palette.cmd.findPrev"), group: t("palette.groupEdit"), shortcut: "⇧⌘/Ctrl+G", keywords: "previous match", run: () => findPrevMatch() },
   { id: "edit.formatJson", title: t("palette.cmd.formatJson"), group: t("palette.groupEdit"), shortcut: "⇧⌥F", keywords: "format json pretty", run: () => formatJsonDocument() },
+  { id: "edit.addCursorAbove", title: t("palette.cmd.addCursorAbove"), group: t("palette.groupEdit"), shortcut: "⌥⌘↑", keywords: "multi cursor above", run: () => addCursorAbove() },
+  { id: "edit.addCursorBelow", title: t("palette.cmd.addCursorBelow"), group: t("palette.groupEdit"), shortcut: "⌥⌘↓", keywords: "multi cursor below", run: () => addCursorBelow() },
+  { id: "edit.selectAllOccurrences", title: t("palette.cmd.selectAllOccurrences"), group: t("palette.groupEdit"), shortcut: "⇧⌘L", keywords: "select all same occurrences multi cursor", run: () => selectAllOccurrences() },
+  { id: "edit.foldAll", title: t("palette.cmd.foldAll"), group: t("palette.groupEdit"), shortcut: "⌥⌘[", keywords: "fold collapse all", run: () => foldAllLines() },
+  { id: "edit.unfoldAll", title: t("palette.cmd.unfoldAll"), group: t("palette.groupEdit"), shortcut: "⌥⌘]", keywords: "unfold expand all", run: () => unfoldAllLines() },
   { id: "view.sidebar", title: t("palette.cmd.toggleSidebar"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+B", keywords: "sidebar file tree", run: () => { settings.sidebarVisible = !settings.sidebarVisible; } },
   { id: "view.zoomIn", title: t("palette.cmd.zoomIn"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+=", keywords: "zoom in bigger font", run: () => zoomIn() },
   { id: "view.zoomOut", title: t("palette.cmd.zoomOut"), group: t("palette.groupView"), shortcut: "⌘/Ctrl+-", keywords: "zoom out smaller font", run: () => zoomOut() },

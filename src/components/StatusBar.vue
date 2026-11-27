@@ -3,6 +3,17 @@ import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import { activeTab, cursorInfo } from "@/stores/tabs";
 import { t } from "@/i18n";
 import { formatBytes } from "@/utils/image";
+import { unfoldAllLines } from "@/editor/selection";
+import { EditorSelection } from "@codemirror/state";
+import { viewRef } from "@/editor/view";
+
+function clearMultiCursor() {
+  const view = viewRef.current;
+  if (!view) return;
+  const head = view.state.selection.main.head;
+  view.dispatch({ selection: EditorSelection.cursor(head) });
+  view.focus();
+}
 
 const emit = defineEmits<{ "close-tab": [id: number] }>();
 
@@ -92,6 +103,12 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
     <template v-else-if="activeTab">
       <span>{{ t("status.lineCol", { line: cursorInfo.line, col: cursorInfo.col }) }}</span>
       <span v-if="cursorInfo.selected > 0">{{ t("status.selected", { n: cursorInfo.selected }) }}</span>
+      <span v-if="cursorInfo.cursors > 1" class="clickable fallback-indicator" :title="t('status.cursorsTip')" @click="clearMultiCursor">
+        {{ t("status.cursors", { n: cursorInfo.cursors }) }}
+      </span>
+      <span v-if="cursorInfo.folded > 0" class="clickable fallback-indicator" :title="t('status.foldedTip')" @click="unfoldAllLines">
+        {{ t("status.folded", { n: cursorInfo.folded }) }}
+      </span>
       <span>{{ t("status.lines", { n: cursorInfo.lines }) }}</span>
       <span>{{ t("status.chars", { n: cursorInfo.chars }) }}</span>
       <span class="clickable" :title="t('status.eolTip')" @click="cycleEol">{{ eolLabel }}</span>
@@ -134,6 +151,12 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 .clickable:hover {
   background: var(--hover);
   color: var(--text);
+}
+.fallback-indicator {
+  color: var(--accent);
+}
+.fallback-indicator:hover {
+  background: var(--accent-tint, var(--hover));
 }
 .dirty-indicator {
   display: inline-block;

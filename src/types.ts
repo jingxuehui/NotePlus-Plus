@@ -4,6 +4,10 @@ export interface CursorInfo {
   selected: number;
   lines: number;
   chars: number;
+  /** 当前选区数量（多光标时 >1） */
+  cursors: number;
+  /** 当前已折叠区域数量 */
+  folded: number;
 }
 
 export const EMPTY_CURSOR: CursorInfo = {
@@ -12,4 +16,6 @@ export const EMPTY_CURSOR: CursorInfo = {
   selected: 0,
   lines: 1,
   chars: 0,
+  cursors: 1,
+  folded: 0,
 };
