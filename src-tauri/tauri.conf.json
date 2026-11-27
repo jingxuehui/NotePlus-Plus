@@ -42,8 +42,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "locales/en.lproj/Localizable.strings": "en.lproj/Localizable.strings",
+      "locales/zh_CN.lproj/Localizable.strings": "zh_CN.lproj/Localizable.strings",
+      "locales/zh_TW.lproj/Localizable.strings": "zh_TW.lproj/Localizable.strings"
+    },
     "macOS": {
-      "minimumSystemVersion": "10.15"
+      "minimumSystemVersion": "10.15",
+      "infoPlist": "Info.plist"
     }
   }
 }

@@ -765,14 +765,21 @@ fn set_exit_on_close(enabled: bool) {
 }
 
 /// 把应用内语言写入 macOS 用户默认（AppleLanguages）。
-/// 重启后原生菜单 / 系统对话框等跟随应用内设置的语言（Info.plist 已声明 CFBundleLocalizations）。
+/// 重启后原生菜单 / 保存对话框 / 覆盖确认等系统 UI 跟随应用内设置的语言。
+/// 注意：应用内语言码是 zh-CN / zh-TW / en-US，需转成 macOS 识别的语言 ID；
+/// 且 bundle 必须声明 CFBundleLocalizations 并带 .lproj 目录，否则系统一律按英文处理。
 #[cfg(target_os = "macos")]
 #[tauri::command]
 fn set_app_language(lang: String) {
     use objc2_foundation::{NSArray, NSUserDefaults, NSString};
 
+    let apple_lang = match lang.as_str() {
+        "zh-CN" => "zh-Hans",
+        "zh-TW" => "zh-Hant",
+        _ => "en",
+    };
     let defs = NSUserDefaults::standardUserDefaults();
-    let value = NSString::from_str(&lang);
+    let value = NSString::from_str(apple_lang);
     let arr = NSArray::from_slice(&[&*value]);
     unsafe {
         defs.setObject_forKey(Some(&arr), &NSString::from_str("AppleLanguages"));
