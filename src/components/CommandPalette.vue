@@ -272,7 +272,7 @@ onBeforeUnmount(() => {
 .palette-mode-tag {
   flex: none;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: var(--accent-tint, var(--hover));
   color: var(--accent);
   font-size: 11px;
@@ -374,7 +374,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   font-family: "SF Mono", Menlo, monospace;
   font-size: 11px;
   line-height: 1;

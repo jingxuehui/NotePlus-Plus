@@ -407,7 +407,7 @@ const emit = defineEmits<{
   height: 26px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--ui-radius, 6px);
   background: transparent;
   color: var(--text);
   font-size: 12px;
@@ -456,7 +456,7 @@ const emit = defineEmits<{
   width: 26px;
   height: 26px;
   margin-left: 2px;
-  border-radius: 6px;
+  border-radius: var(--ui-radius, 6px);
   color: var(--muted);
   cursor: pointer;
   flex-shrink: 0;

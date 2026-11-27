@@ -256,7 +256,7 @@ body.theme-light .np-search-panel {
   margin-right: 2px;
   padding: 0 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: transparent;
   color: var(--muted);
   font-size: 11px;
@@ -286,7 +286,7 @@ body.theme-light .np-search-panel {
   width: 26px;
   height: 26px;
   border: none;
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
@@ -322,7 +322,7 @@ body.theme-light .np-search-panel {
 .np-search-scope {
   flex: none;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: var(--hover);
   color: var(--muted);
   font-size: 10px;
@@ -337,7 +337,7 @@ body.theme-light .np-search-panel {
   height: 26px;
   padding: 0 9px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: var(--panel-2);
   color: var(--text);
   font-size: 11px;

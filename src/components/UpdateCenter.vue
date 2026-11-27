@@ -351,7 +351,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 .uc-title { font-size: 15px; font-weight: 600; color: var(--text); }
 .uc-count-badge {
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: calc(var(--ui-radius, 6px) + 4px);
   background: var(--accent-tint);
   color: var(--accent);
   font-size: 11px;
@@ -409,7 +409,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 .uc-tab:hover { color: var(--text); }
 .uc-tab-count {
   padding: 0 6px;
-  border-radius: 8px;
+  border-radius: calc(var(--ui-radius, 6px) + 2px);
   background: var(--hover);
   font-size: 11px;
 }
@@ -427,7 +427,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 .uc-pre {
   margin-left: 6px;
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: calc(var(--ui-radius, 6px) + 2px);
   background: var(--accent-tint);
   color: var(--accent);
   font-size: 11px;

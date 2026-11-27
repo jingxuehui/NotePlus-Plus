@@ -969,7 +969,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   height: 30px;
-  border-radius: 5px;
+  border-radius: calc(var(--ui-radius, 6px) - 1px);
   user-select: none;
 }
 .toolbar-row.sort-source { opacity: 0.4; }
@@ -995,7 +995,7 @@ onBeforeUnmount(() => {
   height: 20px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   background: transparent;
   color: var(--muted);
   font-size: 11px;
@@ -1029,7 +1029,7 @@ onBeforeUnmount(() => {
 .grid > .field {
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(var(--ui-radius, 6px) + 2px);
   background: var(--panel-2);
   transition: border-color 0.15s, background-color 0.15s;
 }
@@ -1204,7 +1204,7 @@ select:focus { border-color: var(--accent); }
 .pair-row > div {
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(var(--ui-radius, 6px) + 2px);
   background: var(--panel-2);
   transition: border-color 0.15s, background-color 0.15s;
 }
@@ -1257,7 +1257,7 @@ select:focus { border-color: var(--accent); }
   position: relative;
   width: 34px; height: 20px;
   border: none;
-  border-radius: 10px;
+  border-radius: calc(var(--ui-radius, 6px) + 4px);
   background: var(--hover);
   cursor: pointer;
   padding: 0;
@@ -1313,7 +1313,7 @@ select:focus { border-color: var(--accent); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: calc(var(--ui-radius, 6px) + 4px);
   color: #fff;
   flex-shrink: 0;
 }

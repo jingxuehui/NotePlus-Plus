@@ -144,7 +144,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 <style scoped>
 .clickable {
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: calc(var(--ui-radius, 6px) - 3px);
   padding: 0 4px;
   transition: background 0.1s, color 0.1s;
 }

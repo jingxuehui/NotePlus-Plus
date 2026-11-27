@@ -24,7 +24,7 @@ import { toast } from "@/stores/toast";
   right: 18px;
   bottom: 40px;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: calc(var(--ui-radius, 6px) + 2px);
   font-size: 12px;
   color: #10131a;
   font-weight: 600;

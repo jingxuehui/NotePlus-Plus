@@ -149,7 +149,7 @@ const badgeStyle = computed(() => {
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: calc(var(--ui-radius, 6px) - 2px);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-weight: 700;
   line-height: 1;

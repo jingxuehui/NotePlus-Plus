@@ -38,7 +38,7 @@ import { ui, resolveModal } from "@/stores/ui";
 .modal-box {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: calc(var(--ui-radius, 6px) + 6px);
   padding: 20px 22px;
   width: 380px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);

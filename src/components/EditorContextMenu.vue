@@ -122,7 +122,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   padding: 4px;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(var(--ui-radius, 6px) + 2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 .ctx-menu-item {
@@ -133,7 +133,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   padding: 6px 8px;
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: calc(var(--ui-radius, 6px) - 1px);
   color: var(--text);
   font-size: 12px;
   text-align: left;

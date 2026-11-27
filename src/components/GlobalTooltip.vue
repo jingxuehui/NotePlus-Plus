@@ -46,7 +46,7 @@ const left = computed(() => {
   padding: 10px 14px;
   background: var(--tip-bg);
   border: 1px solid var(--tip-border);
-  border-radius: 10px;
+  border-radius: calc(var(--ui-radius, 6px) + 4px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   color: var(--tip-text);
   font-size: 15px;
@@ -78,7 +78,7 @@ const left = computed(() => {
 /* 顶栏提示：字号与内边距收紧 */
 .app-tip.compact {
   padding: 6px 9px;
-  border-radius: 7px;
+  border-radius: calc(var(--ui-radius, 6px) + 1px);
   font-size: 12px;
 }
 .app-tip.compact::after {

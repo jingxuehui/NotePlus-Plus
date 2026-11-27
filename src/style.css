@@ -120,7 +120,7 @@ body.layout-modern .status-bar {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--ui-radius, 6px);
   color: var(--muted);
   cursor: pointer;
   flex-shrink: 0;
@@ -145,7 +145,7 @@ body.layout-modern .status-bar {
 }
 ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--muted) 35%, transparent);
-  border-radius: 5px;
+  border-radius: calc(var(--ui-radius, 6px) - 1px);
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -166,7 +166,7 @@ body.layout-modern .status-bar {
 .np-input {
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--ui-radius, 6px);
   padding: 5px 8px;
   color: var(--text);
   outline: none;
@@ -180,7 +180,7 @@ body.layout-modern .status-bar {
 .np-btn {
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--ui-radius, 6px);
   padding: 4px 10px;
   color: var(--text);
   cursor: pointer;
