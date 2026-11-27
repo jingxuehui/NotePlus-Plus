@@ -7,7 +7,12 @@ import { treeState } from "@/stores/filetree";
 import { tabsState } from "@/stores/tabs";
 import { openPath } from "@/stores/tabs";
 import { getRecent } from "@/stores/recent";
+import { convertShortcut, shortcutKeys } from "@/utils/platform";
 import type { FileNode } from "@/commands";
+
+function isSymKey(key: string): boolean {
+  return /^[⌘⌃⌥⇧]$/.test(key);
+}
 
 const query = ref("");
 const activeIndex = ref(0);
@@ -83,7 +88,8 @@ const commandResults = computed<PaletteCommand[]>(() =>
   rank(
     paletteCommands,
     (c) => c.title,
-    (c) => `${c.group} ${c.keywords ?? ""} ${c.shortcut ?? ""}`,
+    // 搜索文本同时包含两种平台的快捷键写法，便于按 Ctrl/⌘ 搜索
+    (c) => `${c.group} ${c.keywords ?? ""} ${c.shortcut ?? ""} ${c.shortcut ? convertShortcut(c.shortcut) : ""}`,
     query.value.trim()
   )
 );
@@ -193,7 +199,15 @@ onBeforeUnmount(() => {
                 <span class="palette-item-title">{{ cmd.title }}</span>
                 <span class="palette-item-group">{{ cmd.group }}</span>
               </div>
-              <span v-if="cmd.shortcut" class="palette-item-shortcut">{{ cmd.shortcut }}</span>
+              <span v-if="cmd.shortcut" class="palette-item-shortcut" :title="convertShortcut(cmd.shortcut)">
+                <template v-for="(group, gi) in shortcutKeys(cmd.shortcut)" :key="gi">
+                  <span v-if="gi > 0" class="sc-group-sep">/</span>
+                  <template v-for="(key, ki) in group" :key="ki">
+                    <span v-if="ki > 0" class="sc-sep">+</span>
+                    <kbd class="sc-key" :class="{ sym: isSymKey(key), shift: key === '⇧' }">{{ key }}</kbd>
+                  </template>
+                </template>
+              </span>
             </div>
           </template>
           <template v-else>
@@ -340,6 +354,45 @@ onBeforeUnmount(() => {
   flex: none;
   color: var(--muted);
   font-size: 11px;
+}
+
+/* 快捷键按分段的键帽显示：[⌘] + [N]，Windows 下为 [Ctrl] + [N] */
+.palette-item-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.sc-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.sc-key.sym {
+  font-size: 14px;
+}
+
+.sc-key.sym.shift {
+  transform: translateY(-1px);
+}
+
+.sc-sep,
+.sc-group-sep {
+  color: var(--muted);
+  font-size: 10px;
 }
 
 .palette-empty {
