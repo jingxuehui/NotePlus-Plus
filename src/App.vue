@@ -49,10 +49,6 @@ import {
   findPrevMatch,
 } from "./find/bridge";
 import { formatJsonDocument } from "./editor/format";
-import {
-  addCursorAbove,
-  addCursorBelow,
-} from "./editor/selection";
 import { isMac, isWindows } from "./utils/platform";
 
 // ---------- 启动动画（Splash）：等会话恢复完成后再淡出 ----------
@@ -180,16 +176,8 @@ registerCommands([
   { id: "file.save", title: t("palette.cmd.save"), group: t("palette.groupFile"), shortcut: "⌘S", keywords: "save", run: () => { if (activeTab.value) saveTab(activeTab.value); } },
   { id: "file.saveAs", title: t("palette.cmd.saveAs"), group: t("palette.groupFile"), shortcut: "⇧⌘S", keywords: "save as", run: () => { if (activeTab.value) saveTabAs(activeTab.value); } },
   { id: "file.saveAll", title: t("palette.cmd.saveAll"), group: t("palette.groupFile"), shortcut: "⌥⌘S", keywords: "save all", run: () => saveAll() },
-  { id: "file.close", title: t("palette.cmd.closeTab"), group: t("palette.groupFile"), shortcut: "⌘W", keywords: "close tab", run: () => { if (tabsState.activeId !== null) requestClose(tabsState.activeId); } },
-  { id: "file.closeAll", title: t("palette.cmd.closeAllTabs"), group: t("palette.groupFile"), shortcut: "⇧⌘W", keywords: "close all", run: () => requestCloseAll() },
   { id: "edit.find", title: t("palette.cmd.find"), group: t("palette.groupEdit"), shortcut: "⌘F", keywords: "find search replace", run: () => openFindWindow() },
   { id: "edit.formatJson", title: t("palette.cmd.formatJson"), group: t("palette.groupEdit"), shortcut: "⇧⌥F", keywords: "format json pretty", run: () => formatJsonDocument() },
-  { id: "edit.addCursorAbove", title: t("palette.cmd.addCursorAbove"), group: t("palette.groupEdit"), shortcut: "⌥⌘↑", keywords: "multi cursor above", run: () => addCursorAbove() },
-  { id: "edit.addCursorBelow", title: t("palette.cmd.addCursorBelow"), group: t("palette.groupEdit"), shortcut: "⌥⌘↓", keywords: "multi cursor below", run: () => addCursorBelow() },
-  { id: "view.sidebar", title: t("palette.cmd.toggleSidebar"), group: t("palette.groupView"), shortcut: "⌘B", keywords: "sidebar file tree", run: () => { settings.sidebarVisible = !settings.sidebarVisible; } },
-  { id: "view.zoomIn", title: t("palette.cmd.zoomIn"), group: t("palette.groupView"), shortcut: "⌘=", keywords: "zoom in bigger font", run: () => zoomIn() },
-  { id: "view.zoomOut", title: t("palette.cmd.zoomOut"), group: t("palette.groupView"), shortcut: "⌘-", keywords: "zoom out smaller font", run: () => zoomOut() },
-  { id: "view.zoomReset", title: t("palette.cmd.zoomReset"), group: t("palette.groupView"), shortcut: "⌘0", keywords: "reset zoom font", run: () => zoomReset() },
   { id: "view.settings", title: t("palette.cmd.settings"), group: t("palette.groupView"), shortcut: "⌘,", keywords: "settings preferences", run: () => toggleSettings() },
   { id: "view.tools", title: t("palette.cmd.tools"), group: t("palette.groupView"), keywords: "tools", run: () => toggleTools(true) },
   { id: "view.updates", title: t("palette.cmd.updates"), group: t("palette.groupView"), keywords: "update check version", run: () => toggleUpdateCenter(true) },
