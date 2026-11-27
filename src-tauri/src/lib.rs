@@ -807,6 +807,9 @@ fn set_icon_style(black: bool) {
         unsafe { app.setApplicationIconImage(None) };
         return;
     }
+    // 系统会对 bundle 里的 icns 图标自动加约 10% 留白再放进 Dock tile，
+    // 但 setApplicationIconImage 传入的自定义图片不会，直接给撑满画布的 PNG 会显得更大。
+    // icon_black_round.png 已把图案缩到画布 80%（四周各约 10% 透明边距）以对齐默认图标。
     let bytes: &[u8] = include_bytes!("../icons/icon_black_round.png");
     let data = NSData::with_bytes(bytes);
     if let Some(icon) = NSImage::initWithData(NSImage::alloc(), &data) {
