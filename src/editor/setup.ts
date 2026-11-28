@@ -31,6 +31,7 @@ import {
   addCursorAbove,
   addCursorBelow,
   altClickAddCursor,
+  selectLineToEOL,
 } from "./selection";
 import {
   autocompletion,
@@ -77,6 +78,7 @@ export function buildExtensions(hooks: EditorHooks): Extension[] {
     rectangularSelection(),
     crosshairCursor(),
     altClickAddCursor,
+    selectLineToEOL,
     highlightActiveLine(),
     highlightTrailingWhitespace(),
     // 自绘匹配高亮：不依赖内置查找面板，关闭查找窗口后仍然保持

@@ -110,3 +110,48 @@ export function countFolded(): number {
 export const altClickAddCursor: Extension = EditorView.clickAddsSelectionRange.of(
   (event: MouseEvent) => event.altKey && event.button === 0
 );
+
+/**
+ * CodeMirror 默认三击选行会把行尾换行符一并选入（to++），导致选区 head 落到下一行行首。
+ * 这里覆盖鼠标选择样式：三击时选区止于当前（视觉）行末尾，光标停在本行末尾。
+ * 单击 / 双击 / Alt 列块选择仍由 CodeMirror 默认逻辑处理。
+ */
+export const selectLineToEOL: Extension = EditorView.mouseSelectionStyle.of((view, event) => {
+  if (event.button !== 0 || event.altKey || event.detail < 3) return null;
+
+  const start = view.posAndSideAtCoords({ x: event.clientX, y: event.clientY }, false);
+  let startSel = view.state.selection;
+
+  const rangeAt = (pos: number) => {
+    const block = view.lineBlockAt(pos);
+    const line = view.state.doc.lineAt(pos);
+    return {
+      from: Math.max(block.from, line.from),
+      to: Math.min(block.to, line.to),
+    };
+  };
+
+  return {
+    update(update) {
+      if (update.docChanged) {
+        start.pos = update.changes.mapPos(start.pos);
+        startSel = startSel.map(update.changes);
+      }
+    },
+    get(curEvent, extend, multiple) {
+      const cur = view.posAndSideAtCoords({ x: curEvent.clientX, y: curEvent.clientY }, false);
+      const curRange = rangeAt(cur.pos);
+      let from = curRange.from;
+      let to = curRange.to;
+      if (start.pos !== cur.pos) {
+        const startRange = rangeAt(start.pos);
+        from = Math.min(startRange.from, from);
+        to = Math.max(startRange.to, to);
+      }
+      const range = EditorSelection.undirectionalRange(from, to);
+      if (extend) return startSel.replaceRange(startSel.main.extend(from, to, range.assoc));
+      if (multiple) return startSel.addRange(range);
+      return EditorSelection.create([range]);
+    },
+  };
+});
