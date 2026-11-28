@@ -58,10 +58,10 @@ let splashTimer1: number | undefined;
 let splashTimer2: number | undefined;
 let restoreFallback: number | undefined;
 
-/** 会话恢复完成后启动淡出：800ms 开始淡出，1300ms 移除 */
+/** 会话恢复完成后启动淡出：等入场动画（约 1.3s）播完再定格，3000ms 开始淡出，4000ms 移除 */
 function startSplashExit() {
-  splashTimer1 = window.setTimeout(() => (splashLeaving.value = true), 800);
-  splashTimer2 = window.setTimeout(() => (splashGone.value = true), 1300);
+  splashTimer1 = window.setTimeout(() => (splashLeaving.value = true), 3000);
+  splashTimer2 = window.setTimeout(() => (splashGone.value = true), 4000);
 }
 
 onBeforeUnmount(() => {
@@ -361,14 +361,15 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* 渐变背景：中央强调色光晕向外淡入面板色 */
+  /* 渐变背景：中央强调色光晕向外淡入面板色；--panel 为半透明磨砂色，需用实色 --chrome 打底 */
   background: radial-gradient(
     1100px 760px at 50% 42%,
     color-mix(in srgb, var(--accent) 16%, var(--panel)) 0%,
     var(--panel) 62%
   );
+  background-color: var(--chrome);
   opacity: 1;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.8s ease;
   user-select: none;
 }
 /* Logo 背后的柔光晕（缓慢呼吸） */
