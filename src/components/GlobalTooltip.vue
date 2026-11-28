@@ -14,11 +14,18 @@ watch(
   }
 );
 
-// 按实际气泡宽度收敛位置，确保气泡对准图标且不被窗口边缘裁切
+// 按实际气泡宽度收敛位置，确保气泡不被窗口边缘裁切
 const left = computed(() => {
   const half = width.value / 2;
   if (!half) return tipState.x;
   return Math.max(half + 6, Math.min(window.innerWidth - half - 6, tipState.x));
+});
+
+// 气泡被边缘收敛后整体偏移，箭头需反向补偿，才能始终指向锚点图标中心
+const arrowX = computed(() => {
+  if (!width.value) return null;
+  const offset = tipState.x - left.value;
+  return Math.max(12, Math.min(width.value - 12, width.value / 2 + offset));
 });
 </script>
 
@@ -29,7 +36,7 @@ const left = computed(() => {
       ref="el"
       class="app-tip"
       :class="[tipState.placement, { compact: tipState.compact }]"
-      :style="{ left: `${left}px`, top: `${tipState.y}px` }"
+      :style="{ left: `${left}px`, top: `${tipState.y}px`, '--arrow-x': arrowX === null ? undefined : `${arrowX}px` }"
     >
       {{ tipState.text }}
     </div>
@@ -60,7 +67,7 @@ const left = computed(() => {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
+  left: var(--arrow-x, 50%);
   transform: translateX(-50%);
   border: 7px solid transparent;
   border-top-color: var(--tip-border);
@@ -69,7 +76,7 @@ const left = computed(() => {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
+  left: var(--arrow-x, 50%);
   transform: translateX(-50%);
   border: 6px solid transparent;
   border-top-color: var(--tip-bg);

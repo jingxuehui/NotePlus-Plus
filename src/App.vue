@@ -20,7 +20,7 @@ const CommandPalette = defineAsyncComponent(() => import("./components/CommandPa
 import { installGlobalTooltip } from "./stores/tooltip";
 import { settings, initVisualSettings } from "./stores/settings";
 import { updater } from "./stores/updater";
-import { confirmChoice, toggleSettings, toggleUpdateCenter, toggleTools, togglePalette, ui } from "./stores/ui";
+import { confirmChoice, toggleSettings, toggleUpdateCenter, toggleTools, togglePalette, cycleMdPreview, ui } from "./stores/ui";
 import { registerCommands, type PaletteCommand } from "./stores/commands";
 import { t } from "./i18n";
 import {
@@ -179,6 +179,7 @@ registerCommands([
   { id: "edit.find", title: t("palette.cmd.find"), group: t("palette.groupEdit"), shortcut: "⌘F", keywords: "find search replace", run: () => openFindWindow() },
   { id: "edit.formatJson", title: t("palette.cmd.formatJson"), group: t("palette.groupEdit"), shortcut: "⇧⌥F", keywords: "format json pretty", run: () => formatJsonDocument() },
   { id: "view.settings", title: t("palette.cmd.settings"), group: t("palette.groupView"), shortcut: "⌘,", keywords: "settings preferences", run: () => toggleSettings() },
+  { id: "view.mdPreview", title: t("palette.cmd.mdPreview"), group: t("palette.groupView"), shortcut: "⇧⌘V", keywords: "markdown preview 预览", run: () => cycleMdPreview() },
   { id: "view.tools", title: t("palette.cmd.tools"), group: t("palette.groupView"), keywords: "tools", run: () => toggleTools(true) },
   { id: "view.updates", title: t("palette.cmd.updates"), group: t("palette.groupView"), keywords: "update check version", run: () => toggleUpdateCenter(true) },
   { id: "palette.commands", title: t("palette.cmd.commandPalette"), group: t("palette.groupView"), shortcut: "⇧⌘P", keywords: "command palette", run: () => togglePalette(true) },
@@ -246,6 +247,10 @@ function onKeydown(e: KeyboardEvent) {
   } else if (mod && key === "b") {
     e.preventDefault();
     settings.sidebarVisible = !settings.sidebarVisible;
+  } else if (mod && e.shiftKey && !e.altKey && key === "v") {
+    // Markdown 预览：编辑 / 全屏预览 / 分屏循环（非 Markdown 标签下切换无效果）
+    e.preventDefault();
+    cycleMdPreview();
   } else if (mod && key === ",") {
     e.preventDefault();
     toggleSettings();

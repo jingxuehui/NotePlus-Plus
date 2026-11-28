@@ -13,9 +13,9 @@ export const tipState = reactive({
 export function showTip(text: string, rect: DOMRect): void {
   if (!text) return;
   tipState.text = text;
-  // 顶部区域的目标没有足够空间在上方显示，改为显示在下方（箭头朝上）
-  // 顶栏空间有限，提示使用更紧凑的字号和内边距
-  tipState.compact = rect.top < 64;
+  // 顶部区域（标题栏、标签栏、Markdown 工具面板）统一使用紧凑提示，与顶栏其它按钮一致
+  // 阈值覆盖标签栏换行成两行时工具面板下移的情况
+  tipState.compact = rect.top < 200;
   tipState.placement = tipState.compact ? "bottom" : "top";
   tipState.x = rect.left + rect.width / 2;
   tipState.y =

@@ -1,4 +1,4 @@
-import { reactive, computed } from "vue";
+import { reactive, computed, ref } from "vue";
 import type { EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { createStateForFile, updateLanguageForPath, updateLanguageOverride } from "@/editor/setup";
@@ -14,6 +14,7 @@ import {
 import { imageMime, isImagePath } from "@/utils/image";
 import { pushRecent } from "./recent";
 import { settings } from "./settings";
+import { ui } from "./ui";
 import { notify } from "./toast";
 import { t } from "@/i18n";
 import { EMPTY_CURSOR, type CursorInfo } from "@/types";
@@ -108,11 +109,25 @@ export const editorHooks = {
     if (tab) {
       tab.dirty = true;
       const s = stateStore.get(tab.id);
-      if (s) updateCursorFromState(s);
+      if (s) {
+        updateCursorFromState(s);
+        // Markdown 预览开启时实时同步文档内容快照（关闭时跳过，避免大文档反复序列化）
+        if (ui.mdPreview !== "edit") mdDoc.value = s.doc.toString();
+      }
     }
   },
   onCursor: (info: CursorInfo) => Object.assign(cursorInfo, info),
 };
+
+/** 当前激活标签的文档内容快照（Markdown 预览渲染源，随编辑/切签同步） */
+export const mdDoc = ref("");
+
+/** 把激活标签的 CodeMirror 文档内容同步到 mdDoc（切签 / 切预览模式 / 挂载时调用） */
+export function syncMdDoc() {
+  const tab = activeTab.value;
+  const s = tab ? stateStore.get(tab.id) : null;
+  mdDoc.value = s ? s.doc.toString() : "";
+}
 
 function updateCursorFromState(state: EditorState) {
   const head = state.selection.main.head;

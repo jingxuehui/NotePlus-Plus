@@ -1,16 +1,28 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { onMounted, onBeforeUnmount, ref, watch, computed } from "vue";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
-import { activeTab, getState, setState, editorHooks, applyTabLanguage } from "@/stores/tabs";
+import { activeTab, getState, setState, editorHooks, applyTabLanguage, syncMdDoc, mdDoc } from "@/stores/tabs";
+import { ui } from "@/stores/ui";
 import { settings } from "@/stores/settings";
 import { viewRef } from "@/editor/view";
 import { reconfigureAppearance } from "@/editor/setup";
 import EditorContextMenu from "./EditorContextMenu.vue";
 import EditorSearchPanel from "./EditorSearchPanel.vue";
+import MarkdownPreview from "./MarkdownPreview.vue";
+import MarkdownToolbar from "./MarkdownToolbar.vue";
+import { fileExtension } from "@/editor/language";
 
 const container = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
+
+// Markdown 标签才显示预览入口；模式由标题栏按钮 / ⇧⌘V 切换
+const isMd = computed(() => ["md", "markdown"].includes(fileExtension(activeTab.value?.path ?? activeTab.value?.name ?? "")));
+const mdMode = computed(() => (isMd.value ? ui.mdPreview : "edit"));
+const editorCls = computed(() => ({
+  hidden: mdMode.value === "preview",
+  "md-split": mdMode.value === "split",
+}));
 
 const emptyState = EditorState.create({ doc: "" });
 
@@ -107,6 +119,7 @@ onMounted(() => {
   });
   viewRef.current = view;
   applyTabLanguage(view, activeTab.value);
+  syncMdDoc();
   view.focus();
 });
 
@@ -120,7 +133,13 @@ watch(activeTab, (tab) => {
   if (!view) return;
   view.setState(tab ? (getState(tab) ?? emptyState) : emptyState);
   applyTabLanguage(view, tab);
-  view.focus();
+  syncMdDoc();
+  if (mdMode.value === "edit") view.focus();
+});
+
+// 进入预览 / 分屏时立即刷新快照，保证内容与当前编辑状态一致
+watch(mdMode, (mode) => {
+  if (mode !== "edit") syncMdDoc();
 });
 
 // 主题 / 字号 / 换行设置变化时重新配置外观
@@ -133,7 +152,19 @@ watch(
 </script>
 
 <template>
-  <div ref="container" class="absolute inset-0 overflow-hidden" @contextmenu.prevent="onContextMenu" @mousedown.capture="onMouseDown" @mouseup.capture="onMouseUp"></div>
+  <!-- Markdown 文件专用工具面板，固定在编辑区顶部（红框区域） -->
+  <MarkdownToolbar v-if="isMd" class="absolute inset-x-0 top-0 z-10" />
+  <div ref="container" class="absolute inset-0 overflow-hidden" :class="[editorCls, { 'md-toolbar-offset': isMd }]" @contextmenu.prevent="onContextMenu" @mousedown.capture="onMouseDown" @mouseup.capture="onMouseUp"></div>
+  <MarkdownPreview
+    v-if="mdMode === 'preview'"
+    class="absolute inset-0 md-toolbar-offset"
+    :source="mdDoc"
+  />
+  <MarkdownPreview
+    v-else-if="mdMode === 'split'"
+    class="absolute inset-y-0 right-0 md-split-pane md-toolbar-offset"
+    :source="mdDoc"
+  />
   <EditorSearchPanel />
   <EditorContextMenu
     v-if="ctxMenuPos"
@@ -142,3 +173,19 @@ watch(
     @close="closeCtxMenu"
   />
 </template>
+
+<style scoped>
+/* Markdown 工具面板占顶部 38px，编辑器与预览整体下移，避免遮挡首行 */
+.md-toolbar-offset {
+  top: 38px;
+}
+/* 分屏：编辑器占左半，预览占右半（scoped 样式可作用于子组件根元素） */
+.md-split {
+  width: 50%;
+  right: auto;
+}
+.md-split-pane {
+  width: 50%;
+  border-left: 1px solid var(--border);
+}
+</style>

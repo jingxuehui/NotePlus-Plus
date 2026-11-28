@@ -7,13 +7,22 @@ interface ModalRequest {
   danger?: boolean;
 }
 
+export type MdPreviewMode = "edit" | "preview" | "split";
+
 export const ui = reactive({
   modal: null as ModalRequest | null,
   showSettings: false,
   showUpdateCenter: false,
   showTools: false,
   showPalette: false,
+  /** Markdown 预览模式：编辑 / 全屏预览 / 左右分屏（仅 Markdown 标签生效） */
+  mdPreview: "edit" as MdPreviewMode,
 });
+
+/** 循环切换 Markdown 预览模式：编辑 → 预览 → 分屏 → 编辑 */
+export function cycleMdPreview() {
+  ui.mdPreview = ui.mdPreview === "edit" ? "preview" : ui.mdPreview === "preview" ? "split" : "edit";
+}
 
 /** 打开 / 关闭命令面板 */
 export function togglePalette(force?: boolean) {
