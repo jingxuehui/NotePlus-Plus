@@ -10,7 +10,12 @@
         "minHeight": 600,
         "center": true,
         "dragDropEnabled": true,
-        "decorations": false
+        "decorations": false,
+        "transparent": true,
+        "windowEffects": {
+          "effects": ["acrylic"],
+          "state": "active"
+        }
       }
     ]
   },
