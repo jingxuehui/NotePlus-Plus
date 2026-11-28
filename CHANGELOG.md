@@ -3,6 +3,41 @@
 NotePlus+ 所有正式版本的变更记录。本文件由 `scripts/changelog.mjs` 从 Git 提交记录自动生成，
 执行 `pnpm release` 时会自动更新，发布到 GitHub / Gitee 的 Release 正文也取自这里。
 
+## [0.1.7] - 2026-11-26
+
+### 新增
+
+- 新增 Markdown 实时预览——markdown-it 渲染（禁原始 HTML 防注入），本地图片 asset 协议加载；编辑区顶部 Markdown 工具面板（加粗/标题/列表/代码块等插入）；预览模式循环切换（编辑/分屏/预览）；启用 assetProtocol
+- Windows 窗口同步磨砂玻璃效果——transparent + acrylic/windowBackground 材质，与 macOS 观感对齐
+- 磨砂玻璃主题——窗口透明 + underWindowBackground/acrylic 效果，13 套配色新增整套磨砂色板（SurfacePalette），新增 --chrome/--sidebar-solid/--panel-solid 分层变量保证可读性
+- 状态栏语言点击可直接切换语法高亮——自绘语言下拉（跟随/纯文本/各语言），按 tab 持久化 languageOverride 并联动 compartment 热切换
+- macOS 原生系统 UI 本地化——Info.plist 声明 CFBundleLocalizations + .lproj 资源打包，AppleLanguages 写入正确的语言 ID（zh-Hans/zh-Hant/en），保存对话框/覆盖确认等跟随应用内语言
+- 新增多光标/列块选择/代码折叠命令集（上/下加光标、列块选择、折叠全部/展开全部），状态栏显示多光标与折叠数量并可点击一键还原；快捷键与命令面板接入
+- 新增命令面板（CommandPalette）——⌘P 快速打开/最近/文件树文件搜索与命令模糊匹配（中英文关键词），⌘⇧P 命令模式；全局命令注册中心 stores/commands.ts；ShortcutHint 精简复用面板数据；新图标
+- 新增图片预览；修复 Windows 下多处问题与未保存内容丢失
+
+### 修复
+
+- 编辑器选区高亮与当前行修复——选区背景加 !important 覆盖 CodeMirror 内置高特异性规则；当前行高亮改为低透明强调色变量，不再盖住选区颜色
+- 黑色底板 Dock 图标动态切换前缩放到标准 512pt 尺寸（修复换回默认后残留缩放）；图标资源更新
+- Dock 图标样式切回默认时交还系统 icns（多尺寸渲染无白边），全套应用图标更新瘦身（icns 1.2MB→541KB）
+
+### 重构
+
+- 精简命令面板——移除与全局快捷键/界面控件重复的条目（关闭标签、多光标、缩放、侧栏切换），仅保留高价值命令
+- 精简命令面板为纯命令模式（移除文件搜索与双模式切换），欢迎页快捷键列表重构为共享数据渲染，移除冗余多光标辅助代码，净减约 220 行
+- 查找替换改为编辑器内嵌面板——移除独立查找窗口（FindDialog/Rust 窗口命令），bridge 重写为编辑器内查找（多行选区限定范围、正则替换支持捕获组、匹配计数防抖刷新、上限 5000）；F3/⇧F3/⌘F 快捷键保留
+
+### 样式
+
+- 标签页文件类型图标改为实色底——白字+白色内描边增加质感，未保存强调色外圈保留，字号微调
+- 界面圆角统一接入 --ui-radius 变量——所有组件圆角随设置联动缩放（弹窗+4、面板+2、控件基准、小元素-1）
+- 命令面板快捷键改为分段键帽渲染（[⌘]+[N] / Windows [Ctrl]+[N]），新增 shortcutKeys 平台解析；App 快捷键处理精简
+
+### 构建
+
+- 同步 Cargo.lock 到 v0.1.6
+
 ## [0.1.6] - 2026-11-26
 
 ### 新增
