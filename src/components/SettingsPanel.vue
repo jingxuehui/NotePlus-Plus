@@ -823,7 +823,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.42);
+  /* 遮罩只压暗主界面；弹窗自身用实色主题面板，避免半透明叠遮罩后发灰 */
+  background: rgba(0, 0, 0, 0.26);
   backdrop-filter: blur(3px);
 }
 
@@ -832,7 +833,10 @@ onBeforeUnmount(() => {
   height: min(700px, 90vh);
   display: flex;
   flex-direction: column;
-  background: var(--panel);
+  /* 用接近实色的主题面板色：颜色干净且随配色主题变化，磨砂质感由模糊与边缘透出体现 */
+  background: var(--panel-solid, var(--panel));
+  backdrop-filter: blur(28px) saturate(1.3);
+  -webkit-backdrop-filter: blur(28px) saturate(1.3);
   border: 1px solid var(--border);
   border-radius: calc(var(--ui-radius, 6px) + 4px);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
@@ -878,7 +882,8 @@ onBeforeUnmount(() => {
   width: 176px;
   flex-shrink: 0;
   padding: 10px 8px;
-  background: var(--panel-2);
+  /* 红框区域：不做颜色填充，直接透出磨砂背景 */
+  background: transparent;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -913,7 +918,8 @@ onBeforeUnmount(() => {
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius, 6px);
-  background: var(--panel-2);
+  /* 红框区域：不做颜色填充，只保留边框 */
+  background: transparent;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -1028,12 +1034,12 @@ onBeforeUnmount(() => {
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: calc(var(--ui-radius, 6px) + 2px);
-  background: var(--panel-2);
-  transition: border-color 0.15s, background-color 0.15s;
+  /* 红框区域（语言等设置卡片）：不做颜色填充，透出磨砂背景 */
+  background: transparent;
+  transition: border-color 0.15s;
 }
 .grid > .field:hover {
   border-color: var(--muted);
-  background: var(--hover);
 }
 .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .field-inline {

@@ -20,7 +20,12 @@
         "center": true,
         "dragDropEnabled": true,
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "transparent": true,
+        "windowEffects": {
+          "effects": ["underWindowBackground", "acrylic"],
+          "state": "active"
+        }
       }
     ],
     "security": {

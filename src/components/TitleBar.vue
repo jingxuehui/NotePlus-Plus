@@ -297,7 +297,8 @@ const emit = defineEmits<{
   height: 36px;
   flex-shrink: 0;
   padding-right: 10px;
-  background: var(--panel);
+  /* DBX 同款 chrome 实色：与标签栏/状态栏同一层 */
+  background: var(--chrome);
   border-bottom: 1px solid var(--border);
   user-select: none;
 }

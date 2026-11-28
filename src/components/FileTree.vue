@@ -20,7 +20,7 @@ async function pickFolder() {
 </script>
 
 <template>
-  <div class="sidebar-pane w-60 flex flex-col bg-panel border-r border-line shrink-0 min-h-0">
+  <div class="sidebar-pane w-60 flex flex-col border-r border-line shrink-0 min-h-0">
     <div class="flex items-center h-9 px-3 gap-1 border-b border-line shrink-0">
       <span class="text-xs font-semibold truncate flex-1" :title="treeState.root ?? ''">
         {{ treeState.rootName || t("tree.explorer") }}
@@ -68,3 +68,10 @@ async function pickFolder() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* DBX 同款侧栏实色分层 */
+.sidebar-pane {
+  background: var(--sidebar-solid);
+}
+</style>

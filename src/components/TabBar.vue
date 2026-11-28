@@ -127,7 +127,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 
 <template>
   <!-- 标签页：溢出模式由 body.tab-wrap 驱动（设置里可实时预览） -->
-  <div class="tab-strip flex h-9 bg-panel2 border-b border-line overflow-x-auto shrink-0">
+  <div class="tab-strip flex h-9 border-b border-line overflow-x-auto shrink-0">
     <div
       v-for="(tab, index) in tabsState.tabs"
       :key="tab.id"
@@ -361,6 +361,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
   height: 1px;
   margin: 4px 6px;
   background: var(--border);
+}
+
+/* DBX 同款 chrome 实色：与标题栏/状态栏同一层 */
+.tab-strip {
+  background: var(--chrome);
 }
 
 /* ===== 多行平铺：标签换行堆叠，最多约 4 行，超出后纵向滚动 ===== */

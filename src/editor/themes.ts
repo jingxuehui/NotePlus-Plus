@@ -43,7 +43,7 @@ export function darkTheme(): Extension {
       {
         "&": {
           color: "var(--text)",
-          backgroundColor: "var(--panel)",
+          backgroundColor: "var(--editor-bg)",
         },
         ".cm-content": { caretColor: "var(--accent)", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
@@ -62,7 +62,7 @@ export function darkTheme(): Extension {
           height: "100%",
         },
         ".cm-activeLineGutter": {
-          backgroundColor: "var(--hover)",
+          backgroundColor: "var(--editor-hover)",
           color: "var(--text)",
         },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
@@ -77,9 +77,9 @@ export function darkTheme(): Extension {
           borderRadius: "2px",
           color: "#16171c",
         },
-        ".cm-panels": { backgroundColor: "var(--panel-2)", color: "var(--text)" },
+        ".cm-panels": { backgroundColor: "var(--editor-bg-2)", color: "var(--text)" },
         ".cm-tooltip": {
-          backgroundColor: "var(--hover)",
+          backgroundColor: "var(--editor-hover)",
           border: "1px solid var(--border)",
           borderRadius: "6px",
         },
@@ -131,7 +131,7 @@ export function lightTheme(): Extension {
       {
         "&": {
           color: "var(--text)",
-          backgroundColor: "var(--panel)",
+          backgroundColor: "var(--editor-bg)",
         },
         ".cm-content": { caretColor: "var(--accent)", fontFamily: "'SF Mono', Menlo, Monaco, 'Courier New', monospace" },
         ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
@@ -147,7 +147,7 @@ export function lightTheme(): Extension {
           borderRight: "1px solid var(--border)",
           height: "100%",
         },
-        ".cm-activeLineGutter": { backgroundColor: "var(--panel-2)", color: "var(--text)" },
+        ".cm-activeLineGutter": { backgroundColor: "var(--editor-bg-2)", color: "var(--text)" },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 16px" },
         ".np-match": {
           backgroundColor: "rgba(240, 165, 30, 0.52)",
@@ -160,9 +160,9 @@ export function lightTheme(): Extension {
           borderRadius: "2px",
           color: "#1a1a1a",
         },
-        ".cm-panels": { backgroundColor: "var(--panel-2)", color: "var(--text)" },
+        ".cm-panels": { backgroundColor: "var(--editor-bg-2)", color: "var(--text)" },
         ".cm-tooltip": {
-          backgroundColor: "var(--panel)",
+          backgroundColor: "var(--editor-bg)",
           border: "1px solid var(--border)",
           borderRadius: "6px",
         },

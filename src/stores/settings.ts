@@ -275,10 +275,74 @@ function mixHex(base: string, accent: string, amount: number): string {
   return `#${ch(r1, r2)}${ch(g1, g2)}${ch(b1, b2)}`;
 }
 
-/** 面板基础色（与 style.css 的 :root / .theme-light 保持一致） */
-const SURFACE_BASE = {
-  dark: { bg: "#17181c", panel: "#1e1f24", panel2: "#232429", hover: "#2a2b32", border: "#2e2f36", gutter: "#1a1b20" },
-  light: { bg: "#f5f6f8", panel: "#ffffff", panel2: "#f0f2f5", hover: "#e4e8ee", border: "#dde1e7", gutter: "#f7f8fa" },
+interface SurfacePalette {
+  bg: string;
+  panel: string;
+  panel2: string;
+  hover: string;
+  border: string;
+  gutter: string;
+  editor: string;
+  text: string;
+  muted: string;
+  sidebar: string;
+  primary: string;
+}
+
+/** 13 套配色的完整表面色板：色值取自 DBX 的 html.theme-* 主题（浅/深各一套） */
+export const THEME_PALETTES: Record<AccentName, { light: SurfacePalette; dark: SurfacePalette }> = {
+  pearl: {
+    light: { bg: "#ecf0f5", panel: "#ffffff", panel2: "#edf1f6", hover: "#e2e9f2", border: "#d0d7e0", gutter: "#e5eaf1", editor: "#ffffff", text: "#282c34", muted: "#68717e", sidebar: "#eff2f6", primary: "#2e5fa6" },
+    dark: { bg: "#272b31", panel: "#26292e", panel2: "#2f333a", hover: "#373c45", border: "#68707e", gutter: "#1b1e22", editor: "#212429", text: "#caced6", muted: "#9299a4", sidebar: "#22252a", primary: "#9db1cd" },
+  },
+  mist: {
+    light: { bg: "#ecf0f5", panel: "#ffffff", panel2: "#edf1f6", hover: "#e2e9f2", border: "#d0d7e0", gutter: "#e5eaf1", editor: "#ffffff", text: "#282c34", muted: "#68717e", sidebar: "#eff2f6", primary: "#2e5fa6" },
+    dark: { bg: "#272b31", panel: "#26292e", panel2: "#2f333a", hover: "#373c45", border: "#68707e", gutter: "#1b1e22", editor: "#212429", text: "#caced6", muted: "#9299a4", sidebar: "#22252a", primary: "#9db1cd" },
+  },
+  graphite: {
+    light: { bg: "#e8ecf2", panel: "#ffffff", panel2: "#eef0f4", hover: "#e2e6ec", border: "#d2d7e0", gutter: "#e0e5ed", editor: "#ffffff", text: "#2a2d33", muted: "#6a707b", sidebar: "#ebeef3", primary: "#48505d" },
+    dark: { bg: "#26292f", panel: "#26282d", panel2: "#2f3239", hover: "#373a42", border: "#686e7a", gutter: "#1b1d21", editor: "#202227", text: "#c6c9cf", muted: "#9096a0", sidebar: "#212328", primary: "#aeb5c0" },
+  },
+  cobalt: {
+    light: { bg: "#e4ecf7", panel: "#ffffff", panel2: "#e8f0fa", hover: "#d8e5f6", border: "#c8d4e5", gutter: "#dae5f3", editor: "#ffffff", text: "#202b3a", muted: "#606f82", sidebar: "#e8eff8", primary: "#2b63b7" },
+    dark: { bg: "#202836", panel: "#1f2633", panel2: "#2b3546", hover: "#313e52", border: "#657790", gutter: "#161c26", editor: "#1b222e", text: "#c6cfdb", muted: "#8f9bab", sidebar: "#1c2330", primary: "#89addf" },
+  },
+  sage: {
+    light: { bg: "#e7efeb", panel: "#ffffff", panel2: "#e9f1ed", hover: "#dbeae3", border: "#cbd9d3", gutter: "#dde9e3", editor: "#ffffff", text: "#24302b", muted: "#61716a", sidebar: "#ebf2ee", primary: "#3a7b6a" },
+    dark: { bg: "#222d29", panel: "#222b28", panel2: "#2c3935", hover: "#32413c", border: "#647a71", gutter: "#181f1d", editor: "#1d2623", text: "#c6d0cc", muted: "#8f9d97", sidebar: "#1e2724", primary: "#8ab8a9" },
+  },
+  amber: {
+    light: { bg: "#f4e9cb", panel: "#fffffa", panel2: "#f7eed5", hover: "#efdbae", border: "#e0cfa8", gutter: "#ebdbb5", editor: "#fffffa", text: "#383020", muted: "#7b6946", sidebar: "#f7eed5", primary: "#955f1c" },
+    dark: { bg: "#302b21", panel: "#2d2920", panel2: "#3b3528", hover: "#473d2b", border: "#81704d", gutter: "#201d17", editor: "#27241c", text: "#d9d0bc", muted: "#a3967b", sidebar: "#29251d", primary: "#d5a94b" },
+  },
+  blush: {
+    light: { bg: "#f6e6ee", panel: "#ffffff", panel2: "#f6e8ef", hover: "#efd5e2", border: "#e2cad6", gutter: "#edd8e3", editor: "#ffffff", text: "#3d3038", muted: "#7e6273", sidebar: "#f8eaf1", primary: "#b8567b" },
+    dark: { bg: "#372c34", panel: "#342a31", panel2: "#43343e", hover: "#523b48", border: "#8b6c7c", gutter: "#251e23", editor: "#2c242a", text: "#ddcdd6", muted: "#a68c9a", sidebar: "#2f262d", primary: "#e2a0b8" },
+  },
+  vscode: {
+    light: { bg: "#dddddd", panel: "#ffffff", panel2: "#f3f3f3", hover: "#e5f1fb", border: "#e0e0e0", gutter: "#e5e5e5", editor: "#ffffff", text: "#333333", muted: "#6a6a6a", sidebar: "#f3f3f3", primary: "#007acc" },
+    dark: { bg: "#333333", panel: "#252526", panel2: "#2d2d30", hover: "#264f78", border: "#3c3c3c", gutter: "#1b1b1c", editor: "#1e1e1e", text: "#cccccc", muted: "#858585", sidebar: "#252526", primary: "#007acc" },
+  },
+  idea: {
+    light: { bg: "#e6e7eb", panel: "#ffffff", panel2: "#eff0f2", hover: "#dae7f9", border: "#d5d7db", gutter: "#dee1e7", editor: "#ffffff", text: "#2b2b2b", muted: "#6a6d71", sidebar: "#ebecf0", primary: "#4b6eaf" },
+    dark: { bg: "#3c3f41", panel: "#3c3f41", panel2: "#3c3f41", hover: "#484e56", border: "#555657", gutter: "#262626", editor: "#2b2b2b", text: "#bbbbbb", muted: "#8b8d8f", sidebar: "#313335", primary: "#6a87c5" },
+  },
+  xcode: {
+    light: { bg: "#e9edf3", panel: "#ffffff", panel2: "#ebeff5", hover: "#dbecff", border: "#cfd8e4", gutter: "#dde5ef", editor: "#ffffff", text: "#1f2937", muted: "#626e7e", sidebar: "#f2f5fa", primary: "#0a84ff" },
+    dark: { bg: "#2d333b", panel: "#252932", panel2: "#2d333b", hover: "#1d4575", border: "#5e6a7c", gutter: "#191d22", editor: "#1f2329", text: "#d7dde7", muted: "#959ead", sidebar: "#252932", primary: "#0a84ff" },
+  },
+  jetbrains: {
+    light: { bg: "#ebedf1", panel: "#ffffff", panel2: "#ebedf1", hover: "#e5e1fb", border: "#d3d8e0", gutter: "#e0e4eb", editor: "#ffffff", text: "#1f2328", muted: "#646c77", sidebar: "#f2f3f5", primary: "#6c5dd3" },
+    dark: { bg: "#2b2d30", panel: "#2b2d30", panel2: "#2b2d30", hover: "#3d3a59", border: "#4d5056", gutter: "#18191c", editor: "#1e1f22", text: "#dfe1e5", muted: "#a1a4ab", sidebar: "#2b2d30", primary: "#7b61ff" },
+  },
+  cursor: {
+    light: { bg: "#f2f3f5", panel: "#ffffff", panel2: "#eff1f5", hover: "#deebff", border: "#d5dae2", gutter: "#e4e8ef", editor: "#ffffff", text: "#1f242d", muted: "#656f7e", sidebar: "#f4f5f7", primary: "#3b82f6" },
+    dark: { bg: "#1b1e27", panel: "#151821", panel2: "#1b1e27", hover: "#1f3352", border: "#525b6f", gutter: "#0b0d14", editor: "#0f111a", text: "#d5d7de", muted: "#8e95a4", sidebar: "#151821", primary: "#6ba4ff" },
+  },
+  claude: {
+    light: { bg: "#f1e7db", panel: "#fffdf8", panel2: "#f2e7db", hover: "#ead8c6", border: "#ddcdbb", gutter: "#e6d8c7", editor: "#fffdf8", text: "#332b23", muted: "#756251", sidebar: "#efe7dc", primary: "#b86b3c" },
+    dark: { bg: "#312d28", panel: "#2a2723", panel2: "#37312b", hover: "#44382f", border: "#7f6c5b", gutter: "#1b1917", editor: "#211f1c", text: "#d8d0c4", muted: "#a39686", sidebar: "#2a2723", primary: "#d28a5f" },
+  },
 };
 
 /** 把一组设置应用到界面（支持设置弹框的实时预览） */
@@ -294,9 +358,15 @@ export function applyVisual(s: Settings) {
   const accent = ACCENTS[s.accent] ?? ACCENTS.cobalt;
   const light = s.theme === "light";
   const accentHex = light ? accent.light : accent.dark;
-  const base = light ? SURFACE_BASE.light : SURFACE_BASE.dark;
-  // 强调色低比例混入面板/边框/编辑器底色，让整体界面随配色主题变化（非仅高亮元素）
-  const mix = (color: string, amount: number) => mixHex(color, accentHex, amount);
+  // 与 DBX 一致：每套配色主题是一整套表面色板（背景/侧栏/边框/文字/编辑器），
+  // 而不是把高饱和强调色混进固定中性灰——主题色调干净、彼此差异明显
+  const p = (THEME_PALETTES[s.accent] ?? THEME_PALETTES.cobalt)[light ? "light" : "dark"];
+  // 磨砂玻璃：UI 变量带 alpha，让窗口底层的原生毛玻璃透出来；
+  // 编辑器内部使用同色但实色的 --editor-* 变量，视觉保持原样
+  const glass = (hex: string, alpha: string) => `${hex}${alpha}`;
+  // 主题色壁纸层：模拟 DBX 壁纸模式，让半透明磨砂透出的是柔和主题色画面，
+  // 而不是深色桌面。用色板里柔和的 primary 主色，避免染成高饱和蓝
+  const wash = mixHex(p.panel, p.primary, light ? 0.34 : 0.26);
   const accentVars: Array<[string, string]> = [
     ["--accent", accentHex],
     ["--accent-tint", light ? accent.tintLight : accent.tintDark],
@@ -306,12 +376,25 @@ export function applyVisual(s: Settings) {
     // 当前行高亮必须是低透明度：CodeMirror 选区层绘制在内容层下方，
     // 不透明的行背景会把当前行的选区颜色完全盖住
     ["--active-line", light ? `${accent.light}1f` : `${accent.dark}22`],
-    ["--bg", mix(base.bg, light ? 0.05 : 0.06)],
-    ["--panel", mix(base.panel, light ? 0.05 : 0.07)],
-    ["--panel-2", mix(base.panel2, light ? 0.08 : 0.09)],
-    ["--hover", mix(base.hover, light ? 0.11 : 0.12)],
-    ["--border", mix(base.border, light ? 0.15 : 0.17)],
-    ["--gutter", mix(base.gutter, light ? 0.08 : 0.07)],
+    // 整套表面色取自当前配色主题色板，半透明叠出磨砂
+    ["--bg", glass(p.bg, "b3")],
+    ["--panel", glass(p.panel, "a6")],
+    ["--panel-2", glass(p.panel2, "99")],
+    ["--hover", glass(p.hover, "8c")],
+    ["--border", p.border],
+    ["--gutter", p.gutter],
+    ["--text", p.text],
+    ["--muted", p.muted],
+    ["--sidebar", p.sidebar],
+    // 弹窗/菜单等需要高可读性的表面：接近实色的主题面板色
+    ["--panel-solid", `${p.panel}e6`],
+    // DBX 同款实色分层：顶栏/标签栏/状态栏用 chrome 色，侧栏用 sidebar 色
+    ["--chrome", p.bg],
+    ["--sidebar-solid", p.sidebar],
+    ["--editor-bg", p.editor],
+    ["--editor-bg-2", p.panel2],
+    ["--editor-hover", p.hover],
+    ["--glass-wash", `radial-gradient(130% 110% at 6% -12%, ${wash}${light ? "66" : "59"} 0%, transparent 62%), radial-gradient(120% 100% at 100% 112%, ${wash}${light ? "40" : "3d"} 0%, transparent 60%)`],
     ["--ui-radius", s.radius === "none" ? "0px" : s.radius === "large" ? "12px" : "6px"],
   ];
   // 同时写到 html 根节点和 body：CodeMirror 等注入到页面中的样式从根节点继承

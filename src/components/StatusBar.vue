@@ -117,7 +117,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 </script>
 
 <template>
-  <div class="status-bar flex items-center h-6 px-3 gap-4 bg-panel border-t border-line text-xs text-muted shrink-0 select-none">
+  <div class="status-bar flex items-center h-6 px-3 gap-4 border-t border-line text-xs text-muted shrink-0 select-none">
     <span class="truncate flex-1" :title="activeTab?.path ?? ''">
       {{ activeTab ? (activeTab.path ?? activeTab.name) : t("common.ready") }}
     </span>
@@ -184,6 +184,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick, true));
 </template>
 
 <style scoped>
+/* DBX 同款 chrome 实色：与标题栏/标签栏同一层 */
+.status-bar {
+  background: var(--chrome);
+}
 .clickable {
   cursor: pointer;
   border-radius: calc(var(--ui-radius, 6px) - 3px);

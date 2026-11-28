@@ -1,13 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #17181c;
-  --panel: #1e1f24;
-  --panel-2: #232429;
-  --hover: #2a2b32;
-  --border: #2e2f36;
-  --text: #d4d4d4;
-  --muted: #8a9099;
+  /* 磨砂玻璃：默认回退色取自 cobalt 主题色板，运行时由 applyVisual 按当前配色整套覆盖 */
+  --bg: #202836b3;
+  --panel: #1f2633a6;
+  --panel-2: #2b354699;
+  --hover: #313e528c;
+  --border: #657790;
+  --text: #c6cfdb;
+  --muted: #8f9bab;
+  --sidebar: #1c2330;
+  /* DBX 同款实色分层：顶栏/标签栏/状态栏用 chrome 色，侧栏用 sidebar 色 */
+  --chrome: #202836;
+  --sidebar-solid: #1c2330;
+  /* 弹窗/菜单等需要高可读性的表面：接近实色的主题面板色 */
+  --panel-solid: #1f2633e6;
+  /* 主题色壁纸层：让半透明磨砂透出柔和的主题色画面，而非深色桌面 */
+  --glass-wash: radial-gradient(130% 110% at 6% -12%, #3b496059 0%, transparent 62%),
+    radial-gradient(120% 100% at 100% 112%, #3b49603d 0%, transparent 60%);
   --accent: #4fc3f7;
   --selection-bg: #4fc3f78c;
   /* 当前行高亮用低透明度强调色，避免盖住绘制在下方的选区 */
@@ -16,16 +26,27 @@
   --tip-bg: #171b24;
   --tip-border: #333947;
   --tip-text: #f2f4f8;
+  /* 编辑器内部保持实色：不随界面磨砂变化 */
+  --editor-bg: #1b222e;
+  --editor-bg-2: #2b3546;
+  --editor-hover: #313e52;
+  --gutter: #161c26;
 }
 
 body.theme-light {
-  --bg: #f5f6f8;
-  --panel: #ffffff;
-  --panel-2: #f0f2f5;
-  --hover: #e4e8ee;
-  --border: #dde1e7;
-  --text: #2d3138;
-  --muted: #6b7280;
+  --bg: #e4ecf7b3;
+  --panel: #ffffffa6;
+  --panel-2: #e8f0fa99;
+  --hover: #d8e5f68c;
+  --border: #c8d4e5;
+  --text: #202b3a;
+  --muted: #606f82;
+  --sidebar: #e8eff8;
+  --chrome: #e4ecf7;
+  --sidebar-solid: #e8eff8;
+  --panel-solid: #ffffffe6;
+  --glass-wash: radial-gradient(130% 110% at 6% -12%, #b7cae766 0%, transparent 62%),
+    radial-gradient(120% 100% at 100% 112%, #b7cae740 0%, transparent 60%);
   --accent: #0b6cb5;
   --selection-bg: #0b6cb54d;
   --active-line: #0b6cb51f;
@@ -34,6 +55,10 @@ body.theme-light {
   --tip-bg: #1f2430;
   --tip-border: #39404f;
   --tip-text: #ffffff;
+  --editor-bg: #ffffff;
+  --editor-bg-2: #e8f0fa;
+  --editor-hover: #d8e5f6;
+  --gutter: #dae5f3;
 }
 
 * {
@@ -49,7 +74,8 @@ body,
 }
 
 body {
-  background: var(--bg);
+  /* 窗口透明，body 不铺底：由 .bg-app 的半透明层叠在原生磨砂背景上 */
+  background: transparent;
   color: var(--text);
   font-family: var(--ui-font-family, -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif);
   font-size: 13px;
@@ -109,7 +135,10 @@ body.layout-modern .status-bar {
 }
 
 /* 通用配色工具类 */
-.bg-app { background: var(--bg); }
+.bg-app {
+  background-color: var(--bg);
+  background-image: var(--glass-wash);
+}
 .bg-panel { background: var(--panel); }
 .bg-panel2 { background: var(--panel-2); }
 .text-main { color: var(--text); }
